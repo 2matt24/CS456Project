@@ -1,0 +1,132 @@
+.timer-container {
+  background: white;
+  border-radius: 20px;
+  padding: 30px;
+  margin: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.timer-header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.timer-header h3 {
+  font-size: 24px;
+  color: #333;
+  margin-bottom: 20px;
+}
+
+.session-toggle {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.session-toggle button {
+  padding: 10px 30px;
+  border: 2px solid #e0e0e0;
+  background: white;
+  border-radius: 25px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.session-toggle button.active {
+  background: #667eea;
+  color: white;
+  border-color: #667eea;
+}
+
+.timer-display {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 30px 0;
+}
+
+.progress-ring {
+  transform: rotate(-90deg);
+}
+
+.progress-ring-circle {
+  transition: stroke-dashoffset 0.3s;
+}
+
+.time-text {
+  position: absolute;
+  font-size: 48px;
+  font-weight: bold;
+  color: #333;
+  font-family: 'Courier New', monospace;
+}
+
+.timer-controls {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+  margin: 30px 0;
+}
+
+.control-btn {
+  padding: 15px 40px;
+  border: none;
+  border-radius: 15px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.start-btn {
+  background: #667eea;
+  color: white;
+}
+
+.start-btn:hover {
+  background: #5568d3;
+  transform: translateY(-2px);
+}
+
+.reset-btn {
+  background: #f0f0f0;
+  color: #333;
+}
+
+.reset-btn:hover {
+  background: #e0e0e0;
+  transform: translateY(-2px);
+}
+
+.timer-stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 15px;
+  margin-top: 30px;
+}
+
+.stat {
+  text-align: center;
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 12px;
+}
+
+.stat-label {
+  display: block;
+  font-size: 12px;
+  color: #999;
+  margin-bottom: 5px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stat-value {
+  display: block;
+  font-size: 18px;
+  font-weight: bold;
+  color: #333;
+}
