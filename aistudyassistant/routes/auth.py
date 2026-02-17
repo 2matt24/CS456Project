@@ -4,7 +4,7 @@
 # references: https://flask.palletsprojects.com/en/latest/tutorial/views/ . https://www.geeksforgeeks.org/python/flask-tutorial/
 # refereces: https://werkzeug.palletsprojects.com/en/latest/utils/#module-werkzeug.security  https://www.geeksforgeeks.org/python/flask-blueprints/
 
-
+#references: https://www.geeksforgeeks.org/python/how-to-hash-passwords-in-python/   || https://www.geeksforgeeks.org/python/sqlalchemy-tutorial/
 
 from flask import Blueprint, request, jsonify, session
 
@@ -30,8 +30,6 @@ def register():
         "message": "Registration endpoint reached",
         "email": email
     }), 200
-
-
 
 
 @auth_bp.route("/api/login", methods=["POST"])
