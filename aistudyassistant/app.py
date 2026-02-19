@@ -5,8 +5,6 @@ from flask_sqlalchemy import SQLAlchemy
 from dotenv import load_dotenv
 import os 
 
-
-
 from aistudyassistant.routes.auth import auth_bp
 
 from aistudyassistant.models.user import User
@@ -19,7 +17,7 @@ app.secret_key = "dev-secret"  # later move to .env
 
 
 
-CORS(app, supports_credentials=True)
+CORS(app, supports_credentials=True) 
 
 
 # the SQL connection string 
