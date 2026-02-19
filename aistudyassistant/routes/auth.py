@@ -11,7 +11,8 @@ from flask import Blueprint, request, jsonify, session
 from werkzeug.security import generate_password_hash, check_password_hash
 
 from aistudyassistant.models.user import User
-from aistudyassitant.extenions import db
+from aistudyassistant.extensions import db
+
 
 
 # blueprint instance(groups and organizes routes in modules)
@@ -25,15 +26,18 @@ auth_bp = Blueprint("auth", __name__)
 def register():
     data = request.get_json()
 
+    print("Incoming data:", data)
+
+
     if not data:
-        return {"error": "No data providded"}, 400
+        return {"error": "No data provided"}, 400
 
     email = data.get("email")
     password = data.get("password")
     first_name = data.get("firstName")
     last_name = data.get("lastName")
 
-    if not email or password: 
+    if not email or not password: 
         return{"error":"Email and password required to register"}, 400
 
     # Checking if an user already exists
@@ -72,16 +76,17 @@ def login():
     if not email or not password:
         return {"error": "Email and password required to login"}, 400
 
+#checking user email
     user = User.query.filter_by(Email=email).first()
 
     if not user:
         return {"error": "Invalid credentials"}, 401
 
-    # CHECK HASH
+    # checking hash 
     if not check_password_hash(user.PasswordHash, password):
         return {"error": "Invalid credentials"}, 401
 
-    # STORE NUMERIC USER ID
+    # storing the user id 
     session["user_id"] = user.UserID
 
     return {
@@ -90,7 +95,7 @@ def login():
     }, 200
 
 
-# ---------------- LOGOUT ----------------
+#--------- LOGOUT -----
 @auth_bp.route("/api/logout", methods=["POST"])
 def logout():
     session.clear()
