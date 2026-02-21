@@ -100,3 +100,19 @@
 .nav-item.active:hover {
   background: #5568d3;
 }
+
+.loading-text {
+    text-align: center;
+    padding: 40px;
+    color: #999;
+    font-size: 16px;
+}
+
+.error-text {
+    text-align: center;
+    padding: 20px;
+    color: #c00;
+    background: #fee;
+    border-radius: 12px;
+    margin: 20px;
+}
