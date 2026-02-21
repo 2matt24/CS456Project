@@ -3,9 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { IoMdAdd } from 'react-icons/io';
 import { MdCalendarToday, MdHome, MdChat, MdSettings } from 'react-icons/md';
 import CourseCard from '../components/CourseCard';
-import { coursesAPI } from '../services/api';
+import { coursesAPI, authAPI } from '../services/api';
 import { HiMenuAlt2 } from 'react-icons/hi';
-import { IoMdNotifications } from 'react-icons/io';
+import { IoMdNotifications, IoMdPower } from 'react-icons/io';
 import { FaUserCircle } from 'react-icons/fa';
 import '../styles/Dashboard.css';
 
@@ -18,6 +18,22 @@ function Dashboard() {
     useEffect(() => {
         loadCourses();
     }, []);
+
+   const [logoutMessage, setLogoutMessage] = useState('');
+
+const handleLogout = async () => {
+  try {
+    await authAPI.logout();
+    setLogoutMessage('Logging out...');
+    
+    setTimeout(() => {
+      navigate('/');
+    }, 1500); // Show message for 1.5 seconds then redirect
+  } catch (error) {
+    console.error('Logout error:', error);
+    navigate('/');
+  }
+};
 
     const loadCourses = async () => {
         try {
@@ -32,20 +48,29 @@ function Dashboard() {
     };
 
     return (
+         <>
+            {logoutMessage && (
+                <div className="logout-message">
+                    {logoutMessage}
+                </div>
+            )}
+
         <div className="dashboard-container">
             {/* Top navigation bar */}
             <div className="navbar">
-                <div className="menu-icon" onClick={() => navigate('/settings')}>
-                    <HiMenuAlt2 size={28} />
-                </div>
                 <div className="nav-icons">
-                    <span className="icon" onClick={() => navigate('/notifications')}>
-                    <IoMdNotifications size={24} />
-                    </span>
                     <span className="icon" onClick={() => navigate('/profile')}>
-                    <FaUserCircle size={24} />
+                        <FaUserCircle size={24} />
+                    </span>
+                    <span className="icon" onClick={() => navigate('/notifications')}>
+                        <IoMdNotifications size={24} />
                     </span>
                 </div>
+                    <div>
+                         <span className="icon logout-icon" onClick={handleLogout}>
+                         <IoMdPower size={24} />
+                        </span>
+                    </div>
             </div>
 
             {/* Welcome message */}
@@ -92,6 +117,7 @@ function Dashboard() {
                 </div>
             </div>
         </div>
+          </>
     );
 }
 

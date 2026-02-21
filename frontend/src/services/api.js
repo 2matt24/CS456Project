@@ -61,10 +61,10 @@ export const coursesAPI = {
     getAll: async () => {
         try {
 
-            const response = await fetch(`${API_BASE_URL}/api/courses`, {
+            /* const response = await fetch(`${API_BASE_URL}/api/courses`, {
               credentials: 'include'
             });
-            return await response.json();
+            return await response.json(); */
 
             return [
                 { courseID: 1, courseName: 'Data Structures', courseCode: 'CS201', color: '#667eea', icon: '📚' },
