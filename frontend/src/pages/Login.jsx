@@ -12,24 +12,25 @@ function Login() {
 
     const handleLogin = async (e) => {
         e.preventDefault();
-        setIsLoading(true);
-        setError('');
+        // setIsLoading(true);
+        // setError('');
 
-        try {
-            const result = await authAPI.login(email, password);
+        // try {
+        //     const result = await authAPI.login(email, password);
 
-            if (result.message === "Login successful" || result.user) {
-                // Login worked!
-                navigate('/dashboard');
-            } else {
-                setError('Login failed. Please try again.');
-            }
-        } catch (err) {
-            setError('Cannot connect to server. Make sure Flask is running on localhost:5000');
-            console.error('Login error:', err);
-        } finally {
-            setIsLoading(false);
-        }
+        //     if (result.message === "Login successful" || result.user) {
+        //         // Login worked!
+        //         navigate('/dashboard');
+        //     } else {
+        //         setError('Login failed. Please try again.');
+        //     }
+        // } catch (err) {
+        //     setError('Cannot connect to server. Make sure Flask is running on localhost:5000');
+        //     console.error('Login error:', err);
+        // } finally {
+        //     setIsLoading(false);
+        // }
+        navigate('/dashboard');
     };
 
     return (
@@ -73,10 +74,10 @@ function Login() {
                 </form>
 
                 <button className="btn-secondary">
-                    <span className="google-icon">G</span> Sign up with Google
+                    <span className="google-icon"></span> Sign up with Google
                 </button>
                 <button className="btn-secondary">
-                    <span className="apple-icon">🍎</span> Sign up with Apple
+                    <span className="apple-icon"></span> Sign up with Apple
                 </button>
 
                 <p className="terms-text">

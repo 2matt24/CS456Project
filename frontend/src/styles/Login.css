@@ -132,3 +132,25 @@
 form {
     width: 100%;
 }
+/* Responsive Design */
+@media (min-width: 768px) {
+  .login-container {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 40px;
+  }
+
+  .login-card {
+    max-width: 500px;
+    padding: 60px 50px;
+  }
+
+  .app-title {
+    font-size: 36px;
+  }
+
+  .robot-illustration {
+    width: 180px;
+    height: 180px;
+    font-size: 140px;
+  }
+}

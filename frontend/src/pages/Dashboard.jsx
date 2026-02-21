@@ -1,7 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { IoMdAdd } from 'react-icons/io';
+import { MdCalendarToday, MdHome, MdChat, MdSettings } from 'react-icons/md';
 import CourseCard from '../components/CourseCard';
 import { coursesAPI } from '../services/api';
+import { HiMenuAlt2 } from 'react-icons/hi';
+import { IoMdNotifications } from 'react-icons/io';
+import { FaUserCircle } from 'react-icons/fa';
 import '../styles/Dashboard.css';
 
 function Dashboard() {
@@ -30,10 +35,16 @@ function Dashboard() {
         <div className="dashboard-container">
             {/* Top navigation bar */}
             <div className="navbar">
-                <div className="menu-icon">☰</div>
+                <div className="menu-icon" onClick={() => navigate('/settings')}>
+                    <HiMenuAlt2 size={28} />
+                </div>
                 <div className="nav-icons">
-                    <span className="icon">🔔</span>
-                    <span className="icon">👤</span>
+                    <span className="icon" onClick={() => navigate('/notifications')}>
+                    <IoMdNotifications size={24} />
+                    </span>
+                    <span className="icon" onClick={() => navigate('/profile')}>
+                    <FaUserCircle size={24} />
+                    </span>
                 </div>
             </div>
 
@@ -64,11 +75,21 @@ function Dashboard() {
 
             {/* Bottom navigation */}
             <div className="bottom-nav">
-                <div className="nav-item active">➕</div>
-                <div className="nav-item">📅</div>
-                <div className="nav-item">🏠</div>
-                <div className="nav-item">💬</div>
-                <div className="nav-item">⚙️</div>
+                <div className="nav-item active"> {/* onClick={() => navigate('/courses/new')}> */}
+                    <IoMdAdd size={28} />
+                </div>
+                <div className="nav-item"> {/* onClick={() => navigate('/schedule')}> */}
+                    <MdCalendarToday size={24} />
+                </div>
+                <div className="nav-item"> {/* onClick={() => navigate('/dashboard')}> */}
+                    <MdHome size={26} />
+                </div>
+                <div className="nav-item"> {/* onClick={() => navigate('/chat')}> */}
+                    <MdChat size={24} />
+                </div>
+                <div className="nav-item"> {/* onClick={() => navigate('/settings') }> */}
+                    <MdSettings size={26} />
+                </div>
             </div>
         </div>
     );

@@ -87,6 +87,7 @@
   justify-content: center;
   border-radius: 50%;
   transition: background 0.3s;
+  color:#5568d3
 }
 
 .nav-item.active {
@@ -115,4 +116,51 @@
     background: #fee;
     border-radius: 12px;
     margin: 20px;
+}
+/* Responsive Design - Mobile First */
+@media (min-width: 768px) {
+  /* Tablet and Desktop */
+  .dashboard-container {
+    max-width: 100%;
+    margin: 0;
+    box-shadow: none;
+    background: #f8f9fa;
+  }
+
+  .navbar {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px 40px;
+  }
+
+  .welcome-text {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 30px 40px;
+    font-size: 32px;
+  }
+
+  .section {
+    max-width: 1400px;
+    margin: 0 auto 40px;
+    padding: 0 40px;
+  }
+
+  .courses-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+  }
+
+  .bottom-nav {
+    max-width: 1400px;
+    padding: 20px 0;
+  }
+}
+
+@media (min-width: 1200px) {
+  /* Large Desktop */
+  .courses-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
