@@ -21,7 +21,6 @@ app.config["SESSION_COOKIE_SECURE"] = False
 
 
 
-CORS(app, supports_credentials=True) 
 CORS(app, supports_credentials=True, origins=['*'])
 
 
