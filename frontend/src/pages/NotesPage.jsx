@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { notesAPI } from '../services/api';
+import { IoMdAdd, IoMdNotifications, IoMdCheckmark } from 'react-icons/io';
+import { IoArrowBack } from 'react-icons/io5';
+import { MdCalendarToday, MdHome, MdChat, MdSettings } from 'react-icons/md';
+import { FaUserCircle } from 'react-icons/fa';
 import '../styles/NotesPage.css';
 
 function NotesPage() {
@@ -64,10 +68,14 @@ function NotesPage() {
         <div className="notes-page-container">
             {/* Top navigation */}
             <div className="navbar">
-                <div className="menu-icon" onClick={() => navigate(`/course/${courseId}`)}>←</div>
+                <div className="menu-icon" onClick={() => navigate(`/course/${courseId}`)}>
+                    <IoArrowBack size={28} />
+                </div>
                 <h3>Create Note</h3>
                 <div className="nav-icons">
-                    <span className="icon">✓</span>
+                    <span className="icon">
+                        <IoMdCheckmark size={28} />
+                    </span>
                 </div>
             </div>
 
@@ -151,11 +159,21 @@ function NotesPage() {
 
             {/* Bottom navigation */}
             <div className="bottom-nav">
-                <div className="nav-item">➕</div>
-                <div className="nav-item">📅</div>
-                <div className="nav-item">🏠</div>
-                <div className="nav-item active">💬</div>
-                <div className="nav-item">⚙️</div>
+                <div className="nav-item" onClick={() => navigate('/courses/new')}>
+                    <IoMdAdd size={28} />
+                </div>
+                <div className="nav-item" onClick={() => navigate('/schedule')}>
+                    <MdCalendarToday size={24} />
+                </div>
+                <div className="nav-item" onClick={() => navigate('/dashboard')}>
+                    <MdHome size={26} />
+                </div>
+                <div className="nav-item active" onClick={() => navigate('/chat')}>
+                    <MdChat size={24} />
+                </div>
+                <div className="nav-item" onClick={() => navigate('/settings')}>
+                    <MdSettings size={26} />
+                </div>
             </div>
         </div>
     );
