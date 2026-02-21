@@ -13,11 +13,15 @@ from aistudyassistant.models.user import User
 load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = "dev-secret"  # later move to .env
+app.secret_key = os.getenv("SECRET_KEY")
+
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = "None"
+app.config["SESSION_COOKIE_SECURE"] = False
 
 
 
-CORS(app, supports_credentials=True) 
+CORS(app, supports_credentials=True, origins=['*'])
 
 
 # the SQL connection string 
@@ -71,4 +75,4 @@ def health():
     return {"status": "ok"}
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run()

@@ -3,29 +3,32 @@ import { useNavigate } from 'react-router-dom';
 import { authAPI } from '../services/api';
 import '../styles/Login.css';
 
-function Login() {
+function Register() {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleLogin = async (e) => {
+  const handleRegister = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
     
     try {
-      const result = await authAPI.login(email, password);
+      const result = await authAPI.register(email, password, firstName, lastName);
       
-      if (result.message === "Login successful" || result.user) {
-        navigate('/dashboard');
+      if (result.message) {
+        alert('Registration successful! You can now login.');
+        navigate('/');
       } else {
-        setError('Login failed. Please try again.');
+        setError('Registration failed. Please try again.');
       }
     } catch (err) {
       setError('Cannot connect to server.');
-      console.error('Login error:', err);
+      console.error('Register error:', err);
     } finally {
       setIsLoading(false);
     }
@@ -34,14 +37,32 @@ function Login() {
   return (
     <div className="login-container">
       <div className="login-card">
-        <h1 className="app-title">Welcome to<br/>StudyBuddyAI</h1>
-        <p className="login-subtitle">Already Registered? Log in below</p>
+        <h1 className="app-title">Sign Up for<br/>StudyBuddyAI</h1>
+        <p className="login-subtitle">Already have an account? <a href="/" style={{color: '#667eea'}}>Log in</a></p>
         
         <div className="robot-illustration">
           🤖
         </div>
 
-        <form onSubmit={handleLogin}>
+        <form onSubmit={handleRegister}>
+          <input
+            type="text"
+            placeholder="First Name"
+            value={firstName}
+            onChange={(e) => setFirstName(e.target.value)}
+            className="login-input"
+            required
+          />
+
+          <input
+            type="text"
+            placeholder="Last Name"
+            value={lastName}
+            onChange={(e) => setLastName(e.target.value)}
+            className="login-input"
+            required
+          />
+          
           <input
             type="email"
             placeholder="Email"
@@ -67,18 +88,9 @@ function Login() {
             className="btn-primary" 
             disabled={isLoading}
           >
-            {isLoading ? 'Logging in...' : 'Login'}
+            {isLoading ? 'Creating Account...' : 'Sign Up'}
           </button>
         </form>
-        <button className="btn-primary" onClick={() => navigate('/register')}>
-        Sign up with Email
-        </button>
-        <button className="btn-secondary">
-          <span className="google-icon"></span> Sign up with Google
-        </button>
-        <button className="btn-secondary">
-          <span className="apple-icon"></span> Sign up with Apple
-        </button>
 
         <p className="terms-text">
           By creating an account, you agree to StudyBuddyAI's{' '}
@@ -89,4 +101,4 @@ function Login() {
   );
 }
 
-export default Login;
+export default Register;

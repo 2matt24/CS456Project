@@ -1,4 +1,4 @@
-﻿const API_BASE_URL = 'http://localhost:5000';
+﻿﻿const API_BASE_URL = 'https://cs456project.onrender.com';
 
 // Auth endpoints
 export const authAPI = {
@@ -57,17 +57,15 @@ export const authAPI = {
     }
 };
 
-// Courses endpoints (mock for now - partner will build these)
 export const coursesAPI = {
     getAll: async () => {
         try {
-            // When his endpoint is ready, uncomment this:
-            // const response = await fetch(`${API_BASE_URL}/api/courses`, {
-            //   credentials: 'include'
-            // });
-            // return await response.json();
 
-            // Mock data for now
+            const response = await fetch(`${API_BASE_URL}/api/courses`, {
+              credentials: 'include'
+            });
+            return await response.json();
+
             return [
                 { courseID: 1, courseName: 'Data Structures', courseCode: 'CS201', color: '#667eea', icon: '📚' },
                 { courseID: 2, courseName: 'Web Development', courseCode: 'CS456', color: '#f093fb', icon: '💻' },
@@ -82,16 +80,15 @@ export const coursesAPI = {
 
     create: async (courseName, courseCode, semester, color, icon) => {
         try {
-            // When his endpoint is ready, uncomment this:
-            // const response = await fetch(`${API_BASE_URL}/api/courses`, {
-            //   method: 'POST',
-            //   headers: { 'Content-Type': 'application/json' },
-            //   credentials: 'include',
-            //   body: JSON.stringify({ courseName, courseCode, semester, color, icon })
-            // });
-            // return await response.json();
+        
+            const response = await fetch(`${API_BASE_URL}/api/courses`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              credentials: 'include',
+              body: JSON.stringify({ courseName, courseCode, semester, color, icon })
+            });
+            return await response.json();
 
-            // Mock for now
             console.log('Creating course (mock):', { courseName, courseCode, semester, color, icon });
             return { success: true, courseID: Date.now() };
         } catch (error) {
@@ -118,7 +115,6 @@ export const notesAPI = {
 
     create: async (courseId, title, content) => {
         try {
-            // When his endpoint is ready, uncomment this:
             // const response = await fetch(`${API_BASE_URL}/api/notes`, {
             //   method: 'POST',
             //   headers: { 'Content-Type': 'application/json' },
