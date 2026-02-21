@@ -17,6 +17,26 @@
   border-bottom: 1px solid #e0e0e0;
 }
 
+.nav-left {
+  display: flex;
+  gap: 15px;
+}
+
+.logout-btn {
+  background: #ff6b6b;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.logout-btn:hover {
+  background: #ff5252;
+}
+
 .menu-icon {
   font-size: 24px;
   cursor: pointer;
@@ -31,6 +51,17 @@
 .icon {
   font-size: 20px;
   cursor: pointer;
+  color: #666;
+  cursor: pointer;
+  transition: color 0.3s;
+}
+
+.icon:hover {
+  color: #667eea;
+}
+
+.logout-icon:hover {
+  color: #ff6b6b;
 }
 
 .welcome-text {
@@ -119,7 +150,6 @@
 }
 /* Responsive Design - Mobile First */
 @media (min-width: 768px) {
-  /* Tablet and Desktop */
   .dashboard-container {
     max-width: 100%;
     margin: 0;
@@ -163,4 +193,25 @@
   .courses-grid {
     grid-template-columns: repeat(2, 1fr);
   }
+}
+
+.logout-message {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: #667eea;
+  color: white;
+  padding: 20px 40px;
+  border-radius: 12px;
+  font-size: 18px;
+  font-weight: 600;
+  z-index: 1000;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  animation: fadeIn 0.3s;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
+  to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
 }
