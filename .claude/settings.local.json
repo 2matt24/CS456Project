@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -C /c/Users/mrsap/Documents/GitHub/CS456Project log --oneline -15)"
+    ]
+  }
+}
