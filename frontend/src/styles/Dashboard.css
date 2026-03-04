@@ -17,6 +17,26 @@
   border-bottom: 1px solid #e0e0e0;
 }
 
+.nav-left {
+  display: flex;
+  gap: 15px;
+}
+
+.logout-btn {
+  background: #ff6b6b;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.logout-btn:hover {
+  background: #ff5252;
+}
+
 .menu-icon {
   font-size: 24px;
   cursor: pointer;
@@ -31,6 +51,17 @@
 .icon {
   font-size: 20px;
   cursor: pointer;
+  color: #666;
+  cursor: pointer;
+  transition: color 0.3s;
+}
+
+.icon:hover {
+  color: #667eea;
+}
+
+.logout-icon:hover {
+  color: #ff6b6b;
 }
 
 .welcome-text {
@@ -87,6 +118,7 @@
   justify-content: center;
   border-radius: 50%;
   transition: background 0.3s;
+  color:#5568d3
 }
 
 .nav-item.active {
@@ -99,4 +131,87 @@
 
 .nav-item.active:hover {
   background: #5568d3;
+}
+
+.loading-text {
+    text-align: center;
+    padding: 40px;
+    color: #999;
+    font-size: 16px;
+}
+
+.error-text {
+    text-align: center;
+    padding: 20px;
+    color: #c00;
+    background: #fee;
+    border-radius: 12px;
+    margin: 20px;
+}
+/* Responsive Design - Mobile First */
+@media (min-width: 768px) {
+  .dashboard-container {
+    max-width: 100%;
+    margin: 0;
+    box-shadow: none;
+    background: #f8f9fa;
+  }
+
+  .navbar {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px 40px;
+  }
+
+  .welcome-text {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 30px 40px;
+    font-size: 32px;
+  }
+
+  .section {
+    max-width: 1400px;
+    margin: 0 auto 40px;
+    padding: 0 40px;
+  }
+
+  .courses-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+  }
+
+  .bottom-nav {
+    max-width: 1400px;
+    padding: 20px 0;
+  }
+}
+
+@media (min-width: 1200px) {
+  /* Large Desktop */
+  .courses-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.logout-message {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: #667eea;
+  color: white;
+  padding: 20px 40px;
+  border-radius: 12px;
+  font-size: 18px;
+  font-weight: 600;
+  z-index: 1000;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  animation: fadeIn 0.3s;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
+  to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
 }
