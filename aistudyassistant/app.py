@@ -6,10 +6,9 @@ from dotenv import load_dotenv
 import os 
 
 from aistudyassistant.routes.auth import auth_bp
-from aistudyassistant.routes.notes import notes_bp
 
 from aistudyassistant.models.user import User
-from aistudyassistant.models.note import Note
+
 
 load_dotenv()
 
