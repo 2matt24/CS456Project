@@ -187,21 +187,3 @@
   background: #6a4391;
   transform: translateY(-2px);
 }
-
-.message {
-    padding: 15px;
-    border-radius: 12px;
-    margin-bottom: 20px;
-    text-align: center;
-    font-weight: 600;
-}
-
-    .message.success {
-        background: #d4edda;
-        color: #155724;
-    }
-
-    .message.error {
-        background: #f8d7da;
-        color: #721c24;
-    }
