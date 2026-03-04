@@ -104,3 +104,53 @@
   color: #667eea;
   text-decoration: none;
 }
+.login-input {
+    width: 100%;
+    padding: 15px;
+    border: 2px solid #e0e0e0;
+    border-radius: 12px;
+    font-size: 16px;
+    margin-bottom: 15px;
+    transition: border-color 0.3s;
+}
+
+    .login-input:focus {
+        outline: none;
+        border-color: #667eea;
+    }
+
+.error-message {
+    background: #fee;
+    color: #c00;
+    padding: 10px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    font-size: 14px;
+    text-align: center;
+}
+
+form {
+    width: 100%;
+}
+/* Responsive Design */
+@media (min-width: 768px) {
+  .login-container {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 40px;
+  }
+
+  .login-card {
+    max-width: 500px;
+    padding: 60px 50px;
+  }
+
+  .app-title {
+    font-size: 36px;
+  }
+
+  .robot-illustration {
+    width: 180px;
+    height: 180px;
+    font-size: 140px;
+  }
+}
