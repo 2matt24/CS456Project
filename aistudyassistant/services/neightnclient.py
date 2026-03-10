@@ -110,3 +110,8 @@ def _extract_summary(payload: dict) -> Optional[str]:
                     return content.strip()
 
     return None
+
+_client = N8NClient()
+
+def summarize_text(text: str, max_sentences: int = 3) -> str:
+    return _client.summarize_text(text, max_sentences)
