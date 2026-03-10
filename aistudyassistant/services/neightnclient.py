@@ -1,4 +1,4 @@
-"""Client helpers for external summarization via n8n (Gemini workflow)."""
+
 
 from __future__ import annotations
 
@@ -55,6 +55,10 @@ class N8NClient:
             with request.urlopen(req, timeout=self.timeout_seconds) as response:
                 body = response.read().decode("utf-8")
                 status = response.status
+                print("RAW N8N BODY:", body)
+            #with request.urlopen(req, timeout=self.timeout_seconds) as response:
+              #  body = response.read().decode("utf-8")
+               # status = response.status
         except error.HTTPError as exc:
             detail = exc.read().decode("utf-8", errors="ignore")
             raise SummarizationError(
@@ -68,6 +72,7 @@ class N8NClient:
 
         try:
             payload = json.loads(body) if body else {}
+            print("N8N RESPONSE:", payload) 
         except json.JSONDecodeError as exc:
             raise SummarizationError("n8n webhook returned non-JSON response") from exc
 
@@ -90,6 +95,11 @@ def _extract_summary(payload: dict) -> Optional[str]:
     summary = payload.get("summary")
     if isinstance(summary, str) and summary.strip():
         return summary.strip()
+
+    # Gemini simplified output
+    content = payload.get("content")
+    if isinstance(content, str) and content.strip():
+        return content.strip()
 
     # alternative shape often used by wrapper nodes
     data = payload.get("data")
