@@ -51,7 +51,7 @@ db.init_app(app)
 
 
 app.register_blueprint(auth_bp) 
-
+app.register_blueprint(notes_bp)
 
 @app.route("/api/test-users")
 def test_users():
