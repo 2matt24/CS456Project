@@ -7,6 +7,7 @@ import os
 
 from aistudyassistant.routes.auth import auth_bp
 from aistudyassistant.routes.notes import notes_bp
+from aistudyassistant.routes.courses import courses_bp
 
 from aistudyassistant.models.user import User
 from aistudyassistant.models.note import Note
@@ -52,6 +53,7 @@ db.init_app(app)
 
 app.register_blueprint(auth_bp) 
 app.register_blueprint(notes_bp)
+app.register_blueprint(courses_bp)
 
 @app.route("/api/test-users")
 def test_users():
