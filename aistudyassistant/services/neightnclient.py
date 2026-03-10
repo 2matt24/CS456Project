@@ -78,9 +78,8 @@ class N8NClient:
 
         summary = _extract_summary(payload)
         if not summary:
-            raise SummarizationError(
-                "n8n webhook response does not include a summary field"
-            )
+            print("Invalid n8n response:", payload)
+            raise SummarizationError("Invalid response from AI workflow")
 
         return summary
 
@@ -108,16 +107,7 @@ def _extract_summary(payload: dict) -> Optional[str]:
         if isinstance(nested, str) and nested.strip():
             return nested.strip()
 
-    # optional OpenAI/Gemini-style forwarding format
-    choices = payload.get("choices")
-    if isinstance(choices, list) and choices:
-        first = choices[0]
-        if isinstance(first, dict):
-            message = first.get("message")
-            if isinstance(message, dict):
-                content = message.get("content")
-                if isinstance(content, str) and content.strip():
-                    return content.strip()
+    
 
     return None
 
