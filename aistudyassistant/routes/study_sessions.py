@@ -44,6 +44,8 @@ def get_study_sessions():
 
 @study_sessions_bp.route("/api/study-sessions", methods=["POST"])
 def create_study_session():
+    from datetime import datetime
+
     user_id = _current_user_id()
     if not user_id:
         return {"error": "Authentication required"}, 401
@@ -73,7 +75,11 @@ def create_study_session():
     if session_type not in {"study", "break"}:
         return {"error": "sessionType must be one of: study, break"}, 400
 
-    owned_course = Course.query.filter_by(CourseID=course_id, UserID=user_id).first()
+    owned_course = Course.query.filter_by(
+        CourseID=course_id,
+        UserID=user_id
+    ).first()
+
     if not owned_course:
         return {"error": "Course not found"}, 404
 
@@ -82,6 +88,8 @@ def create_study_session():
         CourseID=course_id,
         SessionType=session_type,
         DurationMinutes=duration_minutes,
+        StartTime=datetime.utcnow(),
+        CreatedAt=datetime.utcnow()
     )
 
     db.session.add(study_session)
