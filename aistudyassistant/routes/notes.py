@@ -4,6 +4,7 @@ from flask import Blueprint, request, session
 
 from aistudyassistant.extensions import db
 from aistudyassistant.models.note import Note
+from aistudyassistant.models.course import Course
 from aistudyassistant.services.neightnclient import summarize_text
 
 # blueprint for notes route
@@ -17,11 +18,11 @@ def _current_user_id():
 def _serialize_note(note: Note):
     return {
         "noteID": note.NoteID,
-        "userID": note.UserID,
         "courseID": note.CourseID,
         "title": note.Title,
         "content": note.Content,
-        "summary": note.Summary,
+        "fileName": note.FileName,
+        "fileType": note.FileType,
         "createdAt": note.CreatedAt.isoformat() if note.CreatedAt else None,
         "updatedAt": note.UpdatedAt.isoformat() if note.UpdatedAt else None,
     }
@@ -35,12 +36,18 @@ def get_notes():
 
     course_id = request.args.get("courseId", type=int)
 
-    query = Note.query.filter_by(UserID=user_id)
+    query = (
+    db.session.query(Note)
+    .join(Course, Note.CourseID == Course.CourseID)
+    .filter(Course.UserID == user_id)
+)
+
     if course_id is not None:
-        query = query.filter_by(CourseID=course_id)
+        query = query.filter(Note.CourseID == course_id)
 
     notes = query.order_by(Note.CreatedAt.desc()).all()
     return {"notes": [_serialize_note(note) for note in notes]}, 200
+
 
 
 @notes_bp.route("/api/notes", methods=["POST"])
@@ -57,14 +64,26 @@ def create_note():
 
     if not title:
         return {"error": "title is required"}, 400
+
     if not content:
         return {"error": "content is required"}, 400
 
+    if not course_id:
+        return {"error": "courseId is required"}, 400
+
+    # SECURITY: verify course belongs to user
+    course = Course.query.filter_by(
+        CourseID=course_id,
+        UserID=user_id
+    ).first()
+
+    if not course:
+        return {"error": "Invalid course"}, 403
+
     note = Note(
-        UserID=user_id,
         CourseID=course_id,
         Title=title,
-        Content=content,
+        Content=content
     )
 
     db.session.add(note)
@@ -73,26 +92,18 @@ def create_note():
     return {"message": "Note created", "note": _serialize_note(note)}, 201
 
 
-@notes_bp.route("/api/notes/<int:note_id>", methods=["GET"])
-def get_note(note_id):
-    user_id = _current_user_id()
-    if not user_id:
-        return {"error": "Authentication required"}, 401
-
-    note = Note.query.filter_by(NoteID=note_id, UserID=user_id).first()
-    if not note:
-        return {"error": "Note not found"}, 404
-
-    return {"note": _serialize_note(note)}, 200
-
-
 @notes_bp.route("/api/notes/<int:note_id>", methods=["PUT"])
 def update_note(note_id):
     user_id = _current_user_id()
     if not user_id:
         return {"error": "Authentication required"}, 401
 
-    note = Note.query.filter_by(NoteID=note_id, UserID=user_id).first()
+    note = (
+    db.session.query(Note)
+    .join(Course, Note.CourseID == Course.CourseID)
+    .filter(Note.NoteID == note_id, Course.UserID == user_id)
+    .first()
+)
     if not note:
         return {"error": "Note not found"}, 404
 
@@ -112,9 +123,6 @@ def update_note(note_id):
 
     if "courseId" in data:
         note.CourseID = data.get("courseId")
-
-    if "summary" in data:
-        note.Summary = (data.get("summary") or "").strip() or None
 
     db.session.commit()
 
@@ -140,31 +148,14 @@ def summarize_note_content():
         return {"error": "maxSentences must be an integer"}, 400
 
     max_sentences = min(max(max_sentences, 1), 10)
-    summary = summarize_text(content, max_sentences=max_sentences)
+
+    try:
+        summary = summarize_text(content, max_sentences=max_sentences)
+    except Exception as e:
+        print("AI summarization failed:", e)
+        return {"error": "AI summarization service unavailable"}, 503
 
     return {"summary": summary}, 200
 
 
-@notes_bp.route("/api/notes/<int:note_id>/summarize", methods=["POST"])
-def summarize_and_save_note(note_id):
-    user_id = _current_user_id()
-    if not user_id:
-        return {"error": "Authentication required"}, 401
 
-    note = Note.query.filter_by(NoteID=note_id, UserID=user_id).first()
-    if not note:
-        return {"error": "Note not found"}, 404
-
-    data = request.get_json() or {}
-    max_sentences = data.get("maxSentences", 3)
-
-    try:
-        max_sentences = int(max_sentences)
-    except (TypeError, ValueError):
-        return {"error": "maxSentences must be an integer"}, 400
-
-    max_sentences = min(max(max_sentences, 1), 10)
-    note.Summary = summarize_text(note.Content, max_sentences=max_sentences)
-    db.session.commit()
-
-    return {"message": "Summary generated", "note": _serialize_note(note)}, 200
