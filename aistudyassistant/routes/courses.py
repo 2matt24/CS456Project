@@ -35,7 +35,7 @@ def get_courses():
         .order_by(Course.CourseName.asc())
         .all()
     )
-    return [_serialize_course(course) for course in courses], 200
+    return {"courses": [_serialize_course(course) for course in courses]}, 200
 
 
 @courses_bp.route("/api/courses", methods=["POST"])
