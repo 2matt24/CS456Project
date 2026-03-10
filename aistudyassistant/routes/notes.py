@@ -1,12 +1,12 @@
 #routes for notes
-
+# march 3rd 2026 Amath Gaye
 from flask import Blueprint, request, session
 
 from aistudyassistant.extensions import db
 from aistudyassistant.models.note import Note
 from aistudyassistant.services.neightnclient import summarize_text
 
-
+# blueprint for notes route
 notes_bp = Blueprint("notes", __name__)
 
 
