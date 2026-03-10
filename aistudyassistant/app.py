@@ -8,9 +8,12 @@ import os
 from aistudyassistant.routes.auth import auth_bp
 from aistudyassistant.routes.notes import notes_bp
 from aistudyassistant.routes.courses import courses_bp
+from aistudyassistant.routes.study_sessions import study_sessions_bp
 
 from aistudyassistant.models.user import User
 from aistudyassistant.models.note import Note
+from aistudyassistant.models.course import Course
+from aistudyassistant.models.study_session import StudySession
 
 load_dotenv()
 
@@ -54,6 +57,7 @@ db.init_app(app)
 app.register_blueprint(auth_bp) 
 app.register_blueprint(notes_bp)
 app.register_blueprint(courses_bp)
+app.register_blueprint(study_sessions_bp)
 
 @app.route("/api/test-users")
 def test_users():
