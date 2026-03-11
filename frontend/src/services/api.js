@@ -1,4 +1,4 @@
-﻿﻿const API_BASE_URL = 'https://cs456project.onrender.com';
+﻿const API_BASE_URL = 'https://cs456project.onrender.com';
 
 // Auth endpoints
 export const authAPI = {

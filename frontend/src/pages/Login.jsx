@@ -74,10 +74,10 @@ function Login() {
         Sign up with Email
         </button>
         <button className="btn-secondary">
-          <span className="google-icon"></span> Sign up with Google
+          <span className="google-icon">G</span> Sign up with Google
         </button>
         <button className="btn-secondary">
-          <span className="apple-icon"></span> Sign up with Apple
+          <span className="apple-icon">🍎</span> Sign up with Apple
         </button>
 
         <p className="terms-text">
