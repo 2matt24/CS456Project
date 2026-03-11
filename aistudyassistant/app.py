@@ -25,21 +25,25 @@ app = Flask(__name__)
 #app.secret_key = os.getenv("SECRET_KEY")
 app.secret_key = os.getenv("SECRET_KEY", "dev-secret-key")
 
+#app.config["SESSION_COOKIE_HTTPONLY"] = True
+#app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+#app.config["SESSION_COOKIE_SECURE"] = False
 app.config["SESSION_COOKIE_HTTPONLY"] = True
-app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
-app.config["SESSION_COOKIE_SECURE"] = False
+app.config["SESSION_COOKIE_SAMESITE"] = os.getenv("SESSION_COOKIE_SAMESITE", "None")
+app.config["SESSION_COOKIE_SECURE"] = os.getenv("SESSION_COOKIE_SECURE", "true").lower() == "true"
 
 
+#CORS
+allowed_origins = [
+    origin.strip()
+    for origin in os.getenv(
+        "CORS_ORIGINS",
+        "https://cs456project.vercel.app,http://localhost:5173"
+    ).split(",")
+    if origin.strip()
+]
 
-#CORS(app, supports_credentials=True, origins=['*'])
-CORS(
-    app,
-    supports_credentials=True,
-    origins=[
-        "http://localhost:5173",
-        "https://cs456project.vercel.app"
-    ]
-)
+CORS(app, supports_credentials=True, origins=allowed_origins)
 
 # the SQL connection string 
 
