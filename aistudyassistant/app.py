@@ -26,13 +26,20 @@ app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", "dev-secret-key")
 
 app.config["SESSION_COOKIE_HTTPONLY"] = True
-app.config["SESSION_COOKIE_SAMESITE"] = "None"
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 app.config["SESSION_COOKIE_SECURE"] = False
 
 
 
-CORS(app, supports_credentials=True, origins=['*'])
-
+#CORS(app, supports_credentials=True, origins=['*'])
+CORS(
+    app,
+    supports_credentials=True,
+    origins=[
+        "http://localhost:5173",
+        "https://cs456project.vercel.app"
+    ]
+)
 
 # the SQL connection string 
 
