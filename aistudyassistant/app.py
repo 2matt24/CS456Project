@@ -1,19 +1,29 @@
+from dotenv import load_dotenv
+load_dotenv()
+
+
 
 from flask import Flask
 from flask_cors import CORS 
 from flask_sqlalchemy import SQLAlchemy
-from dotenv import load_dotenv
+
 import os 
 
 from aistudyassistant.routes.auth import auth_bp
+from aistudyassistant.routes.notes import notes_bp
+from aistudyassistant.routes.courses import courses_bp
+from aistudyassistant.routes.study_sessions import study_sessions_bp
 
 from aistudyassistant.models.user import User
+from aistudyassistant.models.note import Note
+from aistudyassistant.models.course import Course
+from aistudyassistant.models.study_session import StudySession
 
 
-load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = os.getenv("SECRET_KEY")
+#app.secret_key = os.getenv("SECRET_KEY")
+app.secret_key = os.getenv("SECRET_KEY", "dev-secret-key")
 
 app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = "None"
@@ -50,7 +60,9 @@ db.init_app(app)
 
 
 app.register_blueprint(auth_bp) 
-
+app.register_blueprint(notes_bp)
+app.register_blueprint(courses_bp)
+app.register_blueprint(study_sessions_bp)
 
 @app.route("/api/test-users")
 def test_users():
