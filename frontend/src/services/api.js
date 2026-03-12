@@ -1,5 +1,30 @@
 ﻿const API_BASE_URL = 'https://cs456project.onrender.com';
 
+class ApiError extends Error {
+  constructor(message, status) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+  }
+}
+
+async function parseResponse(response, defaultMessage) {
+  let data = null;
+
+  try {
+    data = await response.json();
+  } catch {
+    data = null;
+  }
+
+  if (!response.ok) {
+    const message = data?.error || data?.message || defaultMessage;
+    throw new ApiError(message, response.status);
+  }
+
+  return data;
+}
+
 
 // Auth endpoints
 export const authAPI = {
@@ -21,20 +46,14 @@ export const authAPI = {
   },
 
   login: async (email, password) => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ email, password })
-      });
+    const response = await fetch(`${API_BASE_URL}/api/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ email, password })
+    });
 
-      if (!response.ok) throw new Error('Login failed');
-      return await response.json();
-    } catch (error) {
-      console.error('Login error:', error);
-      throw error;
-    }
+    return parseResponse(response, 'Login failed');
   },
 
   logout: async () => {
@@ -181,21 +200,14 @@ export const notesAPI = {
   },
 
   summarize: async (content) => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/notes/summarize`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ content })
-      });
+    const response = await fetch(`${API_BASE_URL}/api/notes/summarize`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ content })
+    });
 
-      if (!response.ok) throw new Error('Failed to generate summary');
-
-      return await response.json();
-    } catch (error) {
-      console.error('Summarize error:', error);
-      throw error;
-    }
+    return parseResponse(response, 'Failed to generate summary');
   }
 };
 

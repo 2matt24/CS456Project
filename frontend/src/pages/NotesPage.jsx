@@ -125,7 +125,9 @@ function NotesPage() {
       setSummary(response.summary || 'No summary was returned.');
       setSummaryMessage('Summary generated using AI service.');
     } catch (error) {
-      console.error('Summary generation failed:', error);
+      if (error?.status && error.status !== 503) {
+        console.error('Summary generation failed:', error);
+      }
       const fallbackSummary = buildFallbackSummary(noteContent);
       setSummary(fallbackSummary);
       setSummaryMessage('AI summary service is unavailable right now. Displaying a local fallback summary.');
