@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import os
-from typing import Optional
+from typing import Any, Optional
 from urllib import error, request
 
 
@@ -34,11 +34,12 @@ class N8NClient:
             )
 
         payload = {
-    "content": text,
-    "maxSentences": max_sentences,
-    "provider": "gemini",
-    "task": "summarize_notes",
-}
+            "content": text,
+            "text": text,
+            "maxSentences": max_sentences,
+            "provider": "gemini",
+            "task": "summarize_notes",
+        }
 
         headers = {"Content-Type": "application/json"}
         if self.webhook_key:
@@ -47,7 +48,7 @@ class N8NClient:
         req = request.Request(
             self.webhook_url,
             data=json.dumps(payload).encode("utf-8"),
-            headers=headers,
+            headers={**headers, "Accept": "application/json, text/plain"},
             method="POST",
         )
 
@@ -55,10 +56,6 @@ class N8NClient:
             with request.urlopen(req, timeout=self.timeout_seconds) as response:
                 body = response.read().decode("utf-8")
                 status = response.status
-                print("RAW N8N BODY:", body)
-            #with request.urlopen(req, timeout=self.timeout_seconds) as response:
-              #  body = response.read().decode("utf-8")
-               # status = response.status
         except error.HTTPError as exc:
             detail = exc.read().decode("utf-8", errors="ignore")
             raise SummarizationError(
@@ -70,44 +67,52 @@ class N8NClient:
         if status < 200 or status >= 300:
             raise SummarizationError(f"n8n webhook returned status {status}")
 
+        if not body or not body.strip():
+            raise SummarizationError("n8n webhook returned an empty response")
+
         try:
-            payload = json.loads(body) if body else {}
-            print("N8N RESPONSE:", payload) 
-        except json.JSONDecodeError as exc:
-            raise SummarizationError("n8n webhook returned non-JSON response") from exc
+            payload = json.loads(body)
+        except json.JSONDecodeError:
+            # Some workflows return plain text rather than JSON.
+            return body.strip()
 
         summary = _extract_summary(payload)
         if not summary:
-            print("Invalid n8n response:", payload)
             raise SummarizationError("Invalid response from AI workflow")
 
         return summary
 
 
-def _extract_summary(payload: dict) -> Optional[str]:
+def _extract_summary(payload: Any) -> Optional[str]:
     """Accept common n8n response formats and extract summary text."""
+
+    if isinstance(payload, str) and payload.strip():
+        return payload.strip()
+
+    if isinstance(payload, list):
+        for item in payload:
+            nested_summary = _extract_summary(item)
+            if nested_summary:
+                return nested_summary
+        return None
 
     if not isinstance(payload, dict):
         return None
 
-    # direct response shape: {"summary": "..."}
-    summary = payload.get("summary")
-    if isinstance(summary, str) and summary.strip():
-        return summary.strip()
+    for key in ("summary", "content", "text", "output", "message", "response"):
+        value = payload.get(key)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
 
-    # Gemini simplified output
-    content = payload.get("content")
-    if isinstance(content, str) and content.strip():
-        return content.strip()
+    for key in ("data", "result", "body", "json", "message"):
+        nested_summary = _extract_summary(payload.get(key))
+        if nested_summary:
+            return nested_summary
 
-    # alternative shape often used by wrapper nodes
-    data = payload.get("data")
-    if isinstance(data, dict):
-        nested = data.get("summary")
-        if isinstance(nested, str) and nested.strip():
-            return nested.strip()
-
-    
+    if "choices" in payload and isinstance(payload["choices"], list):
+        nested_summary = _extract_summary(payload["choices"])
+        if nested_summary:
+            return nested_summary
 
     return None
 
