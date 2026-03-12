@@ -1,20 +1,47 @@
 import StudyTimer from '../components/StudyTimer.jsx';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { coursesAPI, notesAPI } from '../services/api';
 import '../styles/CoursePage.css';
 
 function CoursePage() {
   const navigate = useNavigate();
   const { courseId } = useParams();
-  const [activeTab, setActiveTab] = useState('notes');
+  const [course, setCourse] = useState(null);
+  const [notes, setNotes] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  const course = {
-    name: 'Spring 25 | Tues/Thurs 11am - 12:30pm | JU STEAM 102',
-    notes: [
-      { id: 1, title: 'Lesson 6 Summary', image: '📝', rating: 4 },
-      { id: 2, title: 'Lesson 6 Summary', image: '📝', rating: 5 },
-    ]
-  };
+  useEffect(() => {
+    const loadCourseData = async () => {
+      setIsLoading(true);
+      setError('');
+
+      try {
+        const [courses, courseNotes] = await Promise.all([
+          coursesAPI.getAll(),
+          notesAPI.getForCourse(Number(courseId)),
+        ]);
+
+        const selectedCourse = courses.find((item) => String(item.courseID) === String(courseId));
+
+        if (!selectedCourse) {
+          setError('Course not found.');
+          return;
+        }
+
+        setCourse(selectedCourse);
+        setNotes(courseNotes);
+      } catch (loadError) {
+        console.error('Course page load error:', loadError);
+        setError('Failed to load course details.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadCourseData();
+  }, [courseId]);
 
   return (
     <div className="course-container">
@@ -26,36 +53,50 @@ function CoursePage() {
         </div>
       </div>
 
-      {/* Course header */}
-      <div className="course-header">
-        <h2 className="course-title">Course Title</h2>
-        <p className="course-info">{course.name}</p>
-      </div>
+      {isLoading && <p className="loading-text">Loading course...</p>}
+      {error && <p className="error-text">{error}</p>}
 
-      {/* Course images/materials */}
-      <div className="course-images">
-        <div className="image-placeholder">📸</div>
-        <div className="image-placeholder">📸</div>
-      </div>
+      {course && !isLoading && (
+        <>
+          <div className="course-header">
+            <h2 className="course-title">{course.courseName}</h2>
+            <p className="course-info">
+              {[course.semester, course.courseCode].filter(Boolean).join(' | ') || 'Course details'}
+            </p>
+          </div>
 
-      {/* Notes list */}
-      <div className="notes-section">
-        {course.notes.map(note => (
-          <div key={note.id} className="note-card">
-            <div className="note-icon">{note.image}</div>
-            <div className="note-details">
-              <h4>{note.title}</h4>
-              <div className="rating">
-                {'⭐'.repeat(note.rating)}
-              </div>
+          <div className="course-images">
+            <div className="image-placeholder">{course.icon || '📚'}</div>
+            <div className="image-placeholder" style={{ background: course.color || '#667eea', color: '#fff' }}>
+              {notes.length} Notes
             </div>
           </div>
-        ))}
-      </div>
 
-     {/* Action buttons */}
+          <div className="notes-section">
+            {notes.length === 0 ? (
+              <div className="note-card">
+                <div className="note-details">
+                  <h4>No notes yet</h4>
+                  <p>Create your first note summary for this course.</p>
+                </div>
+              </div>
+            ) : (
+              notes.map((note) => (
+                <div key={note.noteID} className="note-card">
+                  <div className="note-icon">📝</div>
+                  <div className="note-details">
+                    <h4>{note.title}</h4>
+                    <small>{new Date(note.createdAt).toLocaleString()}</small>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </>
+      )}
+
       <div className="action-buttons">
-        <button 
+        <button
           className="btn-action btn-primary"
           onClick={() => navigate(`/course/${courseId}/notes/new`)}
         >
@@ -66,10 +107,8 @@ function CoursePage() {
         </button>
       </div>
 
-      {/* Study Timer */}
       <StudyTimer />
 
-      {/* Bottom navigation */}
       <div className="bottom-nav">
         <div className="nav-item">➕</div>
         <div className="nav-item">📅</div>
