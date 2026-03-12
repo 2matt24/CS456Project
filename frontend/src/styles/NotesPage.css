@@ -187,3 +187,16 @@
   background: #6a4391;
   transform: translateY(-2px);
 }
+.error-text,
+.success-text {
+  margin: 0 0 12px;
+  font-size: 14px;
+}
+
+.error-text {
+  color: #c0392b;
+}
+
+.success-text {
+  color: #1f8f3f;
+}
