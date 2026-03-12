@@ -17,6 +17,7 @@ function App() {
         <Route path="/courses/new" element={<AddCoursePage />} />
         <Route path="/course/:courseId" element={<CoursePage />} />
         <Route path="/course/:courseId/notes/new" element={<NotesPage />} />
+        <Route path="/course/:courseId/notes/:noteId" element={<NotesPage />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </BrowserRouter>

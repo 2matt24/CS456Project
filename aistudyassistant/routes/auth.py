@@ -1,6 +1,5 @@
-
-# Feb 10th 2026, Amath Gaye. 
-#authentication 
+# Feb 10th 2026, Amath Gaye.
+#authentication
 # references: https://flask.palletsprojects.com/en/latest/tutorial/views/ . https://www.geeksforgeeks.org/python/flask-tutorial/
 # refereces: https://werkzeug.palletsprojects.com/en/latest/utils/#module-werkzeug.security  https://www.geeksforgeeks.org/python/flask-blueprints/
 
@@ -20,7 +19,7 @@ auth_bp = Blueprint("auth", __name__)
 
 
 
-#registering route 
+#registering route
 
 @auth_bp.route("/api/register", methods=["POST"])
 def register():
@@ -37,17 +36,17 @@ def register():
     first_name = data.get("firstName")
     last_name = data.get("lastName")
 
-    if not email or not password: 
+    if not email or not password:
         return{"error":"Email and password required to register"}, 400
 
     # Checking if an user already exists
-    existing_user = User.query.filter_by(Email=email).first() #sql query filtering email 
+    existing_user = User.query.filter_by(Email=email).first() #sql query filtering email
     if existing_user:
         return {"error": "User already exists"}, 400
 
     #hashing the password
     hashedPassword = generate_password_hash(password)
-    
+
     #matching
     newUser = User(
         Email= email,
@@ -82,16 +81,20 @@ def login():
     if not user:
         return {"error": "Invalid credentials"}, 401
 
-    # checking hash 
+    # checking hash
     if not check_password_hash(user.PasswordHash, password):
         return {"error": "Invalid credentials"}, 401
 
-    # storing the user id 
+    # storing the user id
     session["user_id"] = user.UserID
 
     return {
         "message": "Login successful",
-        "user": user.Email
+        "user": {
+            "email": user.Email,
+            "firstName": user.FirstName,
+            "lastName": user.LastName,
+        }
     }, 200
 
 

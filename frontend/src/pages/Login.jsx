@@ -17,8 +17,12 @@ function Login() {
     
     try {
       const result = await authAPI.login(email, password);
-      
+
       if (result.message === "Login successful" || result.user) {
+        const userProfile = typeof result.user === 'object'
+          ? result.user
+          : { email: result.user };
+        localStorage.setItem('studybuddy_user', JSON.stringify(userProfile));
         navigate('/dashboard');
       } else {
         setError('Login failed. Please try again.');
