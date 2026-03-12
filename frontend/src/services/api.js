@@ -11,7 +11,7 @@ export const authAPI = {
         credentials: 'include',
         body: JSON.stringify({ email, password, firstName, lastName })
       });
-      
+
       if (!response.ok) throw new Error('Registration failed');
       return await response.json();
     } catch (error) {
@@ -28,7 +28,7 @@ export const authAPI = {
         credentials: 'include',
         body: JSON.stringify({ email, password })
       });
-      
+
       if (!response.ok) throw new Error('Login failed');
       return await response.json();
     } catch (error) {
@@ -43,7 +43,7 @@ export const authAPI = {
         method: 'POST',
         credentials: 'include'
       });
-      
+
       return await response.json();
     } catch (error) {
       console.error('Logout error:', error);
@@ -59,13 +59,13 @@ export const coursesAPI = {
       const response = await fetch(`${API_BASE_URL}/api/courses`, {
         credentials: 'include'
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to fetch courses');
       }
-      
+
       const data = await response.json();
-      // Backend returns {"courses": [...]}
+      // Backend returns {"courses": [...]} 
       return data.courses || data || [];
     } catch (error) {
       console.error('Get courses error:', error);
@@ -81,14 +81,14 @@ export const coursesAPI = {
         credentials: 'include',
         body: JSON.stringify({ courseName, courseCode, semester, color, icon })
       });
-      
+
       if (!response.ok) throw new Error('Failed to create course');
-      
+
       const data = await response.json();
-      return { 
-        success: true, 
+      return {
+        success: true,
         courseID: data.course?.courseID,
-        message: data.message 
+        message: data.message
       };
     } catch (error) {
       console.error('Create course error:', error);
@@ -99,14 +99,31 @@ export const coursesAPI = {
 
 // Notes endpoints
 export const notesAPI = {
+
+  getAll: async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/notes`, {
+        credentials: 'include'
+      });
+
+      if (!response.ok) throw new Error('Failed to fetch notes');
+
+      const data = await response.json();
+      return data.notes || [];
+    } catch (error) {
+      console.error('Get all notes error:', error);
+      return [];
+    }
+  },
+
   getForCourse: async (courseId) => {
     try {
       const response = await fetch(`${API_BASE_URL}/api/notes?courseId=${courseId}`, {
         credentials: 'include'
       });
-      
+
       if (!response.ok) throw new Error('Failed to fetch notes');
-      
+
       const data = await response.json();
       // Backend returns {notes: [...]}
       return data.notes || [];
@@ -124,17 +141,41 @@ export const notesAPI = {
         credentials: 'include',
         body: JSON.stringify({ courseId, title, content })
       });
-      
+
       if (!response.ok) throw new Error('Failed to create note');
-      
+
       const data = await response.json();
-      return { 
-        success: true, 
+      return {
+        success: true,
         noteID: data.note?.noteID,
-        message: data.message
+        message: data.message,
+        note: data.note
       };
     } catch (error) {
       console.error('Create note error:', error);
+      throw error;
+    }
+  },
+
+  update: async (noteId, courseId, title, content) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/notes/${noteId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ courseId, title, content })
+      });
+
+      if (!response.ok) throw new Error('Failed to update note');
+
+      const data = await response.json();
+      return {
+        success: true,
+        message: data.message,
+        note: data.note
+      };
+    } catch (error) {
+      console.error('Update note error:', error);
       throw error;
     }
   },
@@ -147,9 +188,9 @@ export const notesAPI = {
         credentials: 'include',
         body: JSON.stringify({ content })
       });
-      
+
       if (!response.ok) throw new Error('Failed to generate summary');
-      
+
       return await response.json();
     } catch (error) {
       console.error('Summarize error:', error);
@@ -168,12 +209,12 @@ export const studySessionsAPI = {
         credentials: 'include',
         body: JSON.stringify({ courseId, sessionType, durationMinutes })
       });
-      
+
       if (!response.ok) throw new Error('Failed to save study session');
-      
+
       const data = await response.json();
-      return { 
-        success: true, 
+      return {
+        success: true,
         sessionID: data.session?.sessionID,
         message: data.message
       };
