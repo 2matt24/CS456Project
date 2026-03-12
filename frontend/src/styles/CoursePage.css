@@ -121,3 +121,16 @@
   background: #764ba2;
   color: white;
 }
+.loading-text,
+.error-text {
+  padding: 0 20px;
+  margin: 12px 0;
+}
+
+.error-text {
+  color: #c0392b;
+}
+
+.note-details small {
+  color: #666;
+}

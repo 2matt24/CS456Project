@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { notesAPI } from '../services/api';
 import '../styles/NotesPage.css';
 
 function NotesPage() {
@@ -10,49 +11,66 @@ function NotesPage() {
   const [uploadedFile, setUploadedFile] = useState(null);
   const [summary, setSummary] = useState('');
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
 
-  const handleFileUpload = (e) => {
+  const handleFileUpload = async (e) => {
     const file = e.target.files[0];
-    if (file) {
-      setUploadedFile(file);
-      setNoteTitle(file.name);
-      // In real app, you'd read the file content here
-      setNoteContent(`Content from ${file.name} will be extracted here...`);
+    if (!file) {
+      return;
+    }
+
+    setUploadedFile(file);
+    setNoteTitle(file.name);
+
+    try {
+      const text = await file.text();
+      setNoteContent(text);
+      setErrorMessage('');
+    } catch (error) {
+      console.error('File read error:', error);
+      setNoteContent('');
+      setErrorMessage('Could not read this file. Please copy/paste your note content manually.');
     }
   };
 
-  const handleSaveNote = () => {
-    // This will connect to your backend later
-    const newNote = {
-      title: noteTitle,
-      content: noteContent,
-      courseId: courseId,
-      createdAt: new Date().toISOString()
-    };
-    
-    console.log('Saving note:', newNote);
-    alert('Note saved! (Backend integration coming soon)');
-    
-    // Clear form
-    setNoteTitle('');
-    setNoteContent('');
-    setUploadedFile(null);
+  const handleSaveNote = async () => {
+    setIsSaving(true);
+    setErrorMessage('');
+    setSuccessMessage('');
+
+    try {
+      await notesAPI.create(Number(courseId), noteTitle, noteContent);
+      setSuccessMessage('Note saved successfully.');
+      setNoteTitle('');
+      setNoteContent('');
+      setUploadedFile(null);
+    } catch (error) {
+      console.error('Saving note failed:', error);
+      setErrorMessage('Failed to save note. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const handleGenerateSummary = () => {
-    // This will call your partner's AI endpoint later
+  const handleGenerateSummary = async () => {
     setIsGeneratingSummary(true);
-    
-    // Simulating AI call
-    setTimeout(() => {
-      setSummary(`Summary of "${noteTitle}": This is a placeholder summary. When your backend is ready, this will be an AI-generated summary of your notes covering the key concepts and important points.`);
+    setErrorMessage('');
+
+    try {
+      const response = await notesAPI.summarize(noteContent);
+      setSummary(response.summary || 'No summary was returned.');
+    } catch (error) {
+      console.error('Summary generation failed:', error);
+      setErrorMessage('Failed to generate summary. Please try again.');
+    } finally {
       setIsGeneratingSummary(false);
-    }, 2000);
+    }
   };
 
   return (
     <div className="notes-page-container">
-      {/* Top navigation */}
       <div className="navbar">
         <div className="menu-icon" onClick={() => navigate(`/course/${courseId}`)}>←</div>
         <h3>Create Note</h3>
@@ -62,13 +80,12 @@ function NotesPage() {
       </div>
 
       <div className="notes-content">
-        {/* Upload section */}
         <div className="upload-section">
           <label className="upload-btn">
             📁 Upload File
-            <input 
-              type="file" 
-              accept=".pdf,.txt,.docx,.md"
+            <input
+              type="file"
+              accept=".txt,.md"
               onChange={handleFileUpload}
               style={{ display: 'none' }}
             />
@@ -84,7 +101,6 @@ function NotesPage() {
           <span>or type manually</span>
         </div>
 
-        {/* Manual input section */}
         <div className="input-section">
           <input
             type="text"
@@ -93,7 +109,7 @@ function NotesPage() {
             value={noteTitle}
             onChange={(e) => setNoteTitle(e.target.value)}
           />
-          
+
           <textarea
             className="note-content-input"
             placeholder="Type or paste your notes here..."
@@ -103,17 +119,19 @@ function NotesPage() {
           />
         </div>
 
-        {/* Action buttons */}
+        {errorMessage && <p className="error-text">{errorMessage}</p>}
+        {successMessage && <p className="success-text">{successMessage}</p>}
+
         <div className="notes-actions">
-          <button 
+          <button
             className="btn-save"
             onClick={handleSaveNote}
-            disabled={!noteTitle || !noteContent}
+            disabled={!noteTitle || !noteContent || isSaving}
           >
-            💾 Save Note
+            {isSaving ? '⏳ Saving...' : '💾 Save Note'}
           </button>
-          
-          <button 
+
+          <button
             className="btn-summarize"
             onClick={handleGenerateSummary}
             disabled={!noteContent || isGeneratingSummary}
@@ -122,21 +140,16 @@ function NotesPage() {
           </button>
         </div>
 
-        {/* Summary display */}
         {summary && (
           <div className="summary-section">
             <h4>📝 AI Summary</h4>
             <div className="summary-content">
               {summary}
             </div>
-            <button className="btn-save-summary">
-              Save Summary
-            </button>
           </div>
         )}
       </div>
 
-      {/* Bottom navigation */}
       <div className="bottom-nav">
         <div className="nav-item">➕</div>
         <div className="nav-item">📅</div>
