@@ -1,11 +1,30 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { notesAPI } from '../services/api';
 import '../styles/NotesPage.css';
 
+function buildFallbackSummary(content) {
+  const cleaned = (content || '').replace(/\s+/g, ' ').trim();
+  if (!cleaned) {
+    return 'No note content available to summarize.';
+  }
+
+  const sentences = cleaned
+    .split(/(?<=[.!?])\s+/)
+    .map((sentence) => sentence.trim())
+    .filter(Boolean);
+
+  if (sentences.length === 0) {
+    return cleaned.slice(0, 300);
+  }
+
+  return sentences.slice(0, 3).join(' ');
+}
+
 function NotesPage() {
   const navigate = useNavigate();
-  const { courseId } = useParams();
+  const { courseId, noteId } = useParams();
+  const isEditing = Boolean(noteId);
   const [noteTitle, setNoteTitle] = useState('');
   const [noteContent, setNoteContent] = useState('');
   const [uploadedFile, setUploadedFile] = useState(null);
@@ -73,7 +92,7 @@ function NotesPage() {
     <div className="notes-page-container">
       <div className="navbar">
         <div className="menu-icon" onClick={() => navigate(`/course/${courseId}`)}>←</div>
-        <h3>Create Note</h3>
+        <h3>{isEditing ? 'Edit Note' : 'Create Note'}</h3>
         <div className="nav-icons">
           <span className="icon">✓</span>
         </div>
@@ -94,12 +113,10 @@ function NotesPage() {
             <div className="uploaded-file-info">
               <span>📄 {uploadedFile.name}</span>
             </div>
-          )}
-        </div>
 
-        <div className="divider">
-          <span>or type manually</span>
-        </div>
+            <div className="divider">
+              <span>or type manually</span>
+            </div>
 
         <div className="input-section">
           <input
