@@ -99,6 +99,23 @@ export const coursesAPI = {
 
 // Notes endpoints
 export const notesAPI = {
+
+  getAll: async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/notes`, {
+        credentials: 'include'
+      });
+
+      if (!response.ok) throw new Error('Failed to fetch notes');
+
+      const data = await response.json();
+      return data.notes || [];
+    } catch (error) {
+      console.error('Get all notes error:', error);
+      return [];
+    }
+  },
+
   getForCourse: async (courseId) => {
     try {
       const response = await fetch(`${API_BASE_URL}/api/notes?courseId=${courseId}`, {

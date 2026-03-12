@@ -134,3 +134,9 @@
 .note-details small {
   color: #666;
 }
+
+.note-card-button {
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+}
