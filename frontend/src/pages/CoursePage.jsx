@@ -82,17 +82,13 @@ function CoursePage() {
               </div>
             ) : (
               notes.map((note) => (
-                <button
-                  key={note.noteID}
-                  className="note-card note-card-button"
-                  onClick={() => navigate(`/course/${courseId}/notes/${note.noteID}`)}
-                >
+                <div key={note.noteID} className="note-card">
                   <div className="note-icon">📝</div>
                   <div className="note-details">
                     <h4>{note.title}</h4>
                     <small>{new Date(note.createdAt).toLocaleString()}</small>
                   </div>
-                </button>
+                </div>
               ))
             )}
           </div>
