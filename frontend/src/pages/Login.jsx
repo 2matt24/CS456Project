@@ -28,7 +28,11 @@ function Login() {
         setError('Login failed. Please try again.');
       }
     } catch (err) {
-      setError('Cannot connect to server.');
+      if (err?.status === 401) {
+        setError('Invalid email or password.');
+      } else {
+        setError('Cannot connect to server.');
+      }
       console.error('Login error:', err);
     } finally {
       setIsLoading(false);

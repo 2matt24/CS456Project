@@ -12,23 +12,25 @@ function StudyTimer() {
   const BREAK_TIME = 5 * 60; // 5 minutes
 
   useEffect(() => {
-    if (isRunning && timeLeft > 0) {
-      intervalRef.current = setInterval(() => {
-        setTimeLeft(prev => prev - 1);
-      }, 1000);
-    } else if (timeLeft === 0) {
-      // Timer finished
-      handleTimerComplete();
+    if (!isRunning) {
+      return () => clearInterval(intervalRef.current);
     }
 
-    return () => clearInterval(intervalRef.current);
-  }, [isRunning, timeLeft]);
+    intervalRef.current = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(intervalRef.current);
+          setIsRunning(false);
+          alert(sessionType === 'study' ? 'Study session complete! Take a break.' : 'Break over! Ready to study?');
+          return 0;
+        }
 
-  const handleTimerComplete = () => {
-    setIsRunning(false);
-    // Play sound or show notification here
-    alert(sessionType === 'study' ? 'Study session complete! Take a break.' : 'Break over! Ready to study?');
-  };
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(intervalRef.current);
+  }, [isRunning, sessionType]);
 
   const toggleTimer = () => {
     setIsRunning(!isRunning);
@@ -53,7 +55,7 @@ function StudyTimer() {
   };
 
   // Calculate progress percentage
-  const progress = ((sessionType === 'study' ? STUDY_TIME : BREAK_TIME) - timeLeft) / 
+  const progress = ((sessionType === 'study' ? STUDY_TIME : BREAK_TIME) - timeLeft) /
                    (sessionType === 'study' ? STUDY_TIME : BREAK_TIME) * 100;
 
   return (
@@ -61,13 +63,13 @@ function StudyTimer() {
       <div className="timer-header">
         <h3>⏰ Study Timer</h3>
         <div className="session-toggle">
-          <button 
+          <button
             className={sessionType === 'study' ? 'active' : ''}
             onClick={() => switchSession('study')}
           >
             Study
           </button>
-          <button 
+          <button
             className={sessionType === 'break' ? 'active' : ''}
             onClick={() => switchSession('break')}
           >
