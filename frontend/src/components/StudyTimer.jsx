@@ -1,15 +1,20 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useParams } from 'react-router-dom';
+import { MdPlayArrow, MdPause, MdRefresh } from 'react-icons/md';
+import { IoMdTime } from 'react-icons/io';
+import { FaBookOpen, FaCoffee } from 'react-icons/fa';
+import { studySessionsAPI } from '../services/api';
 import '../styles/StudyTimer.css';
 
 function StudyTimer() {
-  const [timeLeft, setTimeLeft] = useState(25 * 60); // 25 minutes in seconds
+  const { courseId } = useParams();
+  const [timeLeft, setTimeLeft] = useState(25 * 60);
   const [isRunning, setIsRunning] = useState(false);
-  const [sessionType, setSessionType] = useState('study'); // 'study' or 'break'
+  const [sessionType, setSessionType] = useState('study');
   const intervalRef = useRef(null);
 
-  // Timer durations
-  const STUDY_TIME = 25 * 60; // 25 minutes
-  const BREAK_TIME = 5 * 60; // 5 minutes
+  const STUDY_TIME = 25 * 60;
+  const BREAK_TIME = 5 * 60;
 
   useEffect(() => {
     if (isRunning && timeLeft > 0) {
@@ -17,17 +22,30 @@ function StudyTimer() {
         setTimeLeft(prev => prev - 1);
       }, 1000);
     } else if (timeLeft === 0) {
-      // Timer finished
       handleTimerComplete();
     }
 
     return () => clearInterval(intervalRef.current);
   }, [isRunning, timeLeft]);
 
-  const handleTimerComplete = () => {
+  const handleTimerComplete = async () => {
     setIsRunning(false);
-    // Play sound or show notification here
-    alert(sessionType === 'study' ? 'Study session complete! Take a break.' : 'Break over! Ready to study?');
+    
+    if (sessionType === 'study' && courseId) {
+      try {
+        await studySessionsAPI.create(
+          parseInt(courseId),
+          'study',
+          25
+        );
+        alert('Great work! 25-minute study session saved. Take a break!');
+      } catch (error) {
+        console.error('Failed to save study session:', error);
+        alert('Study session complete! (Failed to save to database)');
+      }
+    } else {
+      alert('Break over! Ready to study?');
+    }
   };
 
   const toggleTimer = () => {
@@ -45,33 +63,31 @@ function StudyTimer() {
     setTimeLeft(type === 'study' ? STUDY_TIME : BREAK_TIME);
   };
 
-  // Format time as MM:SS
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Calculate progress percentage
   const progress = ((sessionType === 'study' ? STUDY_TIME : BREAK_TIME) - timeLeft) / 
                    (sessionType === 'study' ? STUDY_TIME : BREAK_TIME) * 100;
 
   return (
     <div className="timer-container">
       <div className="timer-header">
-        <h3>⏰ Study Timer</h3>
+        <h3><IoMdTime size={28} /> Study Timer</h3>
         <div className="session-toggle">
           <button 
             className={sessionType === 'study' ? 'active' : ''}
             onClick={() => switchSession('study')}
           >
-            Study
+            <FaBookOpen size={16} /> Study
           </button>
           <button 
             className={sessionType === 'break' ? 'active' : ''}
             onClick={() => switchSession('break')}
           >
-            Break
+            <FaCoffee size={16} /> Break
           </button>
         </div>
       </div>
@@ -106,17 +122,35 @@ function StudyTimer() {
 
       <div className="timer-controls">
         <button className="control-btn start-btn" onClick={toggleTimer}>
-          {isRunning ? '⏸ Pause' : '▶ Start'}
+          {isRunning ? (
+            <>
+              <MdPause size={20} /> Pause
+            </>
+          ) : (
+            <>
+              <MdPlayArrow size={20} /> Start
+            </>
+          )}
         </button>
         <button className="control-btn reset-btn" onClick={resetTimer}>
-          🔄 Reset
+          <MdRefresh size={20} /> Reset
         </button>
       </div>
 
       <div className="timer-stats">
         <div className="stat">
           <span className="stat-label">Session Type</span>
-          <span className="stat-value">{sessionType === 'study' ? '📚 Study' : '☕ Break'}</span>
+          <span className="stat-value">
+            {sessionType === 'study' ? (
+              <>
+                <FaBookOpen size={18} /> Study
+              </>
+            ) : (
+              <>
+                <FaCoffee size={18} /> Break
+              </>
+            )}
+          </span>
         </div>
         <div className="stat">
           <span className="stat-label">Progress</span>

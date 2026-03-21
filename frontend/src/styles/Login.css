@@ -48,6 +48,30 @@
   margin: 30px auto;
 }
 
+.login-input {
+  width: 100%;
+  padding: 15px;
+  border: 2px solid #e0e0e0;
+  border-radius: 12px;
+  font-size: 16px;
+  margin-bottom: 15px;
+  transition: border-color 0.3s;
+}
+
+.login-input:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.error-message {
+  background: #fee;
+  color: #c00;
+  padding: 12px;
+  border-radius: 10px;
+  margin-bottom: 15px;
+  font-size: 14px;
+}
+
 .btn-primary {
   width: 100%;
   padding: 15px;
@@ -59,14 +83,51 @@
   font-weight: 600;
   cursor: pointer;
   margin-bottom: 15px;
-  transition: background 0.3s;
+  transition: background 0.3s, transform 0.2s;
 }
 
-.btn-primary:hover {
+.btn-primary:hover:not(:disabled) {
   background: #5568d3;
+  transform: translateY(-2px);
 }
 
-.btn-secondary {
+.btn-primary:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.divider {
+  text-align: center;
+  margin: 25px 0;
+  position: relative;
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  width: 42%;
+  height: 1px;
+  background: #e0e0e0;
+}
+
+.divider::before {
+  left: 0;
+}
+
+.divider::after {
+  right: 0;
+}
+
+.divider span {
+  background: white;
+  padding: 0 15px;
+  color: #999;
+  font-size: 14px;
+}
+
+.btn-oauth {
   width: 100%;
   padding: 15px;
   border: 2px solid #e0e0e0;
@@ -76,21 +137,33 @@
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
-  margin-bottom: 15px;
+  margin-bottom: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  transition: border-color 0.3s;
+  gap: 12px;
+  transition: all 0.3s;
 }
 
-.btn-secondary:hover {
+.btn-oauth:hover {
   border-color: #667eea;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-.google-icon {
-  font-weight: bold;
-  color: #4285f4;
+.btn-google:hover {
+  background: #f8f9fa;
+}
+
+.btn-apple {
+  background: #000;
+  color: white;
+  border-color: #000;
+}
+
+.btn-apple:hover {
+  background: #333;
+  border-color: #333;
 }
 
 .terms-text {
@@ -103,4 +176,8 @@
 .terms-text a {
   color: #667eea;
   text-decoration: none;
+}
+
+.terms-text a:hover {
+  text-decoration: underline;
 }
