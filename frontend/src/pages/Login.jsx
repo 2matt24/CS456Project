@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { FcGoogle } from 'react-icons/fc';
+import { FaApple } from 'react-icons/fa';
+import { IoRocket } from 'react-icons/io5';
 import { authAPI } from '../services/api';
 import '../styles/Login.css';
 
@@ -31,6 +34,16 @@ function Login() {
     }
   };
 
+  const handleGoogleLogin = () => {
+    // Redirect to backend Google OAuth endpoint
+    window.location.href = 'https://cs456project.onrender.com/api/auth/google';
+  };
+
+  const handleAppleLogin = () => {
+    // Redirect to backend Apple OAuth endpoint
+    window.location.href = 'https://cs456project.onrender.com/api/auth/apple';
+  };
+
   return (
     <div className="login-container">
       <div className="login-card">
@@ -38,7 +51,7 @@ function Login() {
         <p className="login-subtitle">Already Registered? Log in below</p>
         
         <div className="robot-illustration">
-          🤖
+          <IoRocket size={80} color="white" />
         </div>
 
         <form onSubmit={handleLogin}>
@@ -70,14 +83,23 @@ function Login() {
             {isLoading ? 'Logging in...' : 'Login'}
           </button>
         </form>
+
+        <div className="divider">
+          <span>or</span>
+        </div>
+
         <button className="btn-primary" onClick={() => navigate('/register')}>
-        Sign up with Email
+          Sign up with Email
         </button>
-        <button className="btn-secondary">
-          <span className="google-icon">G</span> Sign up with Google
+
+        <button className="btn-oauth btn-google" onClick={handleGoogleLogin}>
+          <FcGoogle size={24} />
+          <span>Continue with Google</span>
         </button>
-        <button className="btn-secondary">
-          <span className="apple-icon">🍎</span> Sign up with Apple
+
+        <button className="btn-oauth btn-apple" onClick={handleAppleLogin}>
+          <FaApple size={24} />
+          <span>Continue with Apple</span>
         </button>
 
         <p className="terms-text">

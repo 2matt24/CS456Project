@@ -18,7 +18,7 @@ from aistudyassistant.models.user import User
 from aistudyassistant.models.note import Note
 from aistudyassistant.models.course import Course
 from aistudyassistant.models.study_session import StudySession
-
+from aistudyassistant.routes.oauth import oauth_bp, oauth # Import the oauth object from the oauth module
 
 
 app = Flask(__name__)
@@ -69,8 +69,9 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 db.init_app(app)
 
 
-
-app.register_blueprint(auth_bp) 
+oauth.init_app(app)
+app.register_blueprint(oauth_bp) # Register the OAuth blueprint before the auth blueprint
+app.register_blueprint(auth_bp) # Register the auth blueprint after the OAuth blueprint to ensure routes are properly registered
 app.register_blueprint(notes_bp)
 app.register_blueprint(courses_bp)
 app.register_blueprint(study_sessions_bp)

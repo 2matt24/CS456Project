@@ -1,9 +1,39 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { IoBookSharp } from 'react-icons/io5';
+import { MdAccessTime, MdCheckCircle } from 'react-icons/md';
+import { notesAPI, studySessionsAPI } from '../services/api';
 import '../styles/CourseCard.css';
 
 function CourseCard({ course }) {
   const navigate = useNavigate();
+  const [stats, setStats] = useState({
+    notesCount: 0,
+    studyHours: 0,
+    progress: 0
+  });
+
+  useEffect(() => {
+    loadCourseStats();
+  }, [course.id]);
+
+  const loadCourseStats = async () => {
+    try {
+      // Get notes count
+      const notes = await notesAPI.getForCourse(course.id);
+      
+      // Get weekly study stats
+      const weeklyStats = await studySessionsAPI.getWeeklyStats(course.id);
+      
+      setStats({
+        notesCount: notes.length,
+        studyHours: weeklyStats.hoursThisWeek,
+        progress: weeklyStats.progress
+      });
+    } catch (error) {
+      console.error('Failed to load course stats:', error);
+    }
+  };
 
   const handleClick = () => {
     navigate(`/course/${course.id}`);
@@ -25,18 +55,27 @@ function CourseCard({ course }) {
         
         <div className="course-stats">
           <span className="stat-item">
-            📚 <span className="stat-value">12 notes</span>
+            <IoBookSharp size={14} color="#667eea" />
+            <span className="stat-value">{stats.notesCount} notes</span>
           </span>
           <span className="stat-item">
-            ⏱️ <span className="stat-value">5.2 hrs</span>
+            <MdAccessTime size={14} color="#43e97b" />
+            <span className="stat-value">{stats.studyHours} hrs</span>
           </span>
           <span className="stat-item">
-            ✅ <span className="stat-value">8 tasks</span>
+            <MdCheckCircle size={14} color="#feca57" />
+            <span className="stat-value">{Math.round(stats.progress)}%</span>
           </span>
         </div>
         
         <div className="progress-bar">
-          <div className="progress-fill" style={{ width: '65%', background: course.color }}></div>
+          <div 
+            className="progress-fill" 
+            style={{ 
+              width: `${stats.progress}%`, 
+              background: course.color 
+            }}
+          ></div>
         </div>
       </div>
     </div>

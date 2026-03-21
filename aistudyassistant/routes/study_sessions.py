@@ -1,5 +1,5 @@
 from flask import Blueprint, request, session
-
+from datetime import datetime, timedelta, timezone
 from aistudyassistant.extensions import db
 from aistudyassistant.models.course import Course
 from aistudyassistant.models.study_session import StudySession
@@ -44,8 +44,6 @@ def get_study_sessions():
 
 @study_sessions_bp.route("/api/study-sessions", methods=["POST"])
 def create_study_session():
-    from datetime import datetime
-
     user_id = _current_user_id()
     if not user_id:
         return {"error": "Authentication required"}, 401
@@ -88,8 +86,8 @@ def create_study_session():
         CourseID=course_id,
         SessionType=session_type,
         DurationMinutes=duration_minutes,
-        StartTime=datetime.utcnow(),
-        CreatedAt=datetime.utcnow()
+        StartTime=datetime.now(timezone.utc),
+        CreatedAt=datetime.now(timezone.utc)
     )
 
     db.session.add(study_session)
@@ -99,3 +97,42 @@ def create_study_session():
         "message": "Study session created",
         "session": _serialize_study_session(study_session),
     }, 201
+
+@study_sessions_bp.route("/api/study-sessions/weekly-stats", methods=["GET"]) # NEW ENDPOINT for weekly stats (fill progress bar on frontend)
+def get_weekly_stats():
+    user_id = _current_user_id()
+    if not user_id:
+        return {"error": "Authentication required"}, 401
+
+    course_id = request.args.get("courseId", type=int)
+    
+    # Get start of current week (Monday)
+    today = datetime.now(timezone.utc)
+    start_of_week = today - timedelta(days=today.weekday())
+    start_of_week = start_of_week.replace(hour=0, minute=0, second=0, microsecond=0)
+    
+    # Query study sessions for this week
+    query = StudySession.query.filter(
+        StudySession.UserID == user_id,
+        StudySession.StartTime >= start_of_week,
+        StudySession.SessionType == 'study'
+    )
+    
+    if course_id:
+        query = query.filter_by(CourseID=course_id)
+    
+    sessions = query.all()
+    
+    # Calculate total minutes
+    total_minutes = sum(s.DurationMinutes for s in sessions)
+    total_hours = round(total_minutes / 60, 1)
+    
+    # Weekly goal (can be configurable per user/course later)
+    weekly_goal = 10  # 10 hours per week
+    
+    return {
+        "hoursThisWeek": total_hours,
+        "weeklyGoal": weekly_goal,
+        "progress": min(round((total_hours / weekly_goal) * 100), 100),
+        "sessionsCount": len(sessions)
+    }, 200
