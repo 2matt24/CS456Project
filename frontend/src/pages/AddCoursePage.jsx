@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { IoArrowBack } from 'react-icons/io5';
+import { IoArrowBack, IoCheckmarkCircle } from 'react-icons/io5';
 import { coursesAPI } from '../services/api';
 import '../styles/AddCoursePage.css';
 
@@ -106,7 +106,13 @@ function AddCoursePage() {
         </div>
 
         <button type="submit" className="btn-submit" disabled={isLoading}>
-          {isLoading ? 'Creating...' : 'Create Course'}
+          {isLoading ? (
+            'Creating...'
+          ) : (
+            <>
+              <IoCheckmarkCircle size={20} /> Create Course
+            </>
+          )}
         </button>
       </form>
     </div>
