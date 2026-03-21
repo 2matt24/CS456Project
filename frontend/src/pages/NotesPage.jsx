@@ -18,13 +18,44 @@ function NotesPage() {
     const [isSaving, setIsSaving] = useState(false);
     const [message, setMessage] = useState('');
 
-    const handleFileUpload = (e) => {
+    const handleFileUpload = async (e) => {
         const file = e.target.files[0];
-        if (file) {
-            setUploadedFile(file);
-            setNoteTitle(file.name);
-            // TODO: Extract actual file content when Azure Blob is integrated
-            setNoteContent(`Content from ${file.name} will be extracted here...`);
+        if (!file) return;
+
+        setUploadedFile(file);
+        setNoteTitle(file.name.replace(/\.[^/.]+$/, "")); // Remove extension
+        setIsSaving(true);
+        setMessage('');
+
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('courseId', courseId);
+            formData.append('title', file.name);
+
+            const response = await fetch('https://cs456project.onrender.com/api/notes/upload', {
+                method: 'POST',
+                credentials: 'include',
+                body: formData
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                setMessage('✅ File uploaded and processed successfully!');
+                setNoteContent(result.note.content);
+
+                setTimeout(() => {
+                    navigate(`/course/${courseId}`);
+                }, 2000);
+            } else {
+                const error = await response.json();
+                setMessage(`❌ Upload failed: ${error.error}`);
+            }
+        } catch (error) {
+            console.error('Upload error:', error);
+            setMessage('❌ Upload failed. Please try again.');
+        } finally {
+            setIsSaving(false);
         }
     };
 
