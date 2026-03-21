@@ -13,3 +13,7 @@ python-dotenv==1.2.1
 SQLAlchemy==2.0.46
 typing_extensions==4.15.0
 Werkzeug==3.1.5
+azure-storage-blob==12.19.0
+pinecone-client==3.0.0
+sentence-transformers==2.3.1
+PyPDF2==3.0.1
