@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { IoArrowBack, IoMdNotifications, IoMdAdd, IoMdCamera, IoMdCreate } from 'react-icons/io';
-import { MdCalendarToday, MdHome, MdChat, MdSettings } from 'react-icons/md';
+import { IoMdNotifications, IoMdAdd, IoMdCamera, IoMdCreate } from 'react-icons/io';
+import { MdCalendarToday, MdHome, MdChat, MdSettings, MdArrowBack } from 'react-icons/md';
 import { FaUserCircle, FaFileUpload, FaStar } from 'react-icons/fa';
-import { IoDocumentTextOutline } from 'react-icons/io5';
+import { IoDocumentTextOutline, IoSearchSharp } from 'react-icons/io5';
 import { coursesAPI, notesAPI } from '../services/api';
 import StudyTimer from '../components/StudyTimer';
 import '../styles/CoursePage.css';
@@ -14,6 +14,9 @@ function CoursePage() {
   const [course, setCourse] = useState(null);
   const [notes, setNotes] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
 
   useEffect(() => {
     loadCourseData();
@@ -34,6 +37,37 @@ function CoursePage() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) {
+      setSearchResults([]);
+      return;
+    }
+
+    setIsSearching(true);
+    try {
+      const response = await fetch('https://cs456project.onrender.com/api/notes/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ query: searchQuery })
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setSearchResults(data.results || []);
+      }
+    } catch (error) {
+      console.error('Search error:', error);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const clearSearch = () => {
+    setSearchQuery('');
+    setSearchResults([]);
   };
 
   if (isLoading) {
@@ -58,7 +92,7 @@ function CoursePage() {
       {/* Top navigation */}
       <div className="navbar">
         <div className="menu-icon" onClick={() => navigate('/dashboard')}>
-          <IoArrowBack size={28} />
+          <MdArrowBack size={28} />
         </div>
         <div className="nav-icons">
           <span className="icon" onClick={() => navigate('/notifications')}>
@@ -107,20 +141,70 @@ function CoursePage() {
         </div>
       </div>
 
+      <div className="search-section">
+        <div className="search-bar">
+          <input
+            type="text"
+            className="search-input"
+            placeholder="Search notes by topic or keyword..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+          />
+          <button 
+            className="search-btn" 
+            onClick={handleSearch}
+            disabled={isSearching || !searchQuery.trim()}
+          >
+            <IoSearchSharp size={20} />
+            {isSearching ? 'Searching...' : 'Search'}
+          </button>
+          {searchQuery && (
+            <button className="clear-btn" onClick={clearSearch}>
+              Clear
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* Notes Directory */}
       <div className="notes-section">
         <h3 className="section-title">
-          <IoDocumentTextOutline size={22} /> Notes Directory
+          <IoDocumentTextOutline size={22} />
+          {searchResults.length > 0 ? 'Search Results' : 'Notes Directory'}
         </h3>
-        
-        {notes.length === 0 ? (
+
+        {searchResults.length > 0 ? (
+          searchResults.map(result => {
+            const note = notes.find(n => n.noteID === parseInt(result.noteId));
+            return note ? (
+              <div
+                key={result.noteId}
+                className="note-item search-result"
+                onClick={() => navigate(`/course/${courseId}/note/${result.noteId}`)}
+              >
+                <div className="note-icon">
+                  <IoDocumentTextOutline size={30} color="#667eea" />
+                </div>
+                <div className="note-details">
+                  <h4>{result.title}</h4>
+                  <p className="note-date">
+                    Relevance: {(result.score * 100).toFixed(0)}%
+                  </p>
+                </div>
+              </div>
+            ) : null;
+          })
+        ) : notes.length === 0 ? (
+          // Show empty state if no notes exist
           <div className="empty-state">
             <p>No notes yet. Create your first note above!</p>
           </div>
         ) : (
+          // Show all notes normally
           notes.map(note => (
-            <div 
-              key={note.noteID} 
+            <div
+              key={note.noteID}
               className="note-item"
               onClick={() => navigate(`/course/${courseId}/note/${note.noteID}`)}
             >

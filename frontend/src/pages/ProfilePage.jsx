@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { IoArrowBack } from 'react-icons/io5';
+import { MdArrowBack } from 'react-icons/md';
 
 function ProfilePage() {
   const navigate = useNavigate();
@@ -9,7 +9,7 @@ function ProfilePage() {
     <div className="page-container">
       <div className="navbar">
         <div className="menu-icon" onClick={() => navigate(-1)}>
-          <IoArrowBack size={28} />
+          <MdArrowBack size={28} />
         </div>
         <h3>Profile</h3>
         <div style={{ width: '28px' }}></div>

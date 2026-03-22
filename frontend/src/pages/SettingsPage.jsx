@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { IoArrowBack, IoMdAdd, IoMdNotifications } from 'react-icons/io';
+import { IoMdAdd, IoMdNotifications } from 'react-icons/io';
+import { MdArrowBack } from 'react-icons/md';
 import { MdCalendarToday, MdHome, MdChat, MdSettings, MdPerson, MdLock, MdColorLens, MdInfo } from 'react-icons/md';
 import { FaUserCircle } from 'react-icons/fa';
 import '../styles/PlaceholderPage.css';
@@ -12,7 +13,7 @@ function SettingsPage() {
     <div className="placeholder-container">
       <div className="navbar">
         <div className="menu-icon" onClick={() => navigate('/dashboard')}>
-          <IoArrowBack size={28} />
+          <MdArrowBack size={28} />
         </div>
         <h3>Settings</h3>
         <div style={{ width: '28px' }}></div>
