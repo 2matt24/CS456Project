@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { IoArrowBack, IoMdNotifications, IoMdAdd, IoMdCamera, IoMdCreate } from 'react-icons/io';
-import { MdCalendarToday, MdHome, MdChat, MdSettings } from 'react-icons/md';
+import { IoMdNotifications, IoMdAdd, IoMdCamera, IoMdCreate } from 'react-icons/io';
+import { MdCalendarToday, MdHome, MdChat, MdSettings, MdArrowBack } from 'react-icons/md';
 import { FaUserCircle, FaFileUpload, FaStar } from 'react-icons/fa';
 import { IoDocumentTextOutline, IoSearchSharp } from 'react-icons/io5';
 import { coursesAPI, notesAPI } from '../services/api';
@@ -92,7 +92,7 @@ function CoursePage() {
       {/* Top navigation */}
       <div className="navbar">
         <div className="menu-icon" onClick={() => navigate('/dashboard')}>
-          <IoArrowBack size={28} />
+          <MdArrowBack size={28} />
         </div>
         <div className="nav-icons">
           <span className="icon" onClick={() => navigate('/notifications')}>
