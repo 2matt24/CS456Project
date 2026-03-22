@@ -34,19 +34,12 @@ app.config["SESSION_COOKIE_SECURE"] = os.getenv("SESSION_COOKIE_SECURE", "true")
 
 
 #CORS
-allowed_origins = [
-    origin.strip()
-    for origin in os.getenv(
-        "CORS_ORIGINS",
-        allowed_origins = [
-            "https://cs-456-project-huy8.vercel.app",
-            
-            "http://localhost:5173"
-]
+allowed_origins = os.getenv(
+    "CORS_ORIGINS",
+    "https://cs-456-project-huy8.vercel.app,http://localhost:5173"
+).split(",")
 
-    ).split(",")
-    if origin.strip()
-]
+allowed_origins = [origin.strip() for origin in allowed_origins]
 
 CORS(app, supports_credentials=True, origins=allowed_origins)
 
