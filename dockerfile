@@ -5,7 +5,7 @@ RUN apt-get update && apt-get install -y \
     gnupg \
     unixodbc \
     unixodbc-dev \
-    libodbc1 \
+    libodbc2 \
     gcc \
     g++ \
     build-essential \
