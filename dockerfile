@@ -30,4 +30,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 EXPOSE 10000
 
-CMD ["gunicorn", "aistudyassistant.app:app", "--bind", "0.0.0.0:10000"]
+CMD ["gunicorn", "aistudyassistant.app:app", "--bind", "0.0.0.0:${PORT}"]
