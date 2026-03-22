@@ -241,6 +241,86 @@
   color: #666;
 }
 
+/* Search Section */
+.search-section {
+  padding: 0 20px 20px;
+}
+
+.search-bar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  background: white;
+  padding: 15px;
+  border-radius: 12px;
+  border: 2px solid #e0e0e0;
+  transition: border-color 0.3s;
+}
+
+.search-bar:focus-within {
+  border-color: #667eea;
+}
+
+.search-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 16px;
+  color: #333;
+}
+
+.search-input::placeholder {
+  color: #999;
+}
+
+.search-btn {
+  background: #667eea;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: background 0.3s;
+  white-space: nowrap;
+}
+
+.search-btn:hover:not(:disabled) {
+  background: #5568d3;
+}
+
+.search-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.clear-btn {
+  background: #f0f0f0;
+  color: #666;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.clear-btn:hover {
+  background: #e0e0e0;
+}
+
+.search-result {
+  border-left: 4px solid #43e97b;
+}
+
+.search-result .note-date {
+  color: #43e97b;
+  font-weight: 600;
+}
+
 /* Bottom Navigation */
 .bottom-nav {
   position: fixed;
