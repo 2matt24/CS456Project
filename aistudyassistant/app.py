@@ -40,7 +40,8 @@ allowed_origins = [
         "CORS_ORIGINS",
         "https://cs456-project.vercel.app,http://localhost:5173"
         "https://cs456-project.vercel.app"
-       # "https://cs456project.vercel.app,http://localhost:5173"
+        "https://cs456project.vercel.app,http://localhost:5173"
+        "https://cs-456-project-huy8.vercel.app/"
 
     ).split(",")
     if origin.strip()
