@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { IoArrowBack, IoMdAdd } from 'react-icons/io';
+import { IoArrowBack, IoMdAdd } from 'react-icons/io5';
 import { MdCalendarToday, MdHome, MdChat, MdSettings } from 'react-icons/md';
 import '../styles/PlaceholderPage.css';
 
