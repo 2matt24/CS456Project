@@ -40,7 +40,7 @@ allowed_origins = [
         "CORS_ORIGINS",
         allowed_origins = [
             "https://cs-456-project-huy8.vercel.app",
-            "https://cs456-project.vercel.app",
+            
             "http://localhost:5173"
 ]
 
