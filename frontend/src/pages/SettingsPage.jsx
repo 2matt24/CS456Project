@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { IoArrowBack, IoMdAdd, IoMdNotifications } from 'react-icons/io';
+import { IoArrowBack, IoMdAdd, IoMdNotifications } from 'react-icons/io5';
 import { MdCalendarToday, MdHome, MdChat, MdSettings, MdPerson, MdLock, MdColorLens, MdInfo } from 'react-icons/md';
 import { FaUserCircle } from 'react-icons/fa';
 import '../styles/PlaceholderPage.css';
