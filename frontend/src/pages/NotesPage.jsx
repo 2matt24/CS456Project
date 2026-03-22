@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { notesAPI } from '../services/api';
 import { IoMdAdd, IoMdCheckmark, IoMdDocument, IoMdCloudUpload } from 'react-icons/io';
-import { IoArrowBack } from 'react-icons/io5';
+import { MdArrowBack } from 'react-icons/md';
 import { MdCalendarToday, MdHome, MdChat, MdSettings } from 'react-icons/md';
 import { FaFileUpload } from 'react-icons/fa';
 import '../styles/NotesPage.css';
@@ -101,7 +101,7 @@ function NotesPage() {
             {/* Top navigation */}
             <div className="navbar">
                 <div className="menu-icon" onClick={() => navigate(`/course/${courseId}`)}>
-                    <IoArrowBack size={28} />
+                    <MdArrowBack size={28} />
                 </div>
                 <h3>Create Note</h3>
                 <div className="nav-icons">
