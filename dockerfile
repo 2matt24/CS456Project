@@ -29,4 +29,4 @@ EXPOSE 10000
 
 
 
-CMD ["gunicorn", "aistudyassistant.app:app", "--bind", "0.0.0.0:${PORT}"]
+CMD ["sh", "-c", "gunicorn aistudyassistant.app:app --bind 0.0.0.0:$PORT"]
