@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { IoMdClose, IoMdAdd, IoMdCalendar } from 'react-icons/io';
 import '../styles/AddModal.css';

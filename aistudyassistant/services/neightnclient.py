@@ -1,9 +1,9 @@
-
-
 from __future__ import annotations
 
 import json
 import os
+import re
+from collections import Counter
 from typing import Optional
 from urllib import error, request
 
@@ -29,16 +29,14 @@ class N8NClient:
             raise SummarizationError("content is required")
 
         if not self.webhook_url:
-            raise SummarizationError(
-                "Summarizer is not configured. Set N8N_SUMMARIZER_WEBHOOK_URL."
-            )
+            return _fallback_summary(text, max_sentences)
 
         payload = {
-    "content": text,
-    "maxSentences": max_sentences,
-    "provider": "gemini",
-    "task": "summarize_notes",
-}
+            "content": text,
+            "maxSentences": max_sentences,
+            "provider": "gemini",
+            "task": "summarize_notes",
+        }
 
         headers = {"Content-Type": "application/json"}
         if self.webhook_key:
@@ -55,10 +53,6 @@ class N8NClient:
             with request.urlopen(req, timeout=self.timeout_seconds) as response:
                 body = response.read().decode("utf-8")
                 status = response.status
-                print("RAW N8N BODY:", body)
-            #with request.urlopen(req, timeout=self.timeout_seconds) as response:
-              #  body = response.read().decode("utf-8")
-               # status = response.status
         except error.HTTPError as exc:
             detail = exc.read().decode("utf-8", errors="ignore")
             raise SummarizationError(
@@ -72,46 +66,62 @@ class N8NClient:
 
         try:
             payload = json.loads(body) if body else {}
-            print("N8N RESPONSE:", payload) 
         except json.JSONDecodeError as exc:
             raise SummarizationError("n8n webhook returned non-JSON response") from exc
 
         summary = _extract_summary(payload)
         if not summary:
-            print("Invalid n8n response:", payload)
             raise SummarizationError("Invalid response from AI workflow")
 
         return summary
 
 
 def _extract_summary(payload: dict) -> Optional[str]:
-    """Accept common n8n response formats and extract summary text."""
-
     if not isinstance(payload, dict):
         return None
 
-    # direct response shape: {"summary": "..."}
     summary = payload.get("summary")
     if isinstance(summary, str) and summary.strip():
         return summary.strip()
 
-    # Gemini simplified output
     content = payload.get("content")
     if isinstance(content, str) and content.strip():
         return content.strip()
 
-    # alternative shape often used by wrapper nodes
     data = payload.get("data")
     if isinstance(data, dict):
         nested = data.get("summary")
         if isinstance(nested, str) and nested.strip():
             return nested.strip()
 
-    
-
     return None
 
+
+def _fallback_summary(text: str, max_sentences: int) -> str:
+    cleaned = re.sub(r"\s+", " ", text).strip()
+    sentences = [s.strip() for s in re.split(r"(?<=[.!?])\s+", cleaned) if s.strip()]
+    if not sentences:
+        return cleaned[:500]
+    if len(sentences) <= max_sentences:
+        return " ".join(sentences)
+
+    words = re.findall(r"[A-Za-z']+", cleaned.lower())
+    stopwords = {
+        'the','a','an','and','or','but','if','then','than','for','from','to','of','in','on','at','by','with','is','are','was','were','be','been','being','it','this','that','these','those','as','into','about','over','after','before','during','through','between','we','you','they','he','she','i','my','our','your','their'
+    }
+    freq = Counter(word for word in words if len(word) > 2 and word not in stopwords)
+    ranked = []
+    for idx, sentence in enumerate(sentences):
+        sentence_words = re.findall(r"[A-Za-z']+", sentence.lower())
+        score = sum(freq[word] for word in sentence_words)
+        ranked.append((score, idx, sentence))
+    best = sorted(ranked, key=lambda item: (-item[0], item[1]))[:max_sentences]
+    ordered = [sentence for _, _, sentence in sorted(best, key=lambda item: item[1])]
+    return " ".join(ordered)
+
+
 _client = N8NClient()
+
 
 def summarize_text(text: str, max_sentences: int = 3) -> str:
     return _client.summarize_text(text, max_sentences)
