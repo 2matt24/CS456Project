@@ -1,6 +1,5 @@
 ﻿const API_BASE_URL = 'https://cs456project.onrender.com';
 
-
 // Auth endpoints
 export const authAPI = {
   register: async (email, password, firstName, lastName) => {
@@ -12,7 +11,10 @@ export const authAPI = {
         body: JSON.stringify({ email, password, firstName, lastName })
       });
       
-      if (!response.ok) throw new Error('Registration failed');
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Registration failed');
+      }
       return await response.json();
     } catch (error) {
       console.error('Register error:', error);
@@ -29,7 +31,10 @@ export const authAPI = {
         body: JSON.stringify({ email, password })
       });
       
-      if (!response.ok) throw new Error('Login failed');
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Login failed');
+      }
       return await response.json();
     } catch (error) {
       console.error('Login error:', error);
@@ -65,7 +70,6 @@ export const coursesAPI = {
       }
       
       const data = await response.json();
-      // Backend returns {"courses": [...]}
       return data.courses || data || [];
     } catch (error) {
       console.error('Get courses error:', error);
@@ -82,7 +86,10 @@ export const coursesAPI = {
         body: JSON.stringify({ courseName, courseCode, semester, color, icon })
       });
       
-      if (!response.ok) throw new Error('Failed to create course');
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to create course');
+      }
       
       const data = await response.json();
       return { 
@@ -108,7 +115,6 @@ export const notesAPI = {
       if (!response.ok) throw new Error('Failed to fetch notes');
       
       const data = await response.json();
-      // Backend returns {notes: [...]}
       return data.notes || [];
     } catch (error) {
       console.error('Get notes error:', error);
@@ -125,7 +131,10 @@ export const notesAPI = {
         body: JSON.stringify({ courseId, title, content })
       });
       
-      if (!response.ok) throw new Error('Failed to create note');
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to create note');
+      }
       
       const data = await response.json();
       return { 
@@ -148,7 +157,10 @@ export const notesAPI = {
         body: JSON.stringify({ content })
       });
       
-      if (!response.ok) throw new Error('Failed to generate summary');
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to generate summary');
+      }
       
       return await response.json();
     } catch (error) {
@@ -169,7 +181,10 @@ export const studySessionsAPI = {
         body: JSON.stringify({ courseId, sessionType, durationMinutes })
       });
       
-      if (!response.ok) throw new Error('Failed to save study session');
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to save study session');
+      }
       
       const data = await response.json();
       return { 
@@ -180,6 +195,25 @@ export const studySessionsAPI = {
     } catch (error) {
       console.error('Save study session error:', error);
       throw error;
+    }
+  },
+
+  getWeeklyStats: async (courseId) => {
+    try {
+      const url = courseId 
+        ? `${API_BASE_URL}/api/study-sessions/weekly-stats?courseId=${courseId}`
+        : `${API_BASE_URL}/api/study-sessions/weekly-stats`;
+      
+      const response = await fetch(url, {
+        credentials: 'include'
+      });
+      
+      if (!response.ok) throw new Error('Failed to fetch weekly stats');
+      
+      return await response.json();
+    } catch (error) {
+      console.error('Get weekly stats error:', error);
+      return { hoursThisWeek: 0, weeklyGoal: 10, progress: 0, sessionsCount: 0 };
     }
   }
 };
