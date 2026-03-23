@@ -18,7 +18,7 @@ from aistudyassistant.models.user import User
 from aistudyassistant.models.note import Note
 from aistudyassistant.models.course import Course
 from aistudyassistant.models.study_session import StudySession
-
+from aistudyassistant.routes.oauth import oauth_bp, oauth # Import the oauth object from the oauth module
 
 
 app = Flask(__name__)
@@ -34,14 +34,12 @@ app.config["SESSION_COOKIE_SECURE"] = os.getenv("SESSION_COOKIE_SECURE", "true")
 
 
 #CORS
-allowed_origins = [
-    origin.strip()
-    for origin in os.getenv(
-        "CORS_ORIGINS",
-        "https://cs456project.vercel.app,http://localhost:5173"
-    ).split(",")
-    if origin.strip()
-]
+allowed_origins = os.getenv(
+    "CORS_ORIGINS",
+    "https://cs-456-project-huy8.vercel.app,http://localhost:5173"
+).split(",")
+
+allowed_origins = [origin.strip() for origin in allowed_origins]
 
 CORS(app, supports_credentials=True, origins=allowed_origins)
 
@@ -69,8 +67,9 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 db.init_app(app)
 
 
-
-app.register_blueprint(auth_bp) 
+oauth.init_app(app)
+app.register_blueprint(oauth_bp) # Register the OAuth blueprint before the auth blueprint
+app.register_blueprint(auth_bp) # Register the auth blueprint after the OAuth blueprint to ensure routes are properly registered
 app.register_blueprint(notes_bp)
 app.register_blueprint(courses_bp)
 app.register_blueprint(study_sessions_bp)

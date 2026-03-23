@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { IoArrowBack } from 'react-icons/io5';
+import { IoCheckmarkCircle } from 'react-icons/io5';
+import { MdArrowBack } from 'react-icons/md';
 import { coursesAPI } from '../services/api';
 import '../styles/AddCoursePage.css';
 
@@ -36,7 +37,7 @@ function AddCoursePage() {
     <div className="add-course-container">
       <div className="navbar">
         <div className="menu-icon" onClick={() => navigate('/dashboard')}>
-          <IoArrowBack size={28} />
+          <MdArrowBack size={28} />
         </div>
         <h3>Add Course</h3>
         <div style={{ width: '28px' }}></div>
@@ -106,7 +107,13 @@ function AddCoursePage() {
         </div>
 
         <button type="submit" className="btn-submit" disabled={isLoading}>
-          {isLoading ? 'Creating...' : 'Create Course'}
+          {isLoading ? (
+            'Creating...'
+          ) : (
+            <>
+              <IoCheckmarkCircle size={20} /> Create Course
+            </>
+          )}
         </button>
       </form>
     </div>

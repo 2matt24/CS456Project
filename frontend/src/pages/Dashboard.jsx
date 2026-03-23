@@ -100,19 +100,19 @@ function Dashboard() {
 
                 {/* Bottom navigation */}
                 <div className="bottom-nav">
-                    <div className="nav-item active" onClick={() => setIsAddModalOpen(true)}>
+                    <div className="nav-item" onClick={() => setIsAddModalOpen(true)}>
                         <IoMdAdd size={28} />
                     </div>
-                    <div className="nav-item">
+                    <div className="nav-item" onClick={() => navigate('/calendar')}>
                         <MdCalendarToday size={24} />
                     </div>
-                    <div className="nav-item">
+                    <div className="nav-item active" onClick={() => navigate('/dashboard')}>
                         <MdHome size={26} />
                     </div>
-                    <div className="nav-item">
+                    <div className="nav-item" onClick={() => navigate('/chat')}>
                         <MdChat size={24} />
                     </div>
-                    <div className="nav-item">
+                    <div className="nav-item" onClick={() => navigate('/settings')}>
                         <MdSettings size={26} />
                     </div>
                 </div>
