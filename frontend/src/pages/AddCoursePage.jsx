@@ -26,7 +26,7 @@ function AddCoursePage() {
     try {
       await coursesAPI.create(courseName, courseCode, semester, selectedColor, selectedIcon);
       navigate('/dashboard');
-    } catch (err) {
+    } catch {
       setError('Failed to create course. Please try again.');
     } finally {
       setIsLoading(false);

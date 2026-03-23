@@ -1,14 +1,14 @@
-from flask import Blueprint, request, session
+from flask import Blueprint, request
 
 from aistudyassistant.extensions import db
 from aistudyassistant.models.course import Course
-
+from aistudyassistant.services.auth_tokens import get_authenticated_user_id
 
 courses_bp = Blueprint("courses", __name__)
 
 
 def _current_user_id():
-    return session.get("user_id")
+    return get_authenticated_user_id()
 
 
 def _serialize_course(course: Course):
@@ -30,12 +30,21 @@ def get_courses():
     if not user_id:
         return {"error": "Authentication required"}, 401
 
-    courses = (
-        Course.query.filter_by(UserID=user_id)
-        .order_by(Course.CourseName.asc())
-        .all()
-    )
+    courses = Course.query.filter_by(UserID=user_id).order_by(Course.CourseName.asc()).all()
     return {"courses": [_serialize_course(course) for course in courses]}, 200
+
+
+@courses_bp.route("/api/courses/<int:course_id>", methods=["GET"])
+def get_course(course_id):
+    user_id = _current_user_id()
+    if not user_id:
+        return {"error": "Authentication required"}, 401
+
+    course = Course.query.filter_by(CourseID=course_id, UserID=user_id).first()
+    if not course:
+        return {"error": "Course not found"}, 404
+
+    return {"course": _serialize_course(course)}, 200
 
 
 @courses_bp.route("/api/courses", methods=["POST"])
