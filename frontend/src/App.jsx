@@ -11,6 +11,7 @@ import ProfilePage from './pages/ProfilePage';
 import CalendarPage from './pages/CalendarPage';
 import ChatPage from './pages/ChatPage';
 import SettingsPage from './pages/SettingsPage';
+import NoteDetailPage from './pages/NoteDetailPage';
 
 function App() {
   return (
@@ -21,9 +22,10 @@ function App() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/courses/new" element={<AddCoursePage />} />
         <Route path="/course/:courseId" element={<CoursePage />} />
+        <Route path="/course/:courseId/note/:noteId" element={<NoteDetailPage />} />
         <Route path="/course/:courseId/notes/new" element={<NotesPage />} />
         <Route path="/notifications" element={<NotificationsPage />} />
-        <Route path="/profile" element={<ProfilePage />} /> 
+        <Route path="/profile" element={<ProfilePage />} />
         <Route path="/calendar" element={<CalendarPage />} />
         <Route path="/chat" element={<ChatPage />} />
         <Route path="/settings" element={<SettingsPage />} />
