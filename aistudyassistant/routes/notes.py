@@ -12,8 +12,17 @@ from aistudyassistant.services.text_extractor import extract_text_from_file
 
 # blueprint for notes route
 notes_bp = Blueprint("notes", __name__)
-storage_service = AzureStorageService()
-pinecone_service = PineconeService()
+#storage_service = AzureStorageService()
+#pinecone_service = PineconeService()
+
+
+def get_storage_service():
+    return AzureStorageService()
+
+def get_pinecone_service():
+    return PineconeService()
+
+
 
 def _current_user_id():
     return session.get("user_id")
@@ -76,7 +85,8 @@ def upload_note_file():
     
     try:
         # Upload to Azure
-        upload_result = storage_service.upload_file(file, user_id, course_id)
+        #upload_result = storage_service.upload_file(file, user_id, course_id)
+        upload_result = get_storage_service().upload_file(file, user_id, course_id)
         
         # Reset file pointer for text extraction
         file.seek(0)
@@ -100,7 +110,7 @@ def upload_note_file():
         db.session.commit()
         
         # Add to Pinecone
-        pinecone_service.add_note(
+        get_pinecone_service().add_note(
             note_id=note.NoteID,
             content=extracted_text,
             metadata={
@@ -110,6 +120,19 @@ def upload_note_file():
                 "filename": upload_result['filename']
             }
         )
+
+       # pinecone_service.add_note(
+          #  note_id=note.NoteID,
+           # content=extracted_text,
+          #  metadata={
+           #     "user_id": str(user_id),
+           #     "course_id": str(course_id),
+           #     "title": title,
+           #     "filename": upload_result['filename']
+           # }
+        #)
+
+
         
         return {
             "message": "File uploaded successfully",
@@ -136,7 +159,8 @@ def search_notes():
     
     try:
         # Search Pinecone
-        results = pinecone_service.search_notes(query, user_id, top_k=5)
+        #results = pinecone_service.search_notes(query, user_id, top_k=5)
+        results = get_pinecone_service().search_notes(query, user_id, top_k=5)
         
         # Format results
         formatted_results = [{
@@ -193,7 +217,7 @@ def create_note():
 
     # Add to Pinecone for semantic search
     try:
-        pinecone_service.add_note(
+        get_pinecone_service().add_note(
             note_id=note.NoteID,
             content=content,
             metadata={
@@ -202,6 +226,15 @@ def create_note():
                 "title": title
             }
         )
+      #  pinecone_service.add_note(
+       #     note_id=note.NoteID,
+        #    content=content,
+         #   metadata={
+          #      "user_id": str(user_id),
+           #     "course_id": str(course_id),
+            #    "title": title
+            #}
+        #)
     except Exception as e:
         # Log error but don't fail the note creation
         print(f"Warning: Failed to add note to Pinecone: {e}")
