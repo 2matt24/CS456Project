@@ -51,7 +51,7 @@ def google_callback():
     session['user_id'] = user.UserID
     
     # Redirect to frontend dashboard
-    return redirect('https://cs456project.vercel.app/dashboard')
+    return redirect('https://cs-456-project-huy8.vercel.app/dashboard')
 
 @oauth_bp.route('/api/auth/apple')
 def apple_login():
@@ -78,4 +78,4 @@ def apple_callback():
     
     session['user_id'] = user.UserID
     
-    return redirect('https://cs456project.vercel.app/dashboard')
+    return redirect('https://cs-456-project-huy8.vercel.app/dashboard')
