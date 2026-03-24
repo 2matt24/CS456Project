@@ -25,6 +25,7 @@ function App() {
         <Route path="/course/:courseId" element={<CoursePage />} />
         <Route path="/course/:courseId/notes/new" element={<NotesPage />} />
         <Route path="/course/:courseId/note/:noteId" element={<NoteViewPage />} />
+        <Route path="/course/:courseId/quick-study" element={<QuickStudyPage />} />
         <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="/profile" element={<ProfilePage />} /> 
         <Route path="/calendar" element={<CalendarPage />} />
