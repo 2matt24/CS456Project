@@ -12,6 +12,7 @@ import CalendarPage from './pages/CalendarPage';
 import ChatPage from './pages/ChatPage';
 import SettingsPage from './pages/SettingsPage';
 import NoteViewPage from './pages/NoteViewPage';
+import QuickStudyPage from './pages/QuickStudyPage';
 import UploadSchedulePage from './pages/UploadSchedulePage';
 
 function App() {
