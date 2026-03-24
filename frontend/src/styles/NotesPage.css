@@ -1,53 +1,93 @@
 .notes-page-container {
   min-height: 100vh;
-  background: #f8f9fa;
-  padding-bottom: 80px;
+  background: #f0f2f5;
+  padding-bottom: 90px;
   max-width: 430px;
   margin: 0 auto;
   box-shadow: 0 0 30px rgba(0, 0, 0, 0.1);
   position: relative;
 }
 
+/* ── Navbar ── */
+.notes-navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  box-shadow: 0 2px 12px rgba(102, 126, 234, 0.35);
+}
+
+.notes-navbar h3 {
+  font-size: 17px;
+  font-weight: 700;
+  color: white;
+  margin: 0;
+}
+
+.notes-nav-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.18);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.notes-nav-btn:hover { background: rgba(255, 255, 255, 0.32); }
+.notes-nav-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
 .notes-content {
   padding: 20px;
 }
 
+/* ── Upload section ── */
 .upload-section {
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 
 .upload-btn {
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  background: #667eea;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
-  padding: 15px 30px;
+  padding: 13px 24px;
   border-radius: 12px;
   cursor: pointer;
   font-weight: 600;
-  transition: background 0.3s;
+  font-size: 14px;
+  transition: opacity 0.2s, transform 0.15s;
+  box-shadow: 0 4px 14px rgba(102, 126, 234, 0.35);
 }
 
 .upload-btn:hover {
-  background: #5568d3;
+  opacity: 0.9;
+  transform: translateY(-1px);
 }
 
 .uploaded-file-info {
   margin-top: 10px;
-  padding: 12px;
+  padding: 11px 14px;
   background: #f0f0ff;
-  border-radius: 8px;
+  border-radius: 10px;
   color: #667eea;
-  font-size: 14px;
+  font-size: 13px;
   display: flex;
   align-items: center;
   gap: 8px;
+  border: 1.5px solid rgba(102, 126, 234, 0.2);
 }
 
+/* ── Divider ── */
 .divider {
   text-align: center;
-  margin: 30px 0;
+  margin: 22px 0;
   position: relative;
 }
 
@@ -56,61 +96,75 @@
   content: '';
   position: absolute;
   top: 50%;
-  width: 40%;
+  width: 42%;
   height: 1px;
-  background: #e0e0e0;
+  background: #dde0eb;
 }
 
-.divider::before {
-  left: 0;
-}
-
-.divider::after {
-  right: 0;
-}
+.divider::before { left: 0; }
+.divider::after  { right: 0; }
 
 .divider span {
-  background: #f8f9fa;
-  padding: 0 15px;
-  color: #999;
-  font-size: 14px;
+  background: #f0f2f5;
+  padding: 0 14px;
+  color: #aab0bc;
+  font-size: 13px;
+  font-weight: 500;
 }
 
+/* ── Input section ── */
 .input-section {
-  margin-bottom: 20px;
+  margin-bottom: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .note-title-input {
   width: 100%;
-  padding: 15px;
-  border: 2px solid #e0e0e0;
-  border-radius: 12px;
-  font-size: 16px;
-  margin-bottom: 15px;
+  padding: 14px 16px;
+  border: 2px solid #e4e8f0;
+  border-radius: 14px;
+  font-size: 15px;
   font-weight: 600;
-  transition: border-color 0.3s;
+  color: #1a1a2e;
+  background: white;
+  box-sizing: border-box;
+  transition: border-color 0.25s, box-shadow 0.25s;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
+
+.note-title-input::placeholder { color: #aab0bc; font-weight: 400; }
 
 .note-title-input:focus {
   outline: none;
   border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
 .note-content-input {
   width: 100%;
-  padding: 15px;
-  border: 2px solid #e0e0e0;
-  border-radius: 12px;
+  padding: 14px 16px;
+  border: 2px solid #e4e8f0;
+  border-radius: 14px;
   font-size: 14px;
+  line-height: 1.6;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  color: #1a1a2e;
+  background: white;
+  box-sizing: border-box;
   resize: vertical;
-  min-height: 200px;
-  transition: border-color 0.3s;
+  min-height: 220px;
+  transition: border-color 0.25s, box-shadow 0.25s;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
+
+.note-content-input::placeholder { color: #aab0bc; }
 
 .note-content-input:focus {
   outline: none;
   border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
 .notes-actions {

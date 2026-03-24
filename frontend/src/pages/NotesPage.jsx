@@ -99,23 +99,18 @@ function NotesPage() {
     return (
         <div className="notes-page-container">
             {/* Top navigation */}
-            <div className="navbar">
-                <div className="menu-icon" onClick={() => navigate(`/course/${courseId}`)}>
-                    <MdArrowBack size={28} />
-                </div>
+            <div className="notes-navbar">
+                <button className="notes-nav-btn" onClick={() => navigate(`/course/${courseId}`)}>
+                    <MdArrowBack size={22} />
+                </button>
                 <h3>Create Note</h3>
-                <div className="nav-icons">
-                    <span 
-                        className="icon" 
-                        onClick={handleSaveNote}
-                        style={{ 
-                            cursor: (!noteTitle || !noteContent || isSaving) ? 'not-allowed' : 'pointer',
-                            opacity: (!noteTitle || !noteContent || isSaving) ? 0.5 : 1 
-                        }}
-                    >
-                        <IoMdCheckmark size={28} />
-                    </span>
-                </div>
+                <button
+                    className="notes-nav-btn"
+                    onClick={handleSaveNote}
+                    disabled={!noteTitle || !noteContent || isSaving}
+                >
+                    <IoMdCheckmark size={22} />
+                </button>
             </div>
 
             <div className="notes-content">
