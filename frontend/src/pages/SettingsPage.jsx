@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { IoMdAdd, IoMdNotifications } from 'react-icons/io';
-import { MdArrowBack } from 'react-icons/md';
+import { MdArrowBack, MdChevronRight } from 'react-icons/md';
 import { MdCalendarToday, MdHome, MdChat, MdSettings, MdPerson, MdLock, MdColorLens, MdInfo } from 'react-icons/md';
+import { MdNotifications, MdStar } from 'react-icons/md';
 import { FaUserCircle } from 'react-icons/fa';
 import AddModal from '../components/AddModal';
 import '../styles/PlaceholderPage.css';
@@ -38,6 +39,20 @@ function Toggle({ checked, onChange, id }) {
 export default function SettingsPage() {
   const navigate = useNavigate();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [notifs, setNotifs] = useState({
+    studyReminders: true,
+    noteSummaries: true,
+    weeklyReport: false
+  });
+  
+  // Mock user data
+  const user = {
+    firstName: 'John',
+    lastName: 'Doe',
+    email: 'john@example.com'
+  };
+  const isLoadingUser = false;
+  const fullName = user ? `${user.firstName} ${user.lastName}` : 'User';
   
   return (
     <div className="settings-container">
@@ -170,20 +185,9 @@ export default function SettingsPage() {
           <h4 className="settings-card-title">
             <MdColorLens size={18} /> Appearance
           </h4>
-
-      {/* Bottom navigation */}
-      <div className="bottom-nav">
-        <div className="nav-item" onClick={() => setIsAddModalOpen(true)}>
-          <IoMdAdd size={28} />
-        </div>
-        <div className="nav-item" onClick={() => navigate('/calendar')}>
-          <MdCalendarToday size={24} />
-        </div>
-        <div className="nav-item" onClick={() => navigate('/dashboard')}>
-          <MdHome size={26} />
-        </div>
-        <div className="nav-item" onClick={() => navigate('/chat')}>
-          <MdChat size={24} />
+          <p className="settings-coming-soon-note">
+            Coming soon - customize your study environment
+          </p>
         </div>
 
         {/* ════ ABOUT ════ */}
@@ -219,14 +223,24 @@ export default function SettingsPage() {
 
       {/* ── Bottom Nav ── */}
       <div className="bottom-nav">
-        <div className="nav-item" onClick={() => navigate('/dashboard')}><IoMdAdd size={28} /></div>
-        <div className="nav-item" onClick={() => navigate('/calendar')}><MdCalendarToday size={24} /></div>
-        <div className="nav-item" onClick={() => navigate('/dashboard')}><MdHome size={26} /></div>
-        <div className="nav-item" onClick={() => navigate('/chat')}><MdChat size={24} /></div>
-        <div className="nav-item active"><MdSettings size={26} /></div>
+        <div className="nav-item" onClick={() => setIsAddModalOpen(true)}>
+          <IoMdAdd size={28} />
+        </div>
+        <div className="nav-item" onClick={() => navigate('/calendar')}>
+          <MdCalendarToday size={24} />
+        </div>
+        <div className="nav-item" onClick={() => navigate('/dashboard')}>
+          <MdHome size={26} />
+        </div>
+        <div className="nav-item" onClick={() => navigate('/chat')}>
+          <MdChat size={24} />
+        </div>
+        <div className="nav-item active">
+          <MdSettings size={26} />
+        </div>
       </div>
-    </div>
 
-    <AddModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} />
+      <AddModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} />
+    </div>
   );
 }
