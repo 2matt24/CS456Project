@@ -146,7 +146,7 @@ export default function QuickStudyPage() {
           credentials: 'include',
           body: JSON.stringify({
             courseId: parseInt(courseId),
-            sessionType: 'pomodoro',
+            sessionType: 'study',
             durationMinutes: elapsed,
           }),
         });
