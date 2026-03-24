@@ -133,13 +133,13 @@ export const coursesAPI = {
     }
   },
 
-  create: async (courseName, courseCode, semester, color, icon) => {
+  create: async (courseName, courseCode, semester, color, icon, startDate, endDate) => {
     try {
       const response = await fetch(`${API_BASE_URL}/api/courses`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ courseName, courseCode, semester, color, icon })
+        body: JSON.stringify({ courseName, courseCode, semester, color, icon, startDate, endDate })
       });
       
       if (!response.ok) {
@@ -276,24 +276,91 @@ export const studySessionsAPI = {
 
 // Chat endpoint
 export const chatAPI = {
-  sendMessage: async (message) => {
+  // Save a message+response pair to history (non-fatal — UI never blocks on this)
+  saveExchange: async (message, response, noteId) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/chat`, {
+      await fetch(`${API_BASE_URL}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ message })
+        body: JSON.stringify({ message, response, noteId: noteId || null })
       });
+    } catch (err) {
+      console.warn('[chatAPI] saveExchange failed:', err);
+    }
+  },
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to send message');
-      }
+  getHistory: async (limit = 50, noteId = null) => {
+    try {
+      const params = new URLSearchParams({ limit });
+      if (noteId) params.set('noteId', noteId);
+      const res = await fetch(`${API_BASE_URL}/api/chat/history?${params}`, {
+        credentials: 'include'
+      });
+      if (!res.ok) return [];
+      const data = await res.json();
+      return data.history || [];
+    } catch (err) {
+      console.warn('[chatAPI] getHistory failed:', err);
+      return [];
+    }
+  },
 
-      return await response.json();
-    } catch (error) {
-      console.error('Chat error:', error);
-      throw error;
+  clearHistory: async () => {
+    try {
+      await fetch(`${API_BASE_URL}/api/chat/history`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+    } catch (err) {
+      console.warn('[chatAPI] clearHistory failed:', err);
+    }
+  }
+};
+
+// Notifications endpoint
+export const notificationsAPI = {
+  getAll: async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/notifications`, { credentials: 'include' });
+      if (!res.ok) return { notifications: [], unreadCount: 0 };
+      return await res.json();
+    } catch (err) {
+      console.warn('[notificationsAPI] getAll failed:', err);
+      return { notifications: [], unreadCount: 0 };
+    }
+  },
+
+  getUnreadCount: async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/notifications/unread-count`, { credentials: 'include' });
+      if (!res.ok) return 0;
+      const data = await res.json();
+      return data.unreadCount || 0;
+    } catch {
+      return 0;
+    }
+  },
+
+  markRead: async (notificationId) => {
+    try {
+      await fetch(`${API_BASE_URL}/api/notifications/${notificationId}/read`, {
+        method: 'PUT',
+        credentials: 'include'
+      });
+    } catch (err) {
+      console.warn('[notificationsAPI] markRead failed:', err);
+    }
+  },
+
+  markAllRead: async () => {
+    try {
+      await fetch(`${API_BASE_URL}/api/notifications/read-all`, {
+        method: 'PUT',
+        credentials: 'include'
+      });
+    } catch (err) {
+      console.warn('[notificationsAPI] markAllRead failed:', err);
     }
   }
 };

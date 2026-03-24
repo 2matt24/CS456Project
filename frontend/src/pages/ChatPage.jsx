@@ -1,79 +1,37 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { IoMdAdd, IoMdSend } from 'react-icons/io';
+import { IoMdAdd, IoMdSend, IoMdAttach } from 'react-icons/io';
 import { MdCalendarToday, MdHome, MdChat, MdSettings, MdArrowBack, MdDeleteSweep } from 'react-icons/md';
 import { RiRobot2Fill } from 'react-icons/ri';
 import { FaUserCircle } from 'react-icons/fa';
+import AddModal from '../components/AddModal';
+import { notesAPI, chatAPI } from '../services/api';
 import '../styles/ChatPage.css';
 
-/* ─── Gemini configuration ─── */
-const GEMINI_API_KEY = 'AIzaSyCBQY2vauQ-zEcelbpkIaU2deSx0WBENR4';
-const GEMINI_MODEL   = 'gemini-2.5-flash';
-const GEMINI_URL     = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
+const API_BASE = 'https://cs456project.onrender.com';
 
-const SYSTEM_PROMPT =
-  'You are an AI Study Assistant for StudyBuddyAI, a student productivity app. ' +
-  'Help students understand course concepts, quiz them, summarize notes, suggest ' +
-  'study strategies, explain complex topics clearly, and keep them motivated. ' +
-  'Be concise, encouraging, and use simple language. Format answers with bullet ' +
-  'points or numbered lists when helpful. Keep responses under 200 words unless ' +
-  'the student explicitly asks for more detail.';
-
-/* ─── Mock fallback responses (when Gemini is unavailable) ─── */
-const MOCK_RESPONSES = [
-  "I can help you study! Try asking me to summarize a topic or quiz you on your notes.",
-  "Great question! Here are some study tips:\n• Break topics into small chunks\n• Use active recall instead of re-reading\n• Take breaks every 25 minutes (Pomodoro technique)\n• Review material before sleep",
-  "I'd love to quiz you! Tell me which subject or topic you want to practice, and I'll ask you questions.",
-  "To understand this better, try explaining the concept in your own words first — that's the best way to find gaps in your knowledge!",
-  "Here's a study strategy: Create a mind map connecting key concepts. It helps your brain build associations and remember more.",
-];
-
-let mockIndex = 0;
-
-async function callGemini(userMessage, conversationHistory) {
-  // Build the contents array from conversation history
-  const contents = conversationHistory
-    .filter((m) => m.id !== 'welcome')          // skip the static welcome
-    .map((m) => ({
-      role: m.role === 'user' ? 'user' : 'model',
-      parts: [{ text: m.text }],
-    }));
-
-  // Append the new user message
-  contents.push({ role: 'user', parts: [{ text: userMessage }] });
-
-  const body = {
-    system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
-    contents,
-    generationConfig: {
-      temperature: 0.7,
-      maxOutputTokens: 512,
-    },
-  };
-
-  console.log('[ChatPage] Calling Gemini API, model:', GEMINI_MODEL);
-
-  const response = await fetch(GEMINI_URL, {
+async function sendChatMessage(userMessage, history, noteContext, fileContext) {
+  const response = await fetch(`${API_BASE}/api/chat`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
+    credentials: 'include',
+    body: JSON.stringify({
+      message:     userMessage,
+      history:     history.filter((m) => m.id !== 'welcome'),
+      noteContext: noteContext ? { title: noteContext.title, content: noteContext.content } : null,
+      fileContext: fileContext || null,
+    }),
   });
-
   if (!response.ok) {
-    const errText = await response.text();
-    console.error('[ChatPage] Gemini error', response.status, errText);
-    throw new Error(`Gemini API ${response.status}`);
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error || `Server error ${response.status}`);
   }
-
   const data = await response.json();
-  console.log('[ChatPage] Gemini response:', data);
-
-  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!text) throw new Error('Empty Gemini response');
+  const text = data?.response;
+  if (!text) throw new Error('Empty response from server');
   return text;
 }
 
-/* ─── helpers ─── */
 const WELCOME_MESSAGE = {
   id: 'welcome',
   role: 'ai',
@@ -99,46 +57,110 @@ function ChatPage() {
   const navigate = useNavigate();
   const [messages, setMessages]   = useState([WELCOME_MESSAGE]);
   const [inputText, setInputText] = useState('');
-  const [isTyping, setIsTyping]   = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [allNotes, setAllNotes] = useState([]);
+  const [selectedNote, setSelectedNote] = useState(null);
+  const [fileContext, setFileContext] = useState(null);
+  const [fileName, setFileName] = useState('');
   const messagesEndRef = useRef(null);
-  const textareaRef    = useRef(null);
+  const textareaRef = useRef(null);
+  const fileInputRef = useRef(null);
+
+  // Load notes + chat history on mount
+  useEffect(() => {
+    (async () => {
+      // ── 1. Load notes ──
+      try {
+        const coursesResp = await fetch('https://cs456project.onrender.com/api/courses', { credentials: 'include' });
+        if (coursesResp.ok) {
+          const coursesData = await coursesResp.json();
+          const courses = coursesData.courses || [];
+          const noteArrays = await Promise.all(courses.map((c) => notesAPI.getForCourse(c.courseID)));
+          // flatten with correct course name per note
+          const flat = [];
+          courses.forEach((course, ci) => {
+            (noteArrays[ci] || []).forEach((n) => flat.push({ ...n, courseName: course.courseName }));
+          });
+          setAllNotes(flat);
+        }
+      } catch (e) {
+        console.warn('[ChatPage] note load failed:', e);
+      }
+
+      // ── 2. Load chat history ──
+      try {
+        const history = await chatAPI.getHistory(40);
+        if (history.length > 0) {
+          // History comes newest-first; reverse so oldest is at top
+          const reversed = [...history].reverse();
+          const histMsgs = [];
+          reversed.forEach((h) => {
+            histMsgs.push({
+              id: `hist-u-${h.chatID}`,
+              role: 'user',
+              text: h.message,
+              timestamp: new Date(h.createdAt),
+              fromHistory: true,
+            });
+            if (h.response) {
+              histMsgs.push({
+                id: `hist-a-${h.chatID}`,
+                role: 'ai',
+                text: h.response,
+                timestamp: new Date(h.createdAt),
+                fromHistory: true,
+              });
+            }
+          });
+          setMessages([WELCOME_MESSAGE, ...histMsgs]);
+        }
+      } catch (e) {
+        console.warn('[ChatPage] history load failed:', e);
+      }
+    })();
+  }, []);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isTyping]);
 
-  const appendAiMessage = (text, isError = false) => {
-    setMessages((prev) => [
-      ...prev,
-      { id: Date.now() + 1, role: 'ai', text, timestamp: new Date(), isError },
-    ]);
+  const handleFileUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setFileName(file.name);
+    const reader = new FileReader();
+    reader.onload = (ev) => setFileContext(ev.target.result);
+    reader.readAsText(file);
   };
 
   const handleSend = async () => {
     const text = inputText.trim();
     if (!text || isTyping) return;
 
-    // Add user message immediately
     const userMsg = { id: Date.now(), role: 'user', text, timestamp: new Date() };
     setMessages((prev) => [...prev, userMsg]);
     setInputText('');
     setIsTyping(true);
 
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-    }
+    if (textareaRef.current) textareaRef.current.style.height = 'auto';
 
     try {
-      // Pass the current messages array (before adding the new user message)
-      // so Gemini has full conversation context
-      const aiText = await callGemini(text, [...messages]);
-      appendAiMessage(aiText);
+      // Backend calls Gemini and saves the exchange — one round-trip
+      const aiText = await sendChatMessage(text, messages, selectedNote, fileContext);
+      setMessages((prev) => [...prev, { id: Date.now() + 1, role: 'ai', text: aiText, timestamp: new Date() }]);
     } catch (err) {
-      console.warn('[ChatPage] Gemini failed, using mock response:', err.message);
-      // Graceful fallback — cycle through mock responses
-      const fallback = MOCK_RESPONSES[mockIndex % MOCK_RESPONSES.length];
-      mockIndex += 1;
-      appendAiMessage(fallback);
+      console.warn('[ChatPage] AI request failed:', err.message);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: Date.now() + 1,
+          role: 'ai',
+          text: "Sorry, I'm having trouble connecting right now. Please try again in a moment.",
+          timestamp: new Date(),
+          isError: true,
+        },
+      ]);
     } finally {
       setIsTyping(false);
     }
@@ -159,7 +181,7 @@ function ChatPage() {
 
   const clearChat = () => {
     setMessages([{ ...WELCOME_MESSAGE, timestamp: new Date() }]);
-    console.log('[ChatPage] Chat cleared');
+    chatAPI.clearHistory(); // fire-and-forget
   };
 
   const sendQuickPrompt = (promptText) => {
@@ -168,6 +190,7 @@ function ChatPage() {
   };
 
   return (
+    <>
     <div className="chat-container">
 
       {/* ── Navbar ── */}
@@ -191,12 +214,60 @@ function ChatPage() {
         </button>
       </div>
 
+      {/* ── Context Bar: Note Selector + File Upload ── */}
+      <div className="chat-context-bar">
+        <select
+          className="chat-note-select"
+          value={selectedNote?.noteID || ''}
+          onChange={(e) => {
+            const note = allNotes.find((n) => n.noteID === parseInt(e.target.value));
+            setSelectedNote(note || null);
+          }}
+        >
+          <option value="">💬 General chat</option>
+          {allNotes.map((n) => (
+            <option key={n.noteID} value={n.noteID}>{n.title}</option>
+          ))}
+        </select>
+
+        <label className="chat-upload-btn" title="Upload a file for context">
+          <IoMdAttach size={18} />
+          {fileName ? fileName.slice(0, 14) + (fileName.length > 14 ? '…' : '') : 'File'}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".txt,.md,.pdf,.docx"
+            style={{ display: 'none' }}
+            onChange={handleFileUpload}
+          />
+        </label>
+
+        {(selectedNote || fileContext) && (
+          <button className="chat-clear-context-btn" onClick={() => { setSelectedNote(null); setFileContext(null); setFileName(''); }}>
+            ✕ Clear
+          </button>
+        )}
+      </div>
+
       {/* ── Messages ── */}
       <div className="chat-messages">
         {messages.map((msg, index) => (
           <div key={msg.id}>
+            {/* "Today" separator at the very top */}
             {index === 0 && (
               <div className="chat-date-separator"><span>Today</span></div>
+            )}
+            {/* "Previous conversations" separator — shown before first history msg */}
+            {index === 1 && msg.fromHistory && (
+              <div className="chat-date-separator chat-history-separator">
+                <span>Previous conversations</span>
+              </div>
+            )}
+            {/* "New messages" separator — first msg that is NOT from history after a history block */}
+            {index > 1 && !msg.fromHistory && messages[index - 1]?.fromHistory && (
+              <div className="chat-date-separator">
+                <span>New</span>
+              </div>
             )}
 
             <div className={`message-row ${msg.role === 'user' ? 'message-row-user' : 'message-row-ai'}`}>
@@ -283,13 +354,26 @@ function ChatPage() {
 
       {/* ── Bottom Nav ── */}
       <div className="bottom-nav">
-        <div className="nav-item" onClick={() => navigate('/dashboard')}><IoMdAdd size={28} /></div>
-        <div className="nav-item" onClick={() => navigate('/calendar')}><MdCalendarToday size={24} /></div>
-        <div className="nav-item" onClick={() => navigate('/dashboard')}><MdHome size={26} /></div>
-        <div className="nav-item active"><MdChat size={24} /></div>
-        <div className="nav-item" onClick={() => navigate('/settings')}><MdSettings size={26} /></div>
+        <div className="nav-item" onClick={() => setIsAddModalOpen(true)}>
+          <IoMdAdd size={28} />
+        </div>
+        <div className="nav-item" onClick={() => navigate('/calendar')}>
+          <MdCalendarToday size={24} />
+        </div>
+        <div className="nav-item" onClick={() => navigate('/dashboard')}>
+          <MdHome size={26} />
+        </div>
+        <div className="nav-item active">
+          <MdChat size={24} />
+        </div>
+        <div className="nav-item" onClick={() => navigate('/settings')}>
+          <MdSettings size={26} />
+        </div>
       </div>
     </div>
+
+    <AddModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} />
+    </>
   );
 }
 
