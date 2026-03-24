@@ -6,6 +6,7 @@ import { FaUserCircle, FaFileUpload, FaStar } from 'react-icons/fa';
 import { IoDocumentTextOutline, IoSearchSharp } from 'react-icons/io5';
 import { coursesAPI, notesAPI } from '../services/api';
 import StudyTimer from '../components/StudyTimer';
+import AddModal from '../components/AddModal';
 import '../styles/CoursePage.css';
 
 function CoursePage() {
@@ -17,6 +18,7 @@ function CoursePage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
   useEffect(() => {
     loadCourseData();
@@ -240,7 +242,7 @@ function CoursePage() {
 
       {/* Bottom navigation */}
       <div className="bottom-nav">
-        <div className="nav-item" onClick={() => navigate('/dashboard')}>
+        <div className="nav-item" onClick={() => setIsAddModalOpen(true)}>
           <IoMdAdd size={28} />
         </div>
         <div className="nav-item" onClick={() => navigate('/calendar')}>
@@ -256,6 +258,8 @@ function CoursePage() {
           <MdSettings size={26} />
         </div>
       </div>
+
+      <AddModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} />
     </div>
   );
 }

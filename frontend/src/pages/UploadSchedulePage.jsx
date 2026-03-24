@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { IoMdAdd, IoMdNotifications } from 'react-icons/io';
+import { IoMdAdd, IoMdCalendar } from 'react-icons/io';
 import { MdArrowBack, MdCalendarToday, MdHome, MdChat, MdSettings } from 'react-icons/md';
 import AddModal from '../components/AddModal';
 import '../styles/PlaceholderPage.css';
 
-function NotificationsPage() {
+function UploadSchedulePage() {
   const navigate = useNavigate();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
@@ -16,16 +16,16 @@ function NotificationsPage() {
           <div className="menu-icon" onClick={() => navigate(-1)}>
             <MdArrowBack size={28} />
           </div>
-          <h3>Notifications</h3>
+          <h3>Upload Schedule</h3>
           <div style={{ width: '28px' }} />
         </div>
 
         <div className="placeholder-content">
           <div className="placeholder-icon">
-            <IoMdNotifications size={80} color="#667eea" />
+            <IoMdCalendar size={80} color="#43e97b" />
           </div>
-          <h2>Notifications</h2>
-          <p>Stay on top of assignment reminders, study goals, and weekly progress updates — all in one place.</p>
+          <h2>Upload Schedule</h2>
+          <p>Import your class schedule — we'll automatically create courses, set up your calendar, and get your semester organized in seconds.</p>
           <div className="coming-soon-badge">Coming Soon</div>
         </div>
 
@@ -53,4 +53,4 @@ function NotificationsPage() {
   );
 }
 
-export default NotificationsPage;
+export default UploadSchedulePage;

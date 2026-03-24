@@ -70,15 +70,15 @@ function Dashboard() {
                 <div className="navbar">
                     <div className="nav-icons">
                         <span className="icon" onClick={() => navigate('/profile')}>
-                            <FaUserCircle size={24} />
+                            <FaUserCircle size={24} color="#666" />
                         </span>
                         <span className="icon" onClick={() => navigate('/notifications')}>
-                            <IoMdNotifications size={24} />
+                            <IoMdNotifications size={24} color="#666" />
                         </span>
                     </div>
                     <div>
                         <span className="icon logout-icon" onClick={handleLogout}>
-                            <IoMdPower size={24} />
+                            <IoMdPower size={24} color="#666" />
                         </span>
                     </div>
                 </div>

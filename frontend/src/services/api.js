@@ -133,13 +133,13 @@ export const coursesAPI = {
     }
   },
 
-  create: async (courseName, courseCode, semester, color, icon) => {
+  create: async (courseName, courseCode, semester, color, icon, startDate, endDate) => {
     try {
       const response = await fetch(`${API_BASE_URL}/api/courses`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ courseName, courseCode, semester, color, icon })
+        body: JSON.stringify({ courseName, courseCode, semester, color, icon, startDate, endDate })
       });
       
       if (!response.ok) {
