@@ -18,7 +18,7 @@ function getInitials(firstName, lastName) {
 }
 
 /* ─── Toggle switch component ─── */
-function Toggle({ checked, onChange, id }) {
+function Toggle({ checked, onChange, id, disabled = false }) {
   return (
     <label className="toggle" htmlFor={id}>
       <input
@@ -26,6 +26,7 @@ function Toggle({ checked, onChange, id }) {
         id={id}
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
+        disabled={disabled}
       />
       <span className="toggle-track">
         <span className="toggle-thumb" />
@@ -55,13 +56,14 @@ export default function SettingsPage() {
     weeklyReport: false,
   });
   
+  const [isSavingNotifs, setIsSavingNotifs] = useState(false);
 
   useEffect(() => {
     const loadSettingsPageData = async () => {
       try {
         const [userData, notificationSettings, aboutData] = await Promise.all([
           authAPI.getMe(),
-          settingsAPI.getNotifications(),
+          settingsAPI.getNotificationSettings(),
           settingsAPI.getAbout(),
         ]);
 
@@ -84,8 +86,8 @@ export default function SettingsPage() {
     setIsSavingNotifs(true);
 
     try {
-      const saved = await settingsAPI.updateNotifications(next);
-      setNotifs(saved);
+      const saved = await settingsAPI.updateNotificationSettings(next);
+      setNotifs(saved.notifications || next);
     } catch {
       setNotifs(previous);
     } finally {
@@ -185,6 +187,7 @@ export default function SettingsPage() {
               id="studyReminders"
               checked={notifs.studyReminders}
               onChange={(v) => updateNotificationSetting('studyReminders', v)}
+              disabled={isSavingNotifs}
             />
           </div>
 
@@ -200,6 +203,7 @@ export default function SettingsPage() {
               id="noteSummaries"
               checked={notifs.noteSummaries}
               onChange={(v) => updateNotificationSetting('noteSummaries', v)}
+              disabled={isSavingNotifs}
             />
           </div>
 
@@ -215,6 +219,7 @@ export default function SettingsPage() {
               id="weeklyReport"
               checked={notifs.weeklyReport}
               onChange={(v) => updateNotificationSetting('weeklyReport', v)}
+              disabled={isSavingNotifs}
             />
           </div>
 
