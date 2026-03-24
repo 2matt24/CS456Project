@@ -96,5 +96,11 @@ def test_db():
 def health():
     return {"status": "ok"}
 
+
+@app.after_request
+def debug_response(response):
+    print("SET-COOKIE HEADER:", response.headers.get("Set-Cookie"))
+    return response
+
 if __name__ == "__main__":
     app.run()
