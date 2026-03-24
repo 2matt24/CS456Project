@@ -1,14 +1,15 @@
-import React, { useState } from 'react';
+
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { IoMdAdd, IoMdNotifications } from 'react-icons/io';
+import { IoMdAdd } from 'react-icons/io';
 import { MdArrowBack, MdChevronRight } from 'react-icons/md';
 import { MdCalendarToday, MdHome, MdChat, MdSettings, MdPerson, MdLock, MdColorLens, MdInfo } from 'react-icons/md';
 import { MdNotifications, MdStar } from 'react-icons/md';
-import { FaUserCircle } from 'react-icons/fa';
 import AddModal from '../components/AddModal';
-import '../styles/PlaceholderPage.css';
+import { authAPI, settingsAPI } from '../services/api';
+import '../styles/SettingsPage.css';
 
-const API_BASE = 'https://cs456project.onrender.com';
+//const API_BASE = 'https://cs456project.onrender.com';
 
 function getInitials(firstName, lastName) {
   const f = (firstName || '').trim()[0] || '';
@@ -39,20 +40,62 @@ function Toggle({ checked, onChange, id }) {
 export default function SettingsPage() {
   const navigate = useNavigate();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isLoadingUser, setIsLoadingUser] = useState(true);
+  const [user, setUser] = useState(null);
+  const [about, setAbout] = useState({
+    appName: 'StudyBuddyAI',
+    version: '1.0.0',
+    aiModel: 'Gemini 2.5 Flash',
+    techStack: 'React + Flask',
+    contact: 'support@studybuddyai.app'
+  });
   const [notifs, setNotifs] = useState({
     studyReminders: true,
     noteSummaries: true,
-    weeklyReport: false
+    weeklyReport: false,
   });
   
-  // Mock user data
-  const user = {
-    firstName: 'John',
-    lastName: 'Doe',
-    email: 'john@example.com'
+
+  useEffect(() => {
+    const loadSettingsPageData = async () => {
+      try {
+        const [userData, notificationSettings, aboutData] = await Promise.all([
+          authAPI.getMe(),
+          settingsAPI.getNotifications(),
+          settingsAPI.getAbout(),
+        ]);
+
+        setUser(userData.user || null);
+        setNotifs(notificationSettings);
+        setAbout(aboutData);
+      } catch (err) {
+        console.warn('[SettingsPage] Could not load settings data:', err.message);
+      } finally {
+        setIsLoadingUser(false);
+      }
+    };
+    loadSettingsPageData();
+  }, []);
+
+  const updateNotificationSetting = async (key, value) => {
+    const previous = notifs;
+    const next = { ...notifs, [key]: value };
+    setNotifs(next);
+    setIsSavingNotifs(true);
+
+    try {
+      const saved = await settingsAPI.updateNotifications(next);
+      setNotifs(saved);
+    } catch {
+      setNotifs(previous);
+    } finally {
+      setIsSavingNotifs(false);
+    }
   };
-  const isLoadingUser = false;
-  const fullName = user ? `${user.firstName} ${user.lastName}` : 'User';
+
+  const fullName = user
+    ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'User'
+    : 'User';
   
   return (
     <div className="settings-container">
@@ -141,7 +184,7 @@ export default function SettingsPage() {
             <Toggle
               id="studyReminders"
               checked={notifs.studyReminders}
-              onChange={(v) => setNotifs((n) => ({ ...n, studyReminders: v }))}
+              onChange={(v) => updateNotificationSetting('studyReminders', v)}
             />
           </div>
 
@@ -156,7 +199,7 @@ export default function SettingsPage() {
             <Toggle
               id="noteSummaries"
               checked={notifs.noteSummaries}
-              onChange={(v) => setNotifs((n) => ({ ...n, noteSummaries: v }))}
+              onChange={(v) => updateNotificationSetting('noteSummaries', v)}
             />
           </div>
 
@@ -171,7 +214,7 @@ export default function SettingsPage() {
             <Toggle
               id="weeklyReport"
               checked={notifs.weeklyReport}
-              onChange={(v) => setNotifs((n) => ({ ...n, weeklyReport: v }))}
+              onChange={(v) => updateNotificationSetting('weeklyReport', v)}
             />
           </div>
 
@@ -198,23 +241,23 @@ export default function SettingsPage() {
 
           <div className="about-row">
             <span className="about-label">App Name</span>
-            <span className="about-value">StudyBuddyAI</span>
+            <span className="about-value">{about.appName}</span>
           </div>
           <div className="about-row">
             <span className="about-label">Version</span>
-            <span className="about-value">1.0.0</span>
+            <span className="about-value">{about.version}</span>
           </div>
           <div className="about-row">
             <span className="about-label">AI Model</span>
-            <span className="about-value">Gemini 2.5 Flash</span>
+            <span className="about-value">{about.aiModel}</span>
           </div>
           <div className="about-row">
             <span className="about-label">Built with</span>
-            <span className="about-value">React + Flask</span>
+            <span className="about-value">{about.techStack}</span>
           </div>
           <div className="about-row" style={{ borderBottom: 'none' }}>
             <span className="about-label">Contact</span>
-            <span className="about-value">support@studybuddyai.app</span>
+            <span className="about-value">{about.contact}</span>
           </div>
         </div>
 
