@@ -8,41 +8,27 @@ import AddModal from '../components/AddModal';
 import { notesAPI, chatAPI } from '../services/api';
 import '../styles/ChatPage.css';
 
-const GEMINI_API_KEY = 'AIzaSyCBQY2vauQ-zEcelbpkIaU2deSx0WBENR4';
-const GEMINI_MODEL   = 'gemini-2.5-flash';
-const GEMINI_URL     = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
+const API_BASE = 'https://cs456project.onrender.com';
 
-async function callGemini(userMessage, history, noteContext, fileContext) {
-  let systemText = 'You are a helpful AI Study Assistant for a student productivity app. ' +
-    'Help students understand concepts, quiz them on material, suggest study strategies, and answer academic questions. ' +
-    'Be concise, encouraging, and use bullet points when helpful. Keep responses under 300 words unless asked for more.';
-
-  if (noteContext) {
-    systemText += `\n\nThe student is currently discussing a note titled "${noteContext.title}". ` +
-      `Note content:\n\n${noteContext.content}`;
-  }
-  if (fileContext) {
-    systemText += `\n\nThe student has shared file content:\n\n${fileContext}`;
-  }
-
-  const contents = history
-    .filter((m) => m.id !== 'welcome')
-    .map((m) => ({ role: m.role === 'user' ? 'user' : 'model', parts: [{ text: m.text }] }));
-  contents.push({ role: 'user', parts: [{ text: userMessage }] });
-
-  const response = await fetch(GEMINI_URL, {
+async function sendChatMessage(userMessage, history, noteContext, fileContext) {
+  const response = await fetch(`${API_BASE}/api/chat`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
     body: JSON.stringify({
-      system_instruction: { parts: [{ text: systemText }] },
-      contents,
-      generationConfig: { temperature: 0.7, maxOutputTokens: 600 },
+      message:     userMessage,
+      history:     history.filter((m) => m.id !== 'welcome'),
+      noteContext: noteContext ? { title: noteContext.title, content: noteContext.content } : null,
+      fileContext: fileContext || null,
     }),
   });
-  if (!response.ok) throw new Error(`Gemini ${response.status}`);
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error || `Server error ${response.status}`);
+  }
   const data = await response.json();
-  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!text) throw new Error('Empty response');
+  const text = data?.response;
+  if (!text) throw new Error('Empty response from server');
   return text;
 }
 
@@ -154,12 +140,11 @@ function ChatPage() {
     if (textareaRef.current) textareaRef.current.style.height = 'auto';
 
     try {
-      const aiText = await callGemini(text, messages, selectedNote, fileContext);
+      // Backend calls Gemini and saves the exchange — one round-trip
+      const aiText = await sendChatMessage(text, messages, selectedNote, fileContext);
       setMessages((prev) => [...prev, { id: Date.now() + 1, role: 'ai', text: aiText, timestamp: new Date() }]);
-      // Persist exchange to backend (fire-and-forget, non-blocking)
-      chatAPI.saveExchange(text, aiText, selectedNote?.noteID || null);
     } catch (err) {
-      console.warn('[ChatPage] Gemini failed:', err.message);
+      console.warn('[ChatPage] AI request failed:', err.message);
       setMessages((prev) => [
         ...prev,
         {

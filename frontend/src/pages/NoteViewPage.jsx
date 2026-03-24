@@ -11,36 +11,27 @@ import { notesAPI } from '../services/api';
 import AddModal from '../components/AddModal';
 import '../styles/NoteViewPage.css';
 
-/* ─── Gemini config ─── */
-const GEMINI_API_KEY = 'AIzaSyCBQY2vauQ-zEcelbpkIaU2deSx0WBENR4';
-const GEMINI_MODEL   = 'gemini-2.5-flash';
-const GEMINI_URL     = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
+const API_BASE = 'https://cs456project.onrender.com';
 
-async function callGemini(userMessage, history, note) {
-  const systemText =
-    `You are a helpful study assistant reviewing the following note titled "${note.title}".\n\n` +
-    `Note content:\n${note.content}\n\n` +
-    'Answer questions about this note concisely and helpfully. ' +
-    'Use bullet points where appropriate. Keep responses under 300 words unless asked for more.';
-
-  const contents = history
-    .filter((m) => m.id !== 'welcome')
-    .map((m) => ({ role: m.role === 'user' ? 'user' : 'model', parts: [{ text: m.text }] }));
-  contents.push({ role: 'user', parts: [{ text: userMessage }] });
-
-  const resp = await fetch(GEMINI_URL, {
+async function sendChatMessage(userMessage, history, note) {
+  const response = await fetch(`${API_BASE}/api/chat`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
     body: JSON.stringify({
-      system_instruction: { parts: [{ text: systemText }] },
-      contents,
-      generationConfig: { temperature: 0.7, maxOutputTokens: 512 },
+      message:     userMessage,
+      history:     history.filter((m) => m.id !== 'welcome'),
+      noteContext: note ? { title: note.title, content: note.content } : null,
+      noteId:      note?.noteID || null,
     }),
   });
-  if (!resp.ok) throw new Error(`Gemini ${resp.status}`);
-  const data = await resp.json();
-  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!text) throw new Error('Empty response');
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error || `Server error ${response.status}`);
+  }
+  const data = await response.json();
+  const text = data?.response;
+  if (!text) throw new Error('Empty response from server');
   return text;
 }
 
@@ -116,9 +107,9 @@ export default function NoteViewPage() {
       console.warn('[NoteViewPage] backend summarize failed, falling back to Gemini:', e);
     }
 
-    // Fallback: Gemini client-side
+    // Fallback: backend AI chat endpoint
     try {
-      const result = await callGemini(
+      const result = await sendChatMessage(
         'Please provide a comprehensive summary of these notes in bullet points.',
         [],
         note,
@@ -143,7 +134,7 @@ export default function NoteViewPage() {
     if (textareaRef.current) textareaRef.current.style.height = 'auto';
 
     try {
-      const aiText = await callGemini(text, messages, note);
+      const aiText = await sendChatMessage(text, messages, note);
       setMessages((prev) => [...prev, { id: Date.now() + 1, role: 'ai', text: aiText, timestamp: new Date() }]);
     } catch (err) {
       setMessages((prev) => [...prev, {
