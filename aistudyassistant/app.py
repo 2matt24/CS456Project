@@ -26,27 +26,16 @@ app = Flask(__name__)
 
 app.secret_key = os.getenv("SECRET_KEY", "dev-secret-key")
 
-# Cookie/session settings
-# Important for local development:
-# - Keep SESSION_COOKIE_SAMESITE=Lax and SESSION_COOKIE_SECURE=False when using the Vite proxy
-# Important for cross-site frontend/backend deployments:
-# - Use SESSION_COOKIE_SAMESITE=None and SESSION_COOKIE_SECURE=True
-session_cookie_samesite = os.getenv("SESSION_COOKIE_SAMESITE", "Lax")
-secure_cookie_env = os.getenv("SESSION_COOKIE_SECURE")
 
-if secure_cookie_env is None:
-    app.config["SESSION_COOKIE_SECURE"] = session_cookie_samesite.lower() == "none"
-else:
-    app.config["SESSION_COOKIE_SECURE"] = secure_cookie_env.lower() == "true"
+
+
 
 app.config["SESSION_COOKIE_HTTPONLY"] = True
-#app.config["SESSION_COOKIE_SAMESITE"] = os.getenv("SESSION_COOKIE_SAMESITE", "None")
-#app.config["SESSION_COOKIE_SECURE"] = os.getenv("SESSION_COOKIE_SECURE", "true").lower() == "true"
-app.config["SESSION_COOKIE_SAMESITE"] = session_cookie_samesite
+app.config["SESSION_COOKIE_SAMESITE"] = os.getenv("SESSION_COOKIE_SAMESITE", "None")
+app.config["SESSION_COOKIE_SECURE"] = os.getenv("SESSION_COOKIE_SECURE", "true").lower() == "true"
 
-session_cookie_domain = os.getenv("SESSION_COOKIE_DOMAIN")
-if session_cookie_domain:
-    app.config["SESSION_COOKIE_DOMAIN"] = session_cookie_domain
+
+
 
 #CORS
 allowed_origins = os.getenv(
