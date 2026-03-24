@@ -14,5 +14,8 @@ class User(db.Model):
     PasswordHash = db.Column(db.String(255), nullable=False)
     FirstName = db.Column(db.String(100))
     LastName = db.Column(db.String(100))
+    Phone = db.Column(db.String(30))
+    Bio = db.Column(db.String(500))
+    ProfilePicture = db.Column(db.String(500), nullable=True)
     CreatedAt = db.Column(db.DateTime)
     LastLogin = db.Column(db.DateTime)
