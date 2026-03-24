@@ -9,7 +9,7 @@ import AddModal from '../components/AddModal';
 import { authAPI, settingsAPI } from '../services/api';
 import '../styles/SettingsPage.css';
 
-const API_BASE = 'https://cs456project.onrender.com';
+//const API_BASE = 'https://cs456project.onrender.com';
 
 function getInitials(firstName, lastName) {
   const f = (firstName || '').trim()[0] || '';
