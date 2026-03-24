@@ -1,10 +1,14 @@
-﻿const API_BASE_URL = 'https://cs456project.onrender.com';
+﻿//const API_BASE_URL = 'https://cs456project.onrender.com';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
+
+const buildUrl = (path) => `${API_BASE_URL}${path}`;
 
 // Auth endpoints
 export const authAPI = {
   register: async (email, password, firstName, lastName) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/register`, {
+      //const response = await fetch(`${API_BASE_URL}/api/register`, 
+      const response = await fetch(buildUrl('/api/register'),{
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -24,7 +28,8 @@ export const authAPI = {
 
   login: async (email, password) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/login`, {
+      //const response = await fetch(`${API_BASE_URL}/api/login`, 
+      const response = await fetch(buildUrl('/api/login'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -44,7 +49,8 @@ export const authAPI = {
 
   logout: async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/logout`, {
+      //const response = await fetch(`${API_BASE_URL}/api/logout`, 
+      const response = await fetch(buildUrl('/api/logout'), {
         method: 'POST',
         credentials: 'include'
       });
@@ -117,7 +123,8 @@ export const authAPI = {
 export const coursesAPI = {
   getAll: async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/courses`, {
+      //const response = await fetch(`${API_BASE_URL}/api/courses`,
+      const response = await fetch(buildUrl('/api/courses'), {
         credentials: 'include'
       });
       
@@ -135,7 +142,8 @@ export const coursesAPI = {
 
   create: async (courseName, courseCode, semester, color, icon) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/courses`, {
+      //const response = await fetch(`${API_BASE_URL}/api/courses`,
+      const response = await fetch(buildUrl('/api/courses'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -164,7 +172,8 @@ export const coursesAPI = {
 export const notesAPI = {
   getForCourse: async (courseId) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/notes?courseId=${courseId}`, {
+      //const response = await fetch(`${API_BASE_URL}/api/notes?courseId=${courseId}`, 
+      const response = await fetch(buildUrl(`/api/notes?courseId=${courseId}`),{
         credentials: 'include'
       });
       
@@ -180,7 +189,8 @@ export const notesAPI = {
 
   create: async (courseId, title, content) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/notes`, {
+      //const response = await fetch(`${API_BASE_URL}/api/notes`, 
+      const response = await fetch(buildUrl('/api/notes'),{
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -206,7 +216,8 @@ export const notesAPI = {
 
   summarize: async (content) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/notes/summarize`, {
+      //const response = await fetch(`${API_BASE_URL}/api/notes/summarize`,
+      const response = await fetch(buildUrl('/api/notes/summarize'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -230,7 +241,8 @@ export const notesAPI = {
 export const studySessionsAPI = {
   create: async (courseId, sessionType, durationMinutes) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/study-sessions`, {
+      //const response = await fetch(`${API_BASE_URL}/api/study-sessions`,
+      const response = await fetch(buildUrl('/api/study-sessions'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -256,9 +268,12 @@ export const studySessionsAPI = {
 
   getWeeklyStats: async (courseId) => {
     try {
-      const url = courseId 
-        ? `${API_BASE_URL}/api/study-sessions/weekly-stats?courseId=${courseId}`
-        : `${API_BASE_URL}/api/study-sessions/weekly-stats`;
+      const url = courseId
+        ? buildUrl(`/api/study-sessions/weekly-stats?courseId=${courseId}`)
+        : buildUrl('/api/study-sessions/weekly-stats');
+      //const url = courseId 
+      //  ? `${API_BASE_URL}/api/study-sessions/weekly-stats?courseId=${courseId}`
+      //  : `${API_BASE_URL}/api/study-sessions/weekly-stats`;
       
       const response = await fetch(url, {
         credentials: 'include'
