@@ -121,19 +121,7 @@ def upload_note_file():
             }
         )
 
-       # pinecone_service.add_note(
-          #  note_id=note.NoteID,
-           # content=extracted_text,
-          #  metadata={
-           #     "user_id": str(user_id),
-           #     "course_id": str(course_id),
-           #     "title": title,
-           #     "filename": upload_result['filename']
-           # }
-        #)
-
-
-        
+       
         return {
             "message": "File uploaded successfully",
             "note": _serialize_note(note),
@@ -226,15 +214,7 @@ def create_note():
                 "title": title
             }
         )
-      #  pinecone_service.add_note(
-       #     note_id=note.NoteID,
-        #    content=content,
-         #   metadata={
-          #      "user_id": str(user_id),
-           #     "course_id": str(course_id),
-            #    "title": title
-            #}
-        #)
+      
     except Exception as e:
         # Log error but don't fail the note creation
         print(f"Warning: Failed to add note to Pinecone: {e}")
