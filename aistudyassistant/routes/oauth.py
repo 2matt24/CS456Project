@@ -16,14 +16,7 @@ oauth.register(
     client_kwargs={'scope': 'openid email profile'}
 )
 
-# Apple OAuth Config
-oauth.register(
-    name='apple',
-    client_id=os.getenv('APPLE_CLIENT_ID'),
-    client_secret=os.getenv('APPLE_CLIENT_SECRET'),
-    server_metadata_url='https://appleid.apple.com/.well-known/openid-configuration',
-    client_kwargs={'scope': 'name email'}
-)
+
 
 @oauth_bp.route('/api/auth/google')
 def google_login():
