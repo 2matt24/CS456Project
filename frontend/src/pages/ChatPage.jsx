@@ -1,11 +1,50 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { IoMdAdd, IoMdSend } from 'react-icons/io';
+import { IoMdAdd, IoMdSend, IoMdAttach } from 'react-icons/io';
 import { MdCalendarToday, MdHome, MdChat, MdSettings, MdArrowBack, MdDeleteSweep } from 'react-icons/md';
 import { RiRobot2Fill } from 'react-icons/ri';
 import { FaUserCircle } from 'react-icons/fa';
-import { chatAPI } from '../services/api';
+import AddModal from '../components/AddModal';
+import { notesAPI } from '../services/api';
 import '../styles/ChatPage.css';
+
+const GEMINI_API_KEY = 'AIzaSyCBQY2vauQ-zEcelbpkIaU2deSx0WBENR4';
+const GEMINI_MODEL   = 'gemini-2.5-flash';
+const GEMINI_URL     = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
+
+async function callGemini(userMessage, history, noteContext, fileContext) {
+  let systemText = 'You are a helpful AI Study Assistant for a student productivity app. ' +
+    'Help students understand concepts, quiz them on material, suggest study strategies, and answer academic questions. ' +
+    'Be concise, encouraging, and use bullet points when helpful. Keep responses under 300 words unless asked for more.';
+
+  if (noteContext) {
+    systemText += `\n\nThe student is currently discussing a note titled "${noteContext.title}". ` +
+      `Note content:\n\n${noteContext.content}`;
+  }
+  if (fileContext) {
+    systemText += `\n\nThe student has shared file content:\n\n${fileContext}`;
+  }
+
+  const contents = history
+    .filter((m) => m.id !== 'welcome')
+    .map((m) => ({ role: m.role === 'user' ? 'user' : 'model', parts: [{ text: m.text }] }));
+  contents.push({ role: 'user', parts: [{ text: userMessage }] });
+
+  const response = await fetch(GEMINI_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      system_instruction: { parts: [{ text: systemText }] },
+      contents,
+      generationConfig: { temperature: 0.7, maxOutputTokens: 600 },
+    }),
+  });
+  if (!response.ok) throw new Error(`Gemini ${response.status}`);
+  const data = await response.json();
+  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!text) throw new Error('Empty response');
+  return text;
+}
 
 const WELCOME_MESSAGE = {
   id: 'welcome',
@@ -26,45 +65,67 @@ function ChatPage() {
   const [messages, setMessages] = useState([WELCOME_MESSAGE]);
   const [inputText, setInputText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [allNotes, setAllNotes] = useState([]);
+  const [selectedNote, setSelectedNote] = useState(null);
+  const [fileContext, setFileContext] = useState(null);
+  const [fileName, setFileName] = useState('');
   const messagesEndRef = useRef(null);
   const textareaRef = useRef(null);
+  const fileInputRef = useRef(null);
+
+  // Load all notes for note selector
+  useEffect(() => {
+    (async () => {
+      try {
+        // Get courses first, then notes for each
+        const coursesResp = await fetch('https://cs456project.onrender.com/api/courses', { credentials: 'include' });
+        if (coursesResp.ok) {
+          const coursesData = await coursesResp.json();
+          const courses = coursesData.courses || [];
+          const noteArrays = await Promise.all(courses.map((c) => notesAPI.getForCourse(c.courseID)));
+          const flat = noteArrays.flat().map((n, i) => ({
+            ...n,
+            courseName: courses[Math.floor(i / Math.max(noteArrays[0]?.length || 1, 1))]?.courseName,
+          }));
+          setAllNotes(flat);
+        }
+      } catch (e) {
+        console.warn('[ChatPage] note load failed:', e);
+      }
+    })();
+  }, []);
 
   // Auto-scroll to newest message
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isTyping]);
 
+  const handleFileUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setFileName(file.name);
+    const reader = new FileReader();
+    reader.onload = (ev) => setFileContext(ev.target.result);
+    reader.readAsText(file);
+  };
+
   const handleSend = async () => {
     const text = inputText.trim();
     if (!text || isTyping) return;
 
-    const userMsg = {
-      id: Date.now(),
-      role: 'user',
-      text,
-      timestamp: new Date(),
-    };
-
+    const userMsg = { id: Date.now(), role: 'user', text, timestamp: new Date() };
     setMessages((prev) => [...prev, userMsg]);
     setInputText('');
     setIsTyping(true);
 
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-    }
+    if (textareaRef.current) textareaRef.current.style.height = 'auto';
 
     try {
-      const data = await chatAPI.sendMessage(text);
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: Date.now() + 1,
-          role: 'ai',
-          text: data.response,
-          timestamp: new Date(),
-        },
-      ]);
-    } catch {
+      const aiText = await callGemini(text, messages, selectedNote, fileContext);
+      setMessages((prev) => [...prev, { id: Date.now() + 1, role: 'ai', text: aiText, timestamp: new Date() }]);
+    } catch (err) {
+      console.warn('[ChatPage] Gemini failed:', err.message);
       setMessages((prev) => [
         ...prev,
         {
@@ -115,6 +176,7 @@ function ChatPage() {
   };
 
   return (
+    <>
     <div className="chat-container">
       {/* ── Top Navbar ── */}
       <div className="chat-navbar">
@@ -135,6 +197,41 @@ function ChatPage() {
         <button className="chat-nav-btn chat-clear-btn" onClick={clearChat} title="Clear chat">
           <MdDeleteSweep size={24} />
         </button>
+      </div>
+
+      {/* ── Context Bar: Note Selector + File Upload ── */}
+      <div className="chat-context-bar">
+        <select
+          className="chat-note-select"
+          value={selectedNote?.noteID || ''}
+          onChange={(e) => {
+            const note = allNotes.find((n) => n.noteID === parseInt(e.target.value));
+            setSelectedNote(note || null);
+          }}
+        >
+          <option value="">💬 General chat</option>
+          {allNotes.map((n) => (
+            <option key={n.noteID} value={n.noteID}>{n.title}</option>
+          ))}
+        </select>
+
+        <label className="chat-upload-btn" title="Upload a file for context">
+          <IoMdAttach size={18} />
+          {fileName ? fileName.slice(0, 14) + (fileName.length > 14 ? '…' : '') : 'File'}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".txt,.md,.pdf,.docx"
+            style={{ display: 'none' }}
+            onChange={handleFileUpload}
+          />
+        </label>
+
+        {(selectedNote || fileContext) && (
+          <button className="chat-clear-context-btn" onClick={() => { setSelectedNote(null); setFileContext(null); setFileName(''); }}>
+            ✕ Clear
+          </button>
+        )}
       </div>
 
       {/* ── Messages ── */}
@@ -236,7 +333,7 @@ function ChatPage() {
 
       {/* ── Bottom Navigation ── */}
       <div className="bottom-nav">
-        <div className="nav-item" onClick={() => navigate('/dashboard')}>
+        <div className="nav-item" onClick={() => setIsAddModalOpen(true)}>
           <IoMdAdd size={28} />
         </div>
         <div className="nav-item" onClick={() => navigate('/calendar')}>
@@ -253,6 +350,9 @@ function ChatPage() {
         </div>
       </div>
     </div>
+
+    <AddModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} />
+    </>
   );
 }
 

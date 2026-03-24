@@ -10,6 +10,7 @@ import {
 } from 'react-icons/md';
 import { FaUserCircle } from 'react-icons/fa';
 import { authAPI } from '../services/api';
+import AddModal from '../components/AddModal';
 import '../styles/ProfilePage.css';
 
 /* ─── helpers ─── */
@@ -79,6 +80,7 @@ export default function ProfilePage() {
   const [user, setUser]         = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [fetchError, setFetchError] = useState('');
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
   /* ── edit mode ── */
   const [isEditing, setIsEditing] = useState(false);
@@ -523,7 +525,7 @@ export default function ProfilePage() {
 
       {/* ── Bottom Navigation ── */}
       <div className="bottom-nav">
-        <div className="nav-item" onClick={() => navigate('/dashboard')}>
+        <div className="nav-item" onClick={() => setIsAddModalOpen(true)}>
           <IoMdAdd size={28} />
         </div>
         <div className="nav-item" onClick={() => navigate('/calendar')}>
@@ -539,6 +541,8 @@ export default function ProfilePage() {
           <MdSettings size={26} />
         </div>
       </div>
+
+      <AddModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} />
     </div>
   );
 }

@@ -1,13 +1,15 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { IoMdAdd, IoMdNotifications } from 'react-icons/io';
 import { MdArrowBack } from 'react-icons/md';
 import { MdCalendarToday, MdHome, MdChat, MdSettings, MdPerson, MdLock, MdColorLens, MdInfo } from 'react-icons/md';
 import { FaUserCircle } from 'react-icons/fa';
+import AddModal from '../components/AddModal';
 import '../styles/PlaceholderPage.css';
 
 function SettingsPage() {
   const navigate = useNavigate();
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   
   return (
     <div className="placeholder-container">
@@ -85,7 +87,7 @@ function SettingsPage() {
 
       {/* Bottom navigation */}
       <div className="bottom-nav">
-        <div className="nav-item" onClick={() => navigate('/dashboard')}>
+        <div className="nav-item" onClick={() => setIsAddModalOpen(true)}>
           <IoMdAdd size={28} />
         </div>
         <div className="nav-item" onClick={() => navigate('/calendar')}>
@@ -102,6 +104,8 @@ function SettingsPage() {
         </div>
       </div>
     </div>
+
+    <AddModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} />
   );
 }
 
