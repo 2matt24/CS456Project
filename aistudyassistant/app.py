@@ -15,6 +15,7 @@ from aistudyassistant.routes.courses import courses_bp
 from aistudyassistant.routes.study_sessions import study_sessions_bp
 from aistudyassistant.routes.chat import chat_bp
 from aistudyassistant.routes.notifications import notifications_bp
+from aistudyassistant.routes.settings import settings_bp
 
 from aistudyassistant.models.user import User
 from aistudyassistant.models.note import Note
@@ -82,6 +83,7 @@ app.register_blueprint(courses_bp)
 app.register_blueprint(study_sessions_bp)
 app.register_blueprint(chat_bp)
 app.register_blueprint(notifications_bp)
+app.register_blueprint(settings_bp)
 
 @app.route("/api/test-users")
 def test_users():
