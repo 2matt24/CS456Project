@@ -6,6 +6,8 @@
   margin: 0 auto;
   box-shadow: 0 0 30px rgba(0, 0, 0, 0.1);
   position: relative;
+  overflow-x: hidden;
+  width: 100%;
 }
 
 .navbar {
@@ -95,6 +97,10 @@
   display: grid;
   grid-template-columns: 1fr;
   gap: 15px;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
 }
 
 .loading-text {

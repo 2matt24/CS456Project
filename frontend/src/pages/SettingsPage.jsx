@@ -6,7 +6,7 @@ import { MdCalendarToday, MdHome, MdChat, MdSettings, MdPerson, MdLock, MdColorL
 import { MdNotifications, MdStar } from 'react-icons/md';
 import { FaUserCircle } from 'react-icons/fa';
 import AddModal from '../components/AddModal';
-import '../styles/PlaceholderPage.css';
+import '../styles/SettingsPage.css';
 
 const API_BASE = 'https://cs456project.onrender.com';
 

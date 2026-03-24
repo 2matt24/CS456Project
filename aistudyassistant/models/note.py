@@ -13,8 +13,8 @@ class Note(db.Model):
         nullable=False
     )
 
-    Title = db.Column(db.String(255), nullable=False)
-    Content = db.Column(db.Text)
+    Title = db.Column(db.Unicode(255), nullable=False)
+    Content = db.Column(db.UnicodeText)
 
     FileName = db.Column(db.String(255))
     FileType = db.Column(db.String(50))
