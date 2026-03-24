@@ -366,10 +366,33 @@
 /* Responsive Design */
 @media (min-width: 768px) {
   .course-container {
-    max-width: 600px;
+    max-width: 800px;
   }
 
   .bottom-nav {
-    max-width: 600px;
+    max-width: 800px;
+  }
+
+  .upload-options {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .course-container {
+    max-width: 1200px;
+  }
+
+  .bottom-nav {
+    max-width: 1200px;
+  }
+
+  .notes-section,
+  .search-section,
+  .action-buttons {
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
   }
 }

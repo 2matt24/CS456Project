@@ -100,3 +100,24 @@ def login():
 def logout():
     session.clear()
     return {"message": "Logged out successfully"}, 200
+
+
+#--------- CURRENT USER -----
+@auth_bp.route("/api/user/me", methods=["GET"])
+def get_current_user():
+    user_id = session.get("user_id")
+    if not user_id:
+        return {"error": "Not authenticated"}, 401
+
+    user = User.query.get(user_id)
+    if not user:
+        return {"error": "User not found"}, 404
+
+    return {
+        "user": {
+            "id": user.UserID,
+            "email": user.Email,
+            "firstName": user.FirstName,
+            "lastName": user.LastName
+        }
+    }, 200
