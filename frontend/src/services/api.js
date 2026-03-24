@@ -367,3 +367,55 @@ export const notificationsAPI = {
     }
   }
 };
+// Settings endpoints
+export const settingsAPI = {
+  getNotificationSettings: async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/settings/notifications`, {
+        credentials: 'include'
+      });
+      if (!res.ok) {
+        throw new Error('Failed to load notification settings');
+      }
+      const data = await res.json();
+      return data.notifications || {};
+    } catch (err) {
+      console.warn('[settingsAPI] getNotificationSettings failed:', err);
+      throw err;
+    }
+  },
+
+  updateNotificationSettings: async (notifications) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/settings/notifications`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ notifications })
+      });
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({}));
+        throw new Error(error.error || 'Failed to update notification settings');
+      }
+      return await res.json();
+    } catch (err) {
+      console.warn('[settingsAPI] updateNotificationSettings failed:', err);
+      throw err;
+    }
+  },
+
+  getAbout: async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/settings/about`, {
+        credentials: 'include'
+      });
+      if (!res.ok) {
+        throw new Error('Failed to load app info');
+      }
+      return await res.json();
+    } catch (err) {
+      console.warn('[settingsAPI] getAbout failed:', err);
+      throw err;
+    }
+  }
+};
