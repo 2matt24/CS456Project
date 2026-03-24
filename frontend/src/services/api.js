@@ -1,5 +1,30 @@
 ﻿const API_BASE_URL = 'https://cs456project.onrender.com';
 
+class ApiError extends Error {
+  constructor(message, status) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+  }
+}
+
+async function parseResponse(response, defaultMessage) {
+  let data = null;
+
+  try {
+    data = await response.json();
+  } catch {
+    data = null;
+  }
+
+  if (!response.ok) {
+    const message = data?.error || data?.message || defaultMessage;
+    throw new ApiError(message, response.status);
+  }
+
+  return data;
+}
+
 
 const buildUrl = (path) => `${API_BASE_URL}${path}`;
 
@@ -123,11 +148,11 @@ export const coursesAPI = {
       const response = await fetch(`${API_BASE_URL}/api/courses`, {
         credentials: 'include'
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to fetch courses');
       }
-      
+
       const data = await response.json();
       return data.courses || data || [];
     } catch (error) {
@@ -151,10 +176,10 @@ export const coursesAPI = {
       }
       
       const data = await response.json();
-      return { 
-        success: true, 
+      return {
+        success: true,
         courseID: data.course?.courseID,
-        message: data.message 
+        message: data.message
       };
     } catch (error) {
       console.error('Create course error:', error);
@@ -165,14 +190,31 @@ export const coursesAPI = {
 
 // Notes endpoints
 export const notesAPI = {
+
+  getAll: async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/notes`, {
+        credentials: 'include'
+      });
+
+      if (!response.ok) throw new Error('Failed to fetch notes');
+
+      const data = await response.json();
+      return data.notes || [];
+    } catch (error) {
+      console.error('Get all notes error:', error);
+      return [];
+    }
+  },
+
   getForCourse: async (courseId) => {
     try {
       const response = await fetch(`${API_BASE_URL}/api/notes?courseId=${courseId}`, {
         credentials: 'include'
       });
-      
+
       if (!response.ok) throw new Error('Failed to fetch notes');
-      
+
       const data = await response.json();
       return data.notes || [];
     } catch (error) {
@@ -196,10 +238,11 @@ export const notesAPI = {
       }
       
       const data = await response.json();
-      return { 
-        success: true, 
+      return {
+        success: true,
         noteID: data.note?.noteID,
-        message: data.message
+        message: data.message,
+        note: data.note
       };
     } catch (error) {
       console.error('Create note error:', error);
@@ -207,13 +250,13 @@ export const notesAPI = {
     }
   },
 
-  summarize: async (content) => {
+  update: async (noteId, courseId, title, content) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/notes/summarize`, {
-        method: 'POST',
+      const response = await fetch(`${API_BASE_URL}/api/notes/${noteId}`, {
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ content })
+        body: JSON.stringify({ courseId, title, content })
       });
       
       if (!response.ok) {
@@ -223,9 +266,20 @@ export const notesAPI = {
       
       return await response.json();
     } catch (error) {
-      console.error('Summarize error:', error);
+      console.error('Update note error:', error);
       throw error;
     }
+  },
+
+  summarize: async (content) => {
+    const response = await fetch(`${API_BASE_URL}/api/notes/summarize`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ content })
+    });
+
+    return parseResponse(response, 'Failed to generate summary');
   }
 };
 
@@ -246,8 +300,8 @@ export const studySessionsAPI = {
       }
       
       const data = await response.json();
-      return { 
-        success: true, 
+      return {
+        success: true,
         sessionID: data.session?.sessionID,
         message: data.message
       };

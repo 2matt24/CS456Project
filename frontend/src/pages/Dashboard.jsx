@@ -11,6 +11,7 @@ import '../styles/Dashboard.css';
 function Dashboard() {
     const navigate = useNavigate();
     const [courses, setCourses] = useState([]);
+    const [noteCounts, setNoteCounts] = useState({});
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState('');
     const [logoutMessage, setLogoutMessage] = useState('');
@@ -24,11 +25,30 @@ function Dashboard() {
         notificationsAPI.getUnreadCount().then(setUnreadCount).catch(() => {});
     }, []);
 
+    const loadWelcomeName = () => {
+        try {
+            const storedUser = JSON.parse(localStorage.getItem('studybuddy_user') || '{}');
+            const fullName = [storedUser.firstName, storedUser.lastName].filter(Boolean).join(' ').trim();
+
+            if (fullName) {
+                setWelcomeName(fullName);
+                return;
+            }
+
+            if (storedUser.email) {
+                setWelcomeName(storedUser.email.split('@')[0]);
+            }
+        } catch (parseError) {
+            console.error('Failed to load saved user profile:', parseError);
+        }
+    };
+
     const handleLogout = async () => {
         try {
             await authAPI.logout();
+            localStorage.removeItem('studybuddy_user');
             setLogoutMessage('Logging out...');
-            
+
             setTimeout(() => {
                 navigate('/');
             }, 1500);
@@ -49,11 +69,22 @@ function Dashboard() {
 
     const loadCourses = async () => {
         try {
-            const data = await coursesAPI.getAll();
-            setCourses(data);
+            const [courseData, noteData] = await Promise.all([
+                coursesAPI.getAll(),
+                notesAPI.getAll(),
+            ]);
+
+            const counts = noteData.reduce((acc, note) => {
+                const key = String(note.courseID);
+                acc[key] = (acc[key] || 0) + 1;
+                return acc;
+            }, {});
+
+            setCourses(courseData);
+            setNoteCounts(counts);
         } catch (err) {
-            setError('Failed to load courses');
-            console.error('Load courses error:', err);
+            setError('Failed to load dashboard data');
+            console.error('Load dashboard error:', err);
         } finally {
             setIsLoading(false);
         }
@@ -66,7 +97,7 @@ function Dashboard() {
                     {logoutMessage}
                 </div>
             )}
-            
+
             <div className="dashboard-container">
                 {/* Top navigation bar */}
                 <div className="navbar">
@@ -107,7 +138,8 @@ function Dashboard() {
                                     name: course.courseName,
                                     code: course.courseCode,
                                     color: course.color,
-                                    icon: course.icon
+                                    icon: course.icon,
+                                    noteCount: noteCounts[String(course.courseID)] || 0,
                                 }}
                             />
                         ))}
@@ -134,9 +166,9 @@ function Dashboard() {
                 </div>
             </div>
 
-            <AddModal 
-                isOpen={isAddModalOpen} 
-                onClose={() => setIsAddModalOpen(false)} 
+            <AddModal
+                isOpen={isAddModalOpen}
+                onClose={() => setIsAddModalOpen(false)}
             />
         </>
     );

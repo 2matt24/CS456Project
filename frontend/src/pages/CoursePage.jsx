@@ -217,8 +217,6 @@ function CoursePage() {
             </div>
             <div className="note-arrow">›</div>
           </div>
-        ))}
-      </div>
 
       {/* ── Bottom navigation ── */}
       <div className="bottom-nav">

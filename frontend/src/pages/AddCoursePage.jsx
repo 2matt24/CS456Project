@@ -42,7 +42,7 @@ function AddCoursePage() {
         endDate   || undefined,
       );
       navigate('/dashboard');
-    } catch (err) {
+    } catch {
       setError('Failed to create course. Please try again.');
     } finally {
       setIsLoading(false);

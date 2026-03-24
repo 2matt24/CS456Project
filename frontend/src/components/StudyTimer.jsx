@@ -25,8 +25,14 @@ function StudyTimer() {
       handleTimerComplete();
     }
 
-    return () => clearInterval(intervalRef.current);
-  }, [isRunning, timeLeft]);
+    intervalRef.current = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(intervalRef.current);
+          setIsRunning(false);
+          alert(sessionType === 'study' ? 'Study session complete! Take a break.' : 'Break over! Ready to study?');
+          return 0;
+        }
 
   const handleTimerComplete = async () => {
     setIsRunning(false);
@@ -77,13 +83,13 @@ function StudyTimer() {
       <div className="timer-header">
         <h3><IoMdTime size={28} /> Study Timer</h3>
         <div className="session-toggle">
-          <button 
+          <button
             className={sessionType === 'study' ? 'active' : ''}
             onClick={() => switchSession('study')}
           >
             <FaBookOpen size={16} /> Study
           </button>
-          <button 
+          <button
             className={sessionType === 'break' ? 'active' : ''}
             onClick={() => switchSession('break')}
           >

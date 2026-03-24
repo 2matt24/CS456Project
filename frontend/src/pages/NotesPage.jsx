@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { notesAPI } from '../services/api';
 import { IoMdAdd, IoMdCheckmark, IoMdDocument, IoMdCloudUpload } from 'react-icons/io';
@@ -6,6 +6,24 @@ import { MdArrowBack } from 'react-icons/md';
 import { MdCalendarToday, MdHome, MdChat, MdSettings } from 'react-icons/md';
 import { FaFileUpload } from 'react-icons/fa';
 import '../styles/NotesPage.css';
+
+function buildFallbackSummary(content) {
+  const cleaned = (content || '').replace(/\s+/g, ' ').trim();
+  if (!cleaned) {
+    return 'No note content available to summarize.';
+  }
+
+  const sentences = cleaned
+    .split(/(?<=[.!?])\s+/)
+    .map((sentence) => sentence.trim())
+    .filter(Boolean);
+
+  if (sentences.length === 0) {
+    return cleaned.slice(0, 300);
+  }
+
+  return sentences.slice(0, 3).join(' ');
+}
 
 function NotesPage() {
     const navigate = useNavigate();
