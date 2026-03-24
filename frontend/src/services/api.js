@@ -233,3 +233,27 @@ export const studySessionsAPI = {
     }
   }
 };
+
+// Chat endpoint
+export const chatAPI = {
+  sendMessage: async (message) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ message })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to send message');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Chat error:', error);
+      throw error;
+    }
+  }
+};
