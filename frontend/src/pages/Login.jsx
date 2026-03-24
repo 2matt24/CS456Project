@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FcGoogle } from 'react-icons/fc';
-import { FaApple } from 'react-icons/fa';
 import { IoRocket } from 'react-icons/io5';
 import { authAPI } from '../services/api';
 import '../styles/Login.css';
@@ -37,11 +36,6 @@ function Login() {
   const handleGoogleLogin = () => {
     // Redirect to backend Google OAuth endpoint
     window.location.href = 'https://cs456project.onrender.com/api/auth/google';
-  };
-
-  const handleAppleLogin = () => {
-    // Redirect to backend Apple OAuth endpoint
-    window.location.href = 'https://cs456project.onrender.com/api/auth/apple';
   };
 
   return (
@@ -95,11 +89,6 @@ function Login() {
         <button className="btn-oauth btn-google" onClick={handleGoogleLogin}>
           <FcGoogle size={24} />
           <span>Continue with Google</span>
-        </button>
-
-        <button className="btn-oauth btn-apple" onClick={handleAppleLogin}>
-          <FaApple size={24} />
-          <span>Continue with Apple</span>
         </button>
 
         <p className="terms-text">
