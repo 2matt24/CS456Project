@@ -5,7 +5,7 @@ import { MdCalendarToday, MdHome, MdChat, MdSettings } from 'react-icons/md';
 import { FaUserCircle } from 'react-icons/fa';
 import CourseCard from '../components/CourseCard';
 import AddModal from '../components/AddModal';
-import { coursesAPI, authAPI } from '../services/api';
+import { coursesAPI, authAPI, notificationsAPI } from '../services/api';
 import '../styles/Dashboard.css';
 
 function Dashboard() {
@@ -16,10 +16,12 @@ function Dashboard() {
     const [logoutMessage, setLogoutMessage] = useState('');
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [firstName, setFirstName] = useState('');
+    const [unreadCount, setUnreadCount] = useState(0);
 
     useEffect(() => {
         loadCourses();
         loadUser();
+        notificationsAPI.getUnreadCount().then(setUnreadCount).catch(() => {});
     }, []);
 
     const handleLogout = async () => {
@@ -70,15 +72,18 @@ function Dashboard() {
                 <div className="navbar">
                     <div className="nav-icons">
                         <span className="icon" onClick={() => navigate('/profile')}>
-                            <FaUserCircle size={24} />
+                            <FaUserCircle size={24} color="#666" />
                         </span>
-                        <span className="icon" onClick={() => navigate('/notifications')}>
-                            <IoMdNotifications size={24} />
+                        <span className="icon notif-icon-wrap" onClick={() => navigate('/notifications')}>
+                            <IoMdNotifications size={24} color="#666" />
+                            {unreadCount > 0 && (
+                                <span className="notif-badge">{unreadCount > 9 ? '9+' : unreadCount}</span>
+                            )}
                         </span>
                     </div>
                     <div>
                         <span className="icon logout-icon" onClick={handleLogout}>
-                            <IoMdPower size={24} />
+                            <IoMdPower size={24} color="#666" />
                         </span>
                     </div>
                 </div>

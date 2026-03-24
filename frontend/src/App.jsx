@@ -12,7 +12,7 @@ import CalendarPage from './pages/CalendarPage';
 import ChatPage from './pages/ChatPage';
 import SettingsPage from './pages/SettingsPage';
 import NoteViewPage from './pages/NoteViewPage';
-import QuickStudyPage from './pages/QuickStudyPage';
+import UploadSchedulePage from './pages/UploadSchedulePage';
 
 function App() {
   return (
@@ -31,6 +31,7 @@ function App() {
         <Route path="/calendar" element={<CalendarPage />} />
         <Route path="/chat" element={<ChatPage />} />
         <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/schedule/upload" element={<UploadSchedulePage />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </BrowserRouter>

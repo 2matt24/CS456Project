@@ -9,6 +9,8 @@ import {
   MdVisibilityOff,
 } from 'react-icons/md';
 import { FaUserCircle } from 'react-icons/fa';
+import { authAPI } from '../services/api';
+import AddModal from '../components/AddModal';
 import '../styles/ProfilePage.css';
 
 const API_BASE = 'https://cs456project.onrender.com';
@@ -82,6 +84,7 @@ export default function ProfilePage() {
   const [user, setUser]             = useState(null);
   const [isLoading, setIsLoading]   = useState(true);
   const [fetchError, setFetchError] = useState('');
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
   /* ── edit mode ── */
   const [isEditing, setIsEditing]     = useState(false);
@@ -529,12 +532,24 @@ export default function ProfilePage() {
 
       {/* ── Bottom Nav ── */}
       <div className="bottom-nav">
-        <div className="nav-item" onClick={() => navigate('/dashboard')}><IoMdAdd size={28} /></div>
-        <div className="nav-item" onClick={() => navigate('/calendar')}><MdCalendarToday size={24} /></div>
-        <div className="nav-item" onClick={() => navigate('/dashboard')}><MdHome size={26} /></div>
-        <div className="nav-item" onClick={() => navigate('/chat')}><MdChat size={24} /></div>
-        <div className="nav-item" onClick={() => navigate('/settings')}><MdSettings size={26} /></div>
+        <div className="nav-item" onClick={() => setIsAddModalOpen(true)}>
+          <IoMdAdd size={28} />
+        </div>
+        <div className="nav-item" onClick={() => navigate('/calendar')}>
+          <MdCalendarToday size={24} />
+        </div>
+        <div className="nav-item" onClick={() => navigate('/dashboard')}>
+          <MdHome size={26} />
+        </div>
+        <div className="nav-item" onClick={() => navigate('/chat')}>
+          <MdChat size={24} />
+        </div>
+        <div className="nav-item" onClick={() => navigate('/settings')}>
+          <MdSettings size={26} />
+        </div>
       </div>
+
+      <AddModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} />
     </div>
   );
 }
