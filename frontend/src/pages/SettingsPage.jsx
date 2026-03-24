@@ -1,13 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { IoMdAdd } from 'react-icons/io';
-import {
-  MdCalendarToday, MdHome, MdChat, MdSettings, MdArrowBack,
-  MdPerson, MdLock, MdNotifications, MdColorLens,
-  MdInfo, MdChevronRight, MdBrightness4, MdBrightness7,
-  MdWbSunny, MdStar,
-} from 'react-icons/md';
-import '../styles/SettingsPage.css';
+import { IoMdAdd, IoMdNotifications } from 'react-icons/io';
+import { MdArrowBack } from 'react-icons/md';
+import { MdCalendarToday, MdHome, MdChat, MdSettings, MdPerson, MdLock, MdColorLens, MdInfo } from 'react-icons/md';
+import { FaUserCircle } from 'react-icons/fa';
+import AddModal from '../components/AddModal';
+import '../styles/PlaceholderPage.css';
 
 const API_BASE = 'https://cs456project.onrender.com';
 
@@ -39,41 +37,8 @@ function Toggle({ checked, onChange, id }) {
 ──────────────────────────────────────── */
 export default function SettingsPage() {
   const navigate = useNavigate();
-
-  /* ── User data ── */
-  const [user, setUser]         = useState(null);
-  const [isLoadingUser, setIsLoadingUser] = useState(true);
-
-  /* ── Notification toggles (UI only) ── */
-  const [notifs, setNotifs] = useState({
-    studyReminders: true,
-    noteSummaries:  false,
-    weeklyReport:   true,
-  });
-
-  /* ── Appearance (UI only) ── */
-  const [theme, setTheme] = useState('light'); // 'light' | 'dark'
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await fetch(`${API_BASE}/api/user/me`, { credentials: 'include' });
-        if (res.ok) {
-          const data = await res.json();
-          setUser(data.user);
-        }
-      } catch {
-        /* silently ignore — page still works */
-      } finally {
-        setIsLoadingUser(false);
-      }
-    })();
-  }, []);
-
-  const fullName = user
-    ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Your Name'
-    : '—';
-
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  
   return (
     <div className="settings-container">
 
@@ -206,33 +171,19 @@ export default function SettingsPage() {
             <MdColorLens size={18} /> Appearance
           </h4>
 
-          <p className="settings-section-sub">Theme</p>
-          <div className="theme-selector">
-            <button
-              className={`theme-option ${theme === 'light' ? 'selected' : ''}`}
-              onClick={() => setTheme('light')}
-            >
-              <MdWbSunny size={22} />
-              <span>Light</span>
-            </button>
-            <button
-              className={`theme-option ${theme === 'dark' ? 'selected' : ''}`}
-              onClick={() => setTheme('dark')}
-            >
-              <MdBrightness4 size={22} />
-              <span>Dark</span>
-            </button>
-            <button
-              className={`theme-option ${theme === 'system' ? 'selected' : ''}`}
-              onClick={() => setTheme('system')}
-            >
-              <MdBrightness7 size={22} />
-              <span>System</span>
-            </button>
-          </div>
-          <p className="settings-coming-soon-note">
-            * Dark mode styling coming in the next release
-          </p>
+      {/* Bottom navigation */}
+      <div className="bottom-nav">
+        <div className="nav-item" onClick={() => setIsAddModalOpen(true)}>
+          <IoMdAdd size={28} />
+        </div>
+        <div className="nav-item" onClick={() => navigate('/calendar')}>
+          <MdCalendarToday size={24} />
+        </div>
+        <div className="nav-item" onClick={() => navigate('/dashboard')}>
+          <MdHome size={26} />
+        </div>
+        <div className="nav-item" onClick={() => navigate('/chat')}>
+          <MdChat size={24} />
         </div>
 
         {/* ════ ABOUT ════ */}
@@ -275,5 +226,7 @@ export default function SettingsPage() {
         <div className="nav-item active"><MdSettings size={26} /></div>
       </div>
     </div>
+
+    <AddModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} />
   );
 }

@@ -1,41 +1,116 @@
+/* ─────────────────────────────────────────────
+   AddCoursePage.css
+   ───────────────────────────────────────────── */
+
 .add-course-container {
   min-height: 100vh;
-  background: #f8f9fa;
+  background: #f0f2f5;
   max-width: 430px;
   margin: 0 auto;
   box-shadow: 0 0 30px rgba(0, 0, 0, 0.1);
+  padding-bottom: 40px;
 }
 
+/* ── Gradient navbar ── */
+.acp-navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  box-shadow: 0 2px 12px rgba(102, 126, 234, 0.35);
+}
+
+.acp-navbar h3 {
+  font-size: 17px;
+  font-weight: 700;
+  color: white;
+  margin: 0;
+}
+
+.acp-nav-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.18);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.acp-nav-btn:hover { background: rgba(255, 255, 255, 0.32); }
+
+/* ── Form ── */
 .course-form {
-  padding: 20px;
+  padding: 20px 18px;
 }
 
 .form-group {
-  margin-bottom: 25px;
+  margin-bottom: 20px;
+  flex: 1;
 }
 
 .form-group label {
   display: block;
-  font-size: 14px;
-  font-weight: 600;
-  color: #333;
-  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #555;
+  margin-bottom: 7px;
+  letter-spacing: 0.2px;
 }
 
-.form-group input {
+/* Inputs, selects, date pickers — all white background */
+.form-group input[type="text"],
+.form-group input[type="date"],
+.form-group select {
   width: 100%;
-  padding: 15px;
-  border: 2px solid #e0e0e0;
+  padding: 13px 14px;
+  border: 2px solid #e4e8f0;
   border-radius: 12px;
-  font-size: 16px;
-  transition: border-color 0.3s;
+  font-size: 14.5px;
+  color: #1a1a2e;
+  background: white;
+  transition: border-color 0.25s, box-shadow 0.25s;
+  box-sizing: border-box;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  -webkit-appearance: none;
+  appearance: none;
 }
 
-.form-group input:focus {
+.form-group select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23667eea' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 36px;
+  cursor: pointer;
+}
+
+.form-group input:focus,
+.form-group select:focus {
   outline: none;
   border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.12);
 }
 
+.form-group input::placeholder { color: #b0b8c4; }
+
+/* ── Two-column rows (semester+year, start+end) ── */
+.form-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 0;
+}
+
+.form-row .form-group {
+  flex: 1;
+  margin-bottom: 20px;
+}
+
+/* ── Color picker ── */
 .color-picker {
   display: grid;
   grid-template-columns: repeat(8, 1fr);
@@ -43,19 +118,21 @@
 }
 
 .color-option {
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   cursor: pointer;
   border: 3px solid transparent;
-  transition: all 0.3s;
+  transition: all 0.2s;
 }
 
 .color-option.selected {
   border-color: #333;
   transform: scale(1.2);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
 }
 
+/* ── Icon picker ── */
 .icon-picker {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
@@ -63,70 +140,66 @@
 }
 
 .icon-option {
-  width: 50px;
-  height: 50px;
-  border: 2px solid #e0e0e0;
+  width: 46px;
+  height: 46px;
+  border: 2px solid #e4e8f0;
   border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 28px;
+  font-size: 26px;
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all 0.2s;
+  background: white;
 }
 
 .icon-option.selected {
   border-color: #667eea;
   background: #f0f0ff;
   transform: scale(1.1);
+  box-shadow: 0 3px 10px rgba(102, 126, 234, 0.2);
 }
 
+/* ── Submit button ── */
 .btn-submit {
   width: 100%;
-  padding: 18px;
-  background: #667eea;
+  padding: 16px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   border: none;
-  border-radius: 12px;
-  font-size: 18px;
-  font-weight: 600;
+  border-radius: 14px;
+  font-size: 16px;
+  font-weight: 700;
   cursor: pointer;
-  transition: background 0.3s;
-  margin-top: 10px;
+  transition: opacity 0.2s, transform 0.15s;
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 4px 14px rgba(102, 126, 234, 0.4);
 }
 
-.btn-submit:hover {
-  background: #5568d3;
-}
+.btn-submit:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
+.btn-submit:disabled { background: #d0d5e8; cursor: not-allowed; box-shadow: none; }
 
-.btn-submit:disabled {
-  background: #ccc;
-  cursor: not-allowed;
-}
-
+/* ── Error ── */
 .error-message {
-  background: #fee;
-  color: #c00;
-  padding: 15px;
+  background: #fff0f0;
+  color: #c0392b;
+  padding: 13px 16px;
   border-radius: 12px;
-  margin-bottom: 20px;
-  text-align: center;
+  margin-bottom: 18px;
+  font-size: 13.5px;
+  border: 1.5px solid #ffd0d0;
 }
 
-/* Responsive */
+/* ── Responsive ── */
 @media (min-width: 768px) {
-  .add-course-container {
-    max-width: 800px;
-  }
+  .add-course-container { max-width: 800px; }
 }
 
 @media (min-width: 1024px) {
-  .add-course-container {
-    max-width: 1200px;
-  }
-
-  .course-form {
-    max-width: 700px;
-    margin: 0 auto;
-  }
+  .add-course-container { max-width: 1200px; }
+  .course-form { max-width: 680px; margin: 0 auto; }
 }
