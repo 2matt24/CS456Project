@@ -48,10 +48,66 @@ export const authAPI = {
         method: 'POST',
         credentials: 'include'
       });
-      
+
       return await response.json();
     } catch (error) {
       console.error('Logout error:', error);
+      throw error;
+    }
+  },
+
+  getMe: async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/user/me`, {
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        throw new Error('Not authenticated');
+      }
+      return await response.json();
+    } catch (error) {
+      console.error('Get user error:', error);
+      throw error;
+    }
+  },
+
+  updateProfile: async (userData) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/user/me`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(userData)
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Update failed');
+      }
+      return await response.json();
+    } catch (error) {
+      console.error('Update profile error:', error);
+      throw error;
+    }
+  },
+
+  changePassword: async (currentPassword, newPassword) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/user/me/password`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ currentPassword, newPassword })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Password change failed');
+      }
+      return await response.json();
+    } catch (error) {
+      console.error('Change password error:', error);
       throw error;
     }
   }
@@ -214,6 +270,30 @@ export const studySessionsAPI = {
     } catch (error) {
       console.error('Get weekly stats error:', error);
       return { hoursThisWeek: 0, weeklyGoal: 10, progress: 0, sessionsCount: 0 };
+    }
+  }
+};
+
+// Chat endpoint
+export const chatAPI = {
+  sendMessage: async (message) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ message })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to send message');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Chat error:', error);
+      throw error;
     }
   }
 };
