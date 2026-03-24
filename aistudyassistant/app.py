@@ -14,11 +14,14 @@ from aistudyassistant.routes.notes import notes_bp
 from aistudyassistant.routes.courses import courses_bp
 from aistudyassistant.routes.study_sessions import study_sessions_bp
 from aistudyassistant.routes.chat import chat_bp
+from aistudyassistant.routes.notifications import notifications_bp
 
 from aistudyassistant.models.user import User
 from aistudyassistant.models.note import Note
 from aistudyassistant.models.course import Course
 from aistudyassistant.models.study_session import StudySession
+from aistudyassistant.models.chat_history import ChatHistory
+from aistudyassistant.models.notification import Notification
 from aistudyassistant.routes.oauth import oauth_bp, oauth # Import the oauth object from the oauth module
 
 
@@ -75,6 +78,7 @@ app.register_blueprint(notes_bp)
 app.register_blueprint(courses_bp)
 app.register_blueprint(study_sessions_bp)
 app.register_blueprint(chat_bp)
+app.register_blueprint(notifications_bp)
 
 @app.route("/api/test-users")
 def test_users():

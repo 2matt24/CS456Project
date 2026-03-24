@@ -5,7 +5,7 @@ import { MdCalendarToday, MdHome, MdChat, MdSettings, MdArrowBack, MdDeleteSweep
 import { RiRobot2Fill } from 'react-icons/ri';
 import { FaUserCircle } from 'react-icons/fa';
 import AddModal from '../components/AddModal';
-import { notesAPI } from '../services/api';
+import { notesAPI, chatAPI } from '../services/api';
 import '../styles/ChatPage.css';
 
 const GEMINI_API_KEY = 'AIzaSyCBQY2vauQ-zEcelbpkIaU2deSx0WBENR4';
@@ -74,24 +74,56 @@ function ChatPage() {
   const textareaRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  // Load all notes for note selector
+  // Load notes + chat history on mount
   useEffect(() => {
     (async () => {
+      // ── 1. Load notes ──
       try {
-        // Get courses first, then notes for each
         const coursesResp = await fetch('https://cs456project.onrender.com/api/courses', { credentials: 'include' });
         if (coursesResp.ok) {
           const coursesData = await coursesResp.json();
           const courses = coursesData.courses || [];
           const noteArrays = await Promise.all(courses.map((c) => notesAPI.getForCourse(c.courseID)));
-          const flat = noteArrays.flat().map((n, i) => ({
-            ...n,
-            courseName: courses[Math.floor(i / Math.max(noteArrays[0]?.length || 1, 1))]?.courseName,
-          }));
+          // flatten with correct course name per note
+          const flat = [];
+          courses.forEach((course, ci) => {
+            (noteArrays[ci] || []).forEach((n) => flat.push({ ...n, courseName: course.courseName }));
+          });
           setAllNotes(flat);
         }
       } catch (e) {
         console.warn('[ChatPage] note load failed:', e);
+      }
+
+      // ── 2. Load chat history ──
+      try {
+        const history = await chatAPI.getHistory(40);
+        if (history.length > 0) {
+          // History comes newest-first; reverse so oldest is at top
+          const reversed = [...history].reverse();
+          const histMsgs = [];
+          reversed.forEach((h) => {
+            histMsgs.push({
+              id: `hist-u-${h.chatID}`,
+              role: 'user',
+              text: h.message,
+              timestamp: new Date(h.createdAt),
+              fromHistory: true,
+            });
+            if (h.response) {
+              histMsgs.push({
+                id: `hist-a-${h.chatID}`,
+                role: 'ai',
+                text: h.response,
+                timestamp: new Date(h.createdAt),
+                fromHistory: true,
+              });
+            }
+          });
+          setMessages([WELCOME_MESSAGE, ...histMsgs]);
+        }
+      } catch (e) {
+        console.warn('[ChatPage] history load failed:', e);
       }
     })();
   }, []);
@@ -124,6 +156,8 @@ function ChatPage() {
     try {
       const aiText = await callGemini(text, messages, selectedNote, fileContext);
       setMessages((prev) => [...prev, { id: Date.now() + 1, role: 'ai', text: aiText, timestamp: new Date() }]);
+      // Persist exchange to backend (fire-and-forget, non-blocking)
+      chatAPI.saveExchange(text, aiText, selectedNote?.noteID || null);
     } catch (err) {
       console.warn('[ChatPage] Gemini failed:', err.message);
       setMessages((prev) => [
@@ -156,6 +190,7 @@ function ChatPage() {
 
   const clearChat = () => {
     setMessages([{ ...WELCOME_MESSAGE, timestamp: new Date() }]);
+    chatAPI.clearHistory(); // fire-and-forget
   };
 
   // Quick-prompt chips shown below the welcome message
@@ -238,10 +273,22 @@ function ChatPage() {
       <div className="chat-messages">
         {messages.map((msg, index) => (
           <div key={msg.id}>
-            {/* Date separator for first message */}
+            {/* "Today" separator at the very top */}
             {index === 0 && (
               <div className="chat-date-separator">
                 <span>Today</span>
+              </div>
+            )}
+            {/* "Previous conversations" separator — shown before first history msg */}
+            {index === 1 && msg.fromHistory && (
+              <div className="chat-date-separator chat-history-separator">
+                <span>Previous conversations</span>
+              </div>
+            )}
+            {/* "New messages" separator — first msg that is NOT from history after a history block */}
+            {index > 1 && !msg.fromHistory && messages[index - 1]?.fromHistory && (
+              <div className="chat-date-separator">
+                <span>New</span>
               </div>
             )}
 
