@@ -9,10 +9,29 @@ import { FaUserCircle } from 'react-icons/fa';
 import { coursesAPI, notesAPI } from '../services/api';
 import '../styles/QuickStudyPage.css';
 
-/* ─── Gemini config ─── */
-const GEMINI_API_KEY = 'AIzaSyCBQY2vauQ-zEcelbpkIaU2deSx0WBENR4';
-const GEMINI_MODEL   = 'gemini-2.5-flash';
-const GEMINI_URL     = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
+const API_BASE = 'https://cs456project.onrender.com';
+
+async function sendChatMessage(userMessage, history, noteContext) {
+  const response = await fetch(`${API_BASE}/api/chat`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({
+      message:     userMessage,
+      history:     history.filter((m) => m.id !== 'welcome'),
+      noteContext: noteContext ? { title: noteContext.title, content: noteContext.content } : null,
+      noteId:      noteContext?.noteID || null,
+    }),
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error || `Server error ${response.status}`);
+  }
+  const data = await response.json();
+  const text = data?.response;
+  if (!text) throw new Error('Empty response from server');
+  return text;
+}
 
 const STUDY_MINUTES = 25;
 const BREAK_MINUTES = 5;
@@ -22,42 +41,6 @@ const BREAK_SECS    = BREAK_MINUTES * 60;
 /* SVG circle math */
 const RADIUS = 54;
 const CIRC   = 2 * Math.PI * RADIUS;
-
-async function callGemini(userMessage, history, noteContext) {
-  const systemPrompt =
-    'You are a focused study assistant helping a student review their course notes. ' +
-    (noteContext
-      ? `The student is currently studying notes titled "${noteContext.title}". ` +
-        `Here is the note content for context:\n\n${noteContext.content}\n\n` +
-        'Use this content to answer questions, quiz the student, and explain concepts. '
-      : '') +
-    'Be concise, encouraging, and use bullet points or numbered lists when helpful. ' +
-    'Keep responses under 250 words unless asked for more detail.';
-
-  const contents = history
-    .filter((m) => m.id !== 'welcome')
-    .map((m) => ({
-      role: m.role === 'user' ? 'user' : 'model',
-      parts: [{ text: m.text }],
-    }));
-  contents.push({ role: 'user', parts: [{ text: userMessage }] });
-
-  const response = await fetch(GEMINI_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      system_instruction: { parts: [{ text: systemPrompt }] },
-      contents,
-      generationConfig: { temperature: 0.7, maxOutputTokens: 512 },
-    }),
-  });
-
-  if (!response.ok) throw new Error(`Gemini ${response.status}`);
-  const data = await response.json();
-  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!text) throw new Error('Empty response');
-  return text;
-}
 
 function formatTime(date) {
   return new Date(date).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
@@ -211,10 +194,10 @@ export default function QuickStudyPage() {
     if (textareaRef.current) textareaRef.current.style.height = 'auto';
 
     try {
-      const aiText = await callGemini(text, [...messages], selectedNote);
+      const aiText = await sendChatMessage(text, [...messages], selectedNote);
       setMessages((prev) => [...prev, { id: Date.now() + 1, role: 'ai', text: aiText, timestamp: new Date() }]);
     } catch (err) {
-      console.warn('[QuickStudy] Gemini failed:', err.message);
+      console.warn('[QuickStudy] AI request failed:', err.message);
       setMessages((prev) => [...prev, {
         id: Date.now() + 1,
         role: 'ai',
