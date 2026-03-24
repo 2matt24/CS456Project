@@ -1,5 +1,8 @@
 ﻿const API_BASE_URL = 'https://cs456project.onrender.com';
 
+
+const buildUrl = (path) => `${API_BASE_URL}${path}`;
+
 // Auth endpoints
 export const authAPI = {
   register: async (email, password, firstName, lastName) => {
@@ -256,9 +259,9 @@ export const studySessionsAPI = {
 
   getWeeklyStats: async (courseId) => {
     try {
-      const url = courseId 
-        ? `${API_BASE_URL}/api/study-sessions/weekly-stats?courseId=${courseId}`
-        : `${API_BASE_URL}/api/study-sessions/weekly-stats`;
+        const url = courseId 
+            ? `${API_BASE_URL}/api/study-sessions/weekly-stats?courseId=${courseId}`
+            : `${API_BASE_URL}/api/study-sessions/weekly-stats`;
       
       const response = await fetch(url, {
         credentials: 'include'

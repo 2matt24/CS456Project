@@ -26,15 +26,18 @@ from aistudyassistant.routes.oauth import oauth_bp, oauth # Import the oauth obj
 
 
 app = Flask(__name__)
-#app.secret_key = os.getenv("SECRET_KEY")
+
 app.secret_key = os.getenv("SECRET_KEY", "dev-secret-key")
 
-#app.config["SESSION_COOKIE_HTTPONLY"] = True
-#app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
-#app.config["SESSION_COOKIE_SECURE"] = False
+
+
+
+
 app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = os.getenv("SESSION_COOKIE_SAMESITE", "None")
 app.config["SESSION_COOKIE_SECURE"] = os.getenv("SESSION_COOKIE_SECURE", "true").lower() == "true"
+
+
 
 
 #CORS
