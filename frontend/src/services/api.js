@@ -48,10 +48,26 @@ export const authAPI = {
         method: 'POST',
         credentials: 'include'
       });
-      
+
       return await response.json();
     } catch (error) {
       console.error('Logout error:', error);
+      throw error;
+    }
+  },
+
+  getMe: async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/user/me`, {
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        throw new Error('Not authenticated');
+      }
+      return await response.json();
+    } catch (error) {
+      console.error('Get user error:', error);
       throw error;
     }
   }
