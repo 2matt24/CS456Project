@@ -35,20 +35,27 @@ async function sendChatMessage(userMessage, history, noteContext, fileContext) {
 const WELCOME_MESSAGE = {
   id: 'welcome',
   role: 'ai',
-  text: "👋 Hi! I'm your AI Study Assistant. I can help you understand concepts, quiz you on your notes, suggest study strategies, and answer questions about your coursework. What would you like to study today?",
+  text: "👋 Hi! I'm your AI Study Assistant powered by Gemini. I can explain concepts, quiz you on any topic, summarize notes, and suggest study strategies. What would you like to work on today?",
   timestamp: new Date(),
 };
 
 function formatTime(date) {
-  return new Date(date).toLocaleTimeString('en-US', {
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  return new Date(date).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 }
 
+const QUICK_PROMPTS = [
+  { label: '📝 Summarize my latest notes', text: 'Help me summarize key concepts from my recent study session.' },
+  { label: '🧠 Quiz me on a topic',         text: 'Quiz me on a topic of your choice — ask me 3 questions one at a time.' },
+  { label: '💡 Give me study tips',          text: 'Give me your best evidence-based study tips for retaining information.' },
+  { label: '🔍 Explain a concept',           text: 'Explain a difficult concept simply, as if I were new to the subject.' },
+];
+
+/* ════════════════════════════════════
+   Component
+════════════════════════════════════ */
 function ChatPage() {
   const navigate = useNavigate();
-  const [messages, setMessages] = useState([WELCOME_MESSAGE]);
+  const [messages, setMessages]   = useState([WELCOME_MESSAGE]);
   const [inputText, setInputText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -114,7 +121,6 @@ function ChatPage() {
     })();
   }, []);
 
-  // Auto-scroll to newest message
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isTyping]);
@@ -178,27 +184,16 @@ function ChatPage() {
     chatAPI.clearHistory(); // fire-and-forget
   };
 
-  // Quick-prompt chips shown below the welcome message
-  const quickPrompts = [
-    '📝 Summarize my latest notes',
-    '🧠 Quiz me on a topic',
-    '💡 Give me study tips',
-    '🔍 Explain a concept',
-  ];
-
-  const sendQuickPrompt = (prompt) => {
-    setInputText(prompt);
-    setTimeout(() => {
-      if (textareaRef.current) {
-        textareaRef.current.focus();
-      }
-    }, 0);
+  const sendQuickPrompt = (promptText) => {
+    setInputText(promptText);
+    setTimeout(() => textareaRef.current?.focus(), 0);
   };
 
   return (
     <>
     <div className="chat-container">
-      {/* ── Top Navbar ── */}
+
+      {/* ── Navbar ── */}
       <div className="chat-navbar">
         <button className="chat-nav-btn" onClick={() => navigate('/dashboard')}>
           <MdArrowBack size={26} />
@@ -210,11 +205,11 @@ function ChatPage() {
           </div>
           <div className="chat-nav-info">
             <h3>AI Study Assistant</h3>
-            <span className="chat-online-dot">● Online</span>
+            <span className="chat-online-dot">● Gemini 2.5 Flash</span>
           </div>
         </div>
 
-        <button className="chat-nav-btn chat-clear-btn" onClick={clearChat} title="Clear chat">
+        <button className="chat-nav-btn" onClick={clearChat} title="Clear chat">
           <MdDeleteSweep size={24} />
         </button>
       </div>
@@ -260,9 +255,7 @@ function ChatPage() {
           <div key={msg.id}>
             {/* "Today" separator at the very top */}
             {index === 0 && (
-              <div className="chat-date-separator">
-                <span>Today</span>
-              </div>
+              <div className="chat-date-separator"><span>Today</span></div>
             )}
             {/* "Previous conversations" separator — shown before first history msg */}
             {index === 1 && msg.fromHistory && (
@@ -278,27 +271,21 @@ function ChatPage() {
             )}
 
             <div className={`message-row ${msg.role === 'user' ? 'message-row-user' : 'message-row-ai'}`}>
-              {/* AI avatar */}
               {msg.role === 'ai' && (
                 <div className="msg-avatar ai-msg-avatar">
                   <RiRobot2Fill size={14} color="white" />
                 </div>
               )}
 
-              <div
-                className={`message-bubble ${
-                  msg.role === 'user'
-                    ? 'user-bubble'
-                    : msg.isError
-                    ? 'error-bubble'
-                    : 'ai-bubble'
-                }`}
-              >
+              <div className={`message-bubble ${
+                msg.role === 'user' ? 'user-bubble'
+                : msg.isError ? 'error-bubble'
+                : 'ai-bubble'
+              }`}>
                 <p className="message-text">{msg.text}</p>
                 <span className="message-time">{formatTime(msg.timestamp)}</span>
               </div>
 
-              {/* User avatar */}
               {msg.role === 'user' && (
                 <div className="msg-avatar user-msg-avatar">
                   <FaUserCircle size={28} color="#667eea" />
@@ -309,9 +296,13 @@ function ChatPage() {
             {/* Quick-prompt chips after the welcome message */}
             {index === 0 && (
               <div className="quick-prompts">
-                {quickPrompts.map((p) => (
-                  <button key={p} className="quick-prompt-chip" onClick={() => sendQuickPrompt(p)}>
-                    {p}
+                {QUICK_PROMPTS.map((p) => (
+                  <button
+                    key={p.label}
+                    className="quick-prompt-chip"
+                    onClick={() => sendQuickPrompt(p.text)}
+                  >
+                    {p.label}
                   </button>
                 ))}
               </div>
@@ -327,9 +318,7 @@ function ChatPage() {
             </div>
             <div className="message-bubble ai-bubble typing-bubble">
               <div className="typing-indicator">
-                <span />
-                <span />
-                <span />
+                <span /><span /><span />
               </div>
             </div>
           </div>
@@ -338,7 +327,7 @@ function ChatPage() {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* ── Input Area ── */}
+      {/* ── Input area ── */}
       <div className="chat-input-area">
         <div className="chat-input-row">
           <textarea
@@ -363,7 +352,7 @@ function ChatPage() {
         <p className="chat-hint">Enter to send · Shift+Enter for new line</p>
       </div>
 
-      {/* ── Bottom Navigation ── */}
+      {/* ── Bottom Nav ── */}
       <div className="bottom-nav">
         <div className="nav-item" onClick={() => setIsAddModalOpen(true)}>
           <IoMdAdd size={28} />

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { IoMdNotifications, IoMdAdd, IoMdCamera, IoMdCreate } from 'react-icons/io';
-import { MdCalendarToday, MdHome, MdChat, MdSettings, MdArrowBack } from 'react-icons/md';
-import { FaUserCircle, FaFileUpload, FaStar } from 'react-icons/fa';
+import { IoMdNotifications, IoMdAdd } from 'react-icons/io';
+import { MdCalendarToday, MdHome, MdChat, MdSettings, MdArrowBack, MdBolt } from 'react-icons/md';
+import { FaUserCircle } from 'react-icons/fa';
 import { IoDocumentTextOutline, IoSearchSharp } from 'react-icons/io5';
 import { coursesAPI, notesAPI } from '../services/api';
 import StudyTimer from '../components/StudyTimer';
@@ -12,26 +12,21 @@ import '../styles/CoursePage.css';
 function CoursePage() {
   const navigate = useNavigate();
   const { courseId } = useParams();
-  const [course, setCourse] = useState(null);
-  const [notes, setNotes] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [course, setCourse]             = useState(null);
+  const [notes, setNotes]               = useState([]);
+  const [isLoading, setIsLoading]       = useState(true);
+  const [searchQuery, setSearchQuery]   = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
-  useEffect(() => {
-    loadCourseData();
-  }, [courseId]);
+  useEffect(() => { loadCourseData(); }, [courseId]);
 
   const loadCourseData = async () => {
     try {
-      // Get all courses and find this one
       const allCourses = await coursesAPI.getAll();
       const currentCourse = allCourses.find(c => c.courseID === parseInt(courseId));
       setCourse(currentCourse);
-
-      // Get notes for this course
       const courseNotes = await notesAPI.getForCourse(courseId);
       setNotes(courseNotes);
     } catch (error) {
@@ -42,20 +37,15 @@ function CoursePage() {
   };
 
   const handleSearch = async () => {
-    if (!searchQuery.trim()) {
-      setSearchResults([]);
-      return;
-    }
-
+    if (!searchQuery.trim()) { setSearchResults([]); return; }
     setIsSearching(true);
     try {
       const response = await fetch('https://cs456project.onrender.com/api/notes/search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ query: searchQuery })
+        body: JSON.stringify({ query: searchQuery }),
       });
-      
       if (response.ok) {
         const data = await response.json();
         setSearchResults(data.results || []);
@@ -67,15 +57,15 @@ function CoursePage() {
     }
   };
 
-  const clearSearch = () => {
-    setSearchQuery('');
-    setSearchResults([]);
-  };
+  const clearSearch = () => { setSearchQuery(''); setSearchResults([]); };
 
   if (isLoading) {
     return (
       <div className="course-container">
-        <div className="loading-text">Loading course...</div>
+        <div className="cp-loading">
+          <div className="cp-spinner" />
+          <p>Loading course…</p>
+        </div>
       </div>
     );
   }
@@ -83,15 +73,20 @@ function CoursePage() {
   if (!course) {
     return (
       <div className="course-container">
-        <div className="error-text">Course not found</div>
-        <button onClick={() => navigate('/dashboard')}>Back to Dashboard</button>
+        <p className="error-text">Course not found.</p>
+        <button className="cp-back-btn" onClick={() => navigate('/dashboard')}>
+          Back to Dashboard
+        </button>
       </div>
     );
   }
 
+  const displayNotes = searchResults.length > 0 ? null : notes;
+
   return (
     <div className="course-container">
-      {/* Top navigation */}
+
+      {/* ── Navbar ── */}
       <div className="navbar">
         <div className="menu-icon" onClick={() => navigate('/dashboard')}>
           <MdArrowBack size={28} />
@@ -106,141 +101,126 @@ function CoursePage() {
         </div>
       </div>
 
-      {/* Course header */}
+      {/* ── Course header ── */}
       <div className="course-header">
         <div className="course-icon-large" style={{ background: course.color }}>
           {course.icon}
         </div>
         <h2 className="course-title">{course.courseName}</h2>
-        <p className="course-code">{course.courseCode}</p>
-        <p className="course-info">{course.semester}</p>
+        {course.courseCode && <p className="course-code">{course.courseCode}</p>}
+        {course.semester    && <p className="course-info">{course.semester}</p>}
       </div>
 
-      {/* Upload Options */}
-      <div className="upload-options">
-        <div
-          className="upload-option"
+      {/* ── Action buttons ── */}
+      <div className="cp-actions">
+        <button
+          className="cp-add-note-btn"
           onClick={() => navigate(`/course/${courseId}/notes/new`)}
         >
-          <IoMdCamera size={40} color="#667eea" />
-          <span>Scan Notes</span>
-        </div>
-
-        <div
-          className="upload-option"
-          onClick={() => navigate(`/course/${courseId}/notes/new`)}
+          <IoMdAdd size={22} />
+          Add Note
+        </button>
+        <button
+          className="cp-quick-study-btn"
+          onClick={() => navigate(`/course/${courseId}/quick-study`)}
         >
-          <FaFileUpload size={36} color="#43e97b" />
-          <span>Upload File</span>
-        </div>
-        
-        <div 
-          className="upload-option"
-          onClick={() => navigate(`/course/${courseId}/notes/new`)}
-        >
-          <IoMdCreate size={40} color="#764ba2" />
-          <span>Type Manually</span>
-        </div>
+          <MdBolt size={20} />
+          Quick Study
+        </button>
       </div>
 
+      {/* ── Search ── */}
       <div className="search-section">
         <div className="search-bar">
           <input
             type="text"
             className="search-input"
-            placeholder="Search notes by topic or keyword..."
+            placeholder="Search notes by topic or keyword…"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
           />
-          <button 
-            className="search-btn" 
+          <button
+            className="search-btn"
             onClick={handleSearch}
             disabled={isSearching || !searchQuery.trim()}
           >
-            <IoSearchSharp size={20} />
-            {isSearching ? 'Searching...' : 'Search'}
+            <IoSearchSharp size={18} />
+            {isSearching ? 'Searching…' : 'Search'}
           </button>
           {searchQuery && (
-            <button className="clear-btn" onClick={clearSearch}>
-              Clear
-            </button>
+            <button className="clear-btn" onClick={clearSearch}>✕</button>
           )}
         </div>
       </div>
 
-      {/* Notes Directory */}
+      {/* ── Notes directory ── */}
       <div className="notes-section">
         <h3 className="section-title">
-          <IoDocumentTextOutline size={22} />
-          {searchResults.length > 0 ? 'Search Results' : 'Notes Directory'}
+          <IoDocumentTextOutline size={20} />
+          {searchResults.length > 0 ? `Search Results (${searchResults.length})` : `Notes (${notes.length})`}
         </h3>
 
-        {searchResults.length > 0 ? (
-          searchResults.map(result => {
-            const note = notes.find(n => n.noteID === parseInt(result.noteId));
-            return note ? (
-              <div
-                key={result.noteId}
-                className="note-item search-result"
-                onClick={() => navigate(`/course/${courseId}/note/${result.noteId}`)}
-              >
-                <div className="note-icon">
-                  <IoDocumentTextOutline size={30} color="#667eea" />
-                </div>
-                <div className="note-details">
-                  <h4>{result.title}</h4>
-                  <p className="note-date">
-                    Relevance: {(result.score * 100).toFixed(0)}%
-                  </p>
-                </div>
-              </div>
-            ) : null;
-          })
-        ) : notes.length === 0 ? (
-          // Show empty state if no notes exist
-          <div className="empty-state">
-            <p>No notes yet. Create your first note above!</p>
-          </div>
-        ) : (
-          // Show all notes normally
-          notes.map(note => (
+        {/* Search results */}
+        {searchResults.length > 0 && searchResults.map(result => {
+          const note = notes.find(n => n.noteID === parseInt(result.noteId));
+          return note ? (
             <div
-              key={note.noteID}
-              className="note-item"
-              onClick={() => navigate(`/course/${courseId}/note/${note.noteID}`)}
+              key={result.noteId}
+              className="note-item search-result"
+              onClick={() => navigate(`/course/${courseId}/note/${result.noteId}`)}
             >
               <div className="note-icon">
-                <IoDocumentTextOutline size={30} color="#667eea" />
+                <IoDocumentTextOutline size={28} color="#667eea" />
               </div>
               <div className="note-details">
-                <h4>{note.title}</h4>
-                <p className="note-date">
-                  {new Date(note.createdAt).toLocaleDateString()}
-                </p>
-                {note.fileName && (
-                  <p className="note-filename">📎 {note.fileName}</p>
-                )}
+                <h4>{result.title}</h4>
+                <p className="note-date">Relevance: {(result.score * 100).toFixed(0)}%</p>
               </div>
             </div>
-          ))
+          ) : null;
+        })}
+
+        {/* Normal list */}
+        {searchResults.length === 0 && notes.length === 0 && (
+          <div className="empty-state">
+            <IoDocumentTextOutline size={44} color="#d0d5e0" />
+            <p>No notes yet.</p>
+            <button
+              className="empty-add-btn"
+              onClick={() => navigate(`/course/${courseId}/notes/new`)}
+            >
+              Create your first note
+            </button>
+          </div>
         )}
+
+        {searchResults.length === 0 && notes.map(note => (
+          <div
+            key={note.noteID}
+            className="note-item"
+            onClick={() => navigate(`/course/${courseId}/note/${note.noteID}`)}
+          >
+            <div className="note-icon">
+              <IoDocumentTextOutline size={28} color="#667eea" />
+            </div>
+            <div className="note-details">
+              <h4>{note.title}</h4>
+              <p className="note-date">
+                {new Date(note.createdAt).toLocaleDateString('en-US', {
+                  month: 'short', day: 'numeric', year: 'numeric',
+                })}
+              </p>
+              {note.fileName && (
+                <p className="note-filename">📎 {note.fileName}</p>
+              )}
+            </div>
+            <div className="note-arrow">›</div>
+          </div>
+        ))}
       </div>
 
-      {/* Quick Study Button */}
-      <div className="action-buttons">
-        <button
-          className="btn-action btn-primary"
-          onClick={() => navigate(`/course/${courseId}/notes/new`)}
-        >
-          ⚡ Quick Study
-        </button>
-      </div>
-
-      {/* Study Timer */}
-      <StudyTimer />
-
-      {/* Bottom navigation */}
+      {/* ── Bottom navigation ── */}
       <div className="bottom-nav">
         <div className="nav-item" onClick={() => setIsAddModalOpen(true)}>
           <IoMdAdd size={28} />
