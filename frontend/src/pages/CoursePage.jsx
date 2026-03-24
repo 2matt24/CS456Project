@@ -116,17 +116,17 @@ function CoursePage() {
 
       {/* Upload Options */}
       <div className="upload-options">
-        <div 
+        <div
           className="upload-option"
-          onClick={() => navigate(`/course/${courseId}/notes/scan`)}
+          onClick={() => navigate(`/course/${courseId}/notes/new`)}
         >
           <IoMdCamera size={40} color="#667eea" />
           <span>Scan Notes</span>
         </div>
-        
-        <div 
+
+        <div
           className="upload-option"
-          onClick={() => navigate(`/course/${courseId}/notes/upload`)}
+          onClick={() => navigate(`/course/${courseId}/notes/new`)}
         >
           <FaFileUpload size={36} color="#43e97b" />
           <span>Upload File</span>
@@ -227,9 +227,9 @@ function CoursePage() {
 
       {/* Quick Study Button */}
       <div className="action-buttons">
-        <button 
+        <button
           className="btn-action btn-primary"
-          onClick={() => navigate(`/course/${courseId}/quick-study`)}
+          onClick={() => navigate(`/course/${courseId}/notes/new`)}
         >
           ⚡ Quick Study
         </button>

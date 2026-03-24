@@ -157,7 +157,7 @@
 /* Responsive Design */
 @media (min-width: 768px) {
   .dashboard-container {
-    max-width: 600px;
+    max-width: 800px;
   }
 
   .courses-grid {
@@ -166,20 +166,20 @@
   }
 
   .bottom-nav {
-    max-width: 600px;
+    max-width: 800px;
   }
 }
 
 @media (min-width: 1024px) {
   .dashboard-container {
-    max-width: 800px;
+    max-width: 1200px;
   }
 
   .courses-grid {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
   }
 
   .bottom-nav {
-    max-width: 800px;
+    max-width: 1200px;
   }
 }

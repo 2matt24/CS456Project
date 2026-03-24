@@ -15,9 +15,11 @@ function Dashboard() {
     const [error, setError] = useState('');
     const [logoutMessage, setLogoutMessage] = useState('');
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [firstName, setFirstName] = useState('');
 
     useEffect(() => {
         loadCourses();
+        loadUser();
     }, []);
 
     const handleLogout = async () => {
@@ -31,6 +33,15 @@ function Dashboard() {
         } catch (error) {
             console.error('Logout error:', error);
             navigate('/');
+        }
+    };
+
+    const loadUser = async () => {
+        try {
+            const data = await authAPI.getMe();
+            setFirstName(data.user?.firstName || '');
+        } catch (err) {
+            console.error('Load user error:', err);
         }
     };
 
@@ -73,7 +84,7 @@ function Dashboard() {
                 </div>
 
                 {/* Welcome message */}
-                <h2 className="welcome-text">Welcome Back, April</h2>
+                <h2 className="welcome-text">Welcome Back{firstName ? `, ${firstName}` : ''}</h2>
 
                 {/* Courses section */}
                 <div className="section">
