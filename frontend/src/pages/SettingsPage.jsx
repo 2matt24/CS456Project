@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { IoMdAdd, IoMdNotifications } from 'react-icons/io';
 import { MdArrowBack, MdChevronRight } from 'react-icons/md';
@@ -42,17 +42,33 @@ export default function SettingsPage() {
   const [notifs, setNotifs] = useState({
     studyReminders: true,
     noteSummaries: true,
-    weeklyReport: false
+    weeklyReport: false,
   });
-  
-  // Mock user data
-  const user = {
-    firstName: 'John',
-    lastName: 'Doe',
-    email: 'john@example.com'
-  };
-  const isLoadingUser = false;
-  const fullName = user ? `${user.firstName} ${user.lastName}` : 'User';
+  const [user, setUser] = useState(null);
+  const [isLoadingUser, setIsLoadingUser] = useState(true);
+
+  useEffect(() => {
+    const loadUser = async () => {
+      try {
+        const response = await fetch(`${API_BASE}/api/user/me`, {
+          credentials: 'include',
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setUser(data.user || null);
+        }
+      } catch (err) {
+        console.warn('[SettingsPage] Could not load user:', err.message);
+      } finally {
+        setIsLoadingUser(false);
+      }
+    };
+    loadUser();
+  }, []);
+
+  const fullName = user
+    ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'User'
+    : 'User';
   
   return (
     <div className="settings-container">

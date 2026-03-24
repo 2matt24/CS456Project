@@ -95,7 +95,7 @@
 
 .courses-grid {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: repeat(2, 1fr);
   gap: 15px;
   width: 100%;
   max-width: 100%;
@@ -193,11 +193,6 @@
     max-width: 800px;
   }
 
-  .courses-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 20px;
-  }
-
   .bottom-nav {
     max-width: 800px;
   }
@@ -206,10 +201,6 @@
 @media (min-width: 1024px) {
   .dashboard-container {
     max-width: 1200px;
-  }
-
-  .courses-grid {
-    grid-template-columns: repeat(4, 1fr);
   }
 
   .bottom-nav {
