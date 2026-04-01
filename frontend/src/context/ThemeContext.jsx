@@ -10,7 +10,6 @@ const FONT_KEY    = 'sba-fontsize';     // 'normal' | 'large'
 export const ACCENTS = {
   purple: { from: '#667eea', to: '#764ba2', name: 'Purple' },
   blue:   { from: '#4facfe', to: '#00c6fb', name: 'Blue'   },
-  green:  { from: '#43e97b', to: '#38f9d7', name: 'Green'  },
   teal:   { from: '#0fd850', to: '#1cb5e0', name: 'Teal'   },
 };
 
