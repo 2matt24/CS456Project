@@ -22,7 +22,7 @@ function formatDate() {
   });
 }
 
-const QUOTES = [
+const FALLBACK_QUOTES = [
   'Every expert was once a beginner.',
   'Small steps every day lead to big results.',
   'Consistency beats perfection every time.',
@@ -39,14 +39,19 @@ function Dashboard() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [firstName, setFirstName]       = useState('');
   const [unreadCount, setUnreadCount]   = useState(0);
-
-  // Pick a stable random quote once per mount
-  const [quote] = useState(() => QUOTES[Math.floor(Math.random() * QUOTES.length)]);
+  const [quote, setQuote]               = useState(
+    () => FALLBACK_QUOTES[Math.floor(Math.random() * FALLBACK_QUOTES.length)]
+  );
 
   useEffect(() => {
     loadCourses();
     loadUser();
     notificationsAPI.getUnreadCount().then(setUnreadCount).catch(() => {});
+    // Fetch a motivational quote from DummyJSON (free, no key, CORS-friendly)
+    fetch('https://dummyjson.com/quotes/random')
+      .then(r => r.json())
+      .then(data => { if (data?.quote) setQuote(data.quote); })
+      .catch(() => {}); // silently use fallback if offline
   }, []);
 
   const handleLogout = async () => {
@@ -138,7 +143,7 @@ function Dashboard() {
         <div className="section">
           <div className="section-header">
             <h3 className="section-title">My Courses</h3>
-            <button className="dash-add-btn" onClick={() => navigate('/add-course')}>
+            <button className="dash-add-btn" onClick={() => navigate('/courses/new')}>
               <IoMdAdd size={18} /> Add Course
             </button>
           </div>
@@ -159,7 +164,7 @@ function Dashboard() {
               <span className="dash-empty-icon">📚</span>
               <p className="dash-empty-title">No courses yet</p>
               <p className="dash-empty-sub">Add your first course to get started!</p>
-              <button className="dash-empty-btn" onClick={() => navigate('/add-course')}>
+              <button className="dash-empty-btn" onClick={() => navigate('/courses/new')}>
                 <IoMdAdd size={16} /> Add Course
               </button>
             </div>
