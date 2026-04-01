@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { scheduleAPI } from '../services/api';
 import { useNavigate } from 'react-router-dom';
 import { IoMdAdd } from 'react-icons/io';
 import {
@@ -51,6 +52,8 @@ export default function UploadSchedulePage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [events, setEvents] = useState([newEvent()]);
   const [extractedEvents, setExtractedEvents] = useState([]);
+  const [saveStatus, setSaveStatus] = useState(null); // 'success' | 'error' | null
+  const [saveError, setSaveError] = useState('');
 
   const typeLabel = scheduleType ? TYPE_LABELS[scheduleType] : '';
 
@@ -74,6 +77,40 @@ export default function UploadSchedulePage() {
     setEvents(prev =>
       prev.map(ev => (ev.id === id ? { ...ev, [field]: value } : ev))
     );
+  }
+
+  // Helper to map frontend event to backend event shape
+  function mapToBackendEvent(ev) {
+    return {
+      title: ev.name,
+      location: ev.location,
+      type: scheduleType || 'school',
+      color: ev.color,
+      repeat: (ev.repeat || 'once').toLowerCase(),
+      days: ev.days || [],
+      startTime: ev.startTime,
+      endTime: ev.endTime,
+      startDate: ev.startDate,
+      endDate: ev.endDate || null,
+    };
+  }
+
+  async function handleSave(eventsToSave) {
+    setSaveStatus(null);
+    setSaveError('');
+    try {
+      for (const ev of eventsToSave) {
+        await scheduleAPI.create(mapToBackendEvent(ev));
+      }
+      setSaveStatus('success');
+      setTimeout(() => {
+        setSaveStatus(null);
+        navigate('/calendar');
+      }, 1200);
+    } catch (err) {
+      setSaveStatus('error');
+      setSaveError(err.message || 'Failed to save schedule.');
+    }
   }
 
   function toggleDay(id, day) {
@@ -132,9 +169,11 @@ export default function UploadSchedulePage() {
           </div>
         </div>
       ))}
-      <button className="usp-save-btn">
+      <button className="usp-save-btn" onClick={() => handleSave(extractedEvents)}>
         <MdCheckCircle size={18} /> Save Schedule
       </button>
+      {saveStatus === 'success' && <p className="usp-save-success">Schedule saved!</p>}
+      {saveStatus === 'error' && <p className="usp-save-error">{saveError}</p>}
     </div>
   );
 
@@ -151,7 +190,7 @@ export default function UploadSchedulePage() {
         </div>
 
         <div className="usp-body">
-          <p className="usp-subtitle">What type of schedule are you adding?</p>
+          <p className="usp-subtitle">Select Schedule Type</p>
 
           <div className="usp-type-grid">
             <button
@@ -160,7 +199,7 @@ export default function UploadSchedulePage() {
             >
               <span className="usp-type-icon">🎓</span>
               <span className="usp-type-label">School / Class</span>
-              <span className="usp-type-sub">Course schedules &amp; exams</span>
+              <span className="usp-type-sub">Course Schedules &amp; Exams</span>
             </button>
 
             <button
@@ -169,7 +208,7 @@ export default function UploadSchedulePage() {
             >
               <span className="usp-type-icon">💼</span>
               <span className="usp-type-label">Work / Job</span>
-              <span className="usp-type-sub">Work shifts &amp; meetings</span>
+              <span className="usp-type-sub">Work Shifts &amp; Meetings</span>
             </button>
 
             <button
@@ -178,7 +217,7 @@ export default function UploadSchedulePage() {
             >
               <span className="usp-type-icon">🏃</span>
               <span className="usp-type-label">Personal / Other</span>
-              <span className="usp-type-sub">Fitness, hobbies, etc.</span>
+              <span className="usp-type-sub">Fitness, Hobbies, Etc.</span>
             </button>
           </div>
         </div>
@@ -201,7 +240,7 @@ export default function UploadSchedulePage() {
         </div>
 
         <div className="usp-body">
-          <p className="usp-subtitle">How would you like to add it?</p>
+          <p className="usp-subtitle">Selecting Uploading Method</p>
 
           <div className="usp-method-list">
             <button
@@ -233,7 +272,7 @@ export default function UploadSchedulePage() {
               <div className="usp-method-icon"><MdEdit size={28} /></div>
               <div className="usp-method-text">
                 <span className="usp-method-label">Enter Manually</span>
-                <span className="usp-method-sub">Add events one by one</span>
+                <span className="usp-method-sub">Add Events One At A Time</span>
               </div>
             </button>
 
@@ -251,7 +290,7 @@ export default function UploadSchedulePage() {
               <div className="usp-method-icon"><MdSmartToy size={28} /></div>
               <div className="usp-method-text">
                 <span className="usp-method-label">AI Extract</span>
-                <span className="usp-method-sub">Paste text, AI parses it</span>
+                <span className="usp-method-sub">Paste Text For AI Parsing</span>
               </div>
             </button>
           </div>
@@ -306,7 +345,7 @@ export default function UploadSchedulePage() {
             ) : (
               <>
                 <MdCloudUpload size={52} color="#667eea" />
-                <p className="usp-drop-title">Drag &amp; drop your file here</p>
+                <p className="usp-drop-title">Drag &amp; Drop Your File Here</p>
                 <p className="usp-drop-sub">or click to browse</p>
                 <p className="usp-drop-hint">PDF, PNG, JPG, or .ics supported</p>
               </>
@@ -494,6 +533,16 @@ export default function UploadSchedulePage() {
           <button className="usp-save-btn">
             <MdCheckCircle size={18} /> Save Schedule
           </button>
+          {saveStatus === 'success' && <p className="usp-save-success">Schedule saved!</p>}
+          {saveStatus === 'error' && <p className="usp-save-error">{saveError}</p>}
+          <button
+            className="usp-save-btn"
+            type="button"
+            style={{ marginTop: 8, display: 'none' }}
+            onClick={() => handleSave(events)}
+          >
+            <MdCheckCircle size={18} /> Save Schedule
+          </button>
         </div>
 
         <BottomNav />
@@ -514,7 +563,7 @@ export default function UploadSchedulePage() {
         </div>
 
         <div className="usp-body">
-          <p className="usp-section-label">Paste your schedule text below</p>
+          <p className="usp-section-label">Paste Your Schedule Text Below</p>
           <p className="usp-section-hint">
             Copy from an email, PDF, or website — AI will extract events automatically
           </p>
@@ -538,11 +587,13 @@ export default function UploadSchedulePage() {
           {isProcessing && (
             <div className="usp-processing">
               <div className="usp-spinner" />
-              <p>AI is reading your schedule…</p>
+              <p>AI is reading your schedule …</p>
             </div>
           )}
 
           {extractedEvents.length > 0 && <ExtractedEventsList />}
+          {saveStatus === 'success' && <p className="usp-save-success">Schedule saved!</p>}
+          {saveStatus === 'error' && <p className="usp-save-error">{saveError}</p>}
         </div>
 
         <BottomNav />

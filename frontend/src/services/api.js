@@ -279,7 +279,6 @@ export const studySessionsAPI = {
 
 // Chat endpoint
 export const chatAPI = {
-  // Save a message+response pair to history (non-fatal — UI never blocks on this)
   saveExchange: async (message, response, noteId) => {
     try {
       await fetch(`${API_BASE_URL}/api/chat`, {
@@ -367,6 +366,78 @@ export const notificationsAPI = {
     }
   }
 };
+// Schedule / Calendar events
+export const scheduleAPI = {
+  getAll: async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/schedule/events`, {
+        credentials: 'include'
+      });
+      if (!res.ok) throw new Error('Failed to fetch events');
+      const data = await res.json();
+      return data.events || [];
+    } catch (err) {
+      console.warn('[scheduleAPI] getAll failed:', err);
+      return [];
+    }
+  },
+
+  create: async (event) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/schedule/events`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(event)
+      });
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({}));
+        throw new Error(error.error || 'Failed to create event');
+      }
+      return await res.json();
+    } catch (err) {
+      console.error('[scheduleAPI] create failed:', err);
+      throw err;
+    }
+  },
+
+  update: async (eventId, updates) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/schedule/events/${eventId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(updates)
+      });
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({}));
+        throw new Error(error.error || 'Failed to update event');
+      }
+      return await res.json();
+    } catch (err) {
+      console.error('[scheduleAPI] update failed:', err);
+      throw err;
+    }
+  },
+
+  delete: async (eventId) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/schedule/events/${eventId}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({}));
+        throw new Error(error.error || 'Failed to delete event');
+      }
+      return await res.json();
+    } catch (err) {
+      console.error('[scheduleAPI] delete failed:', err);
+      throw err;
+    }
+  }
+};
+
 // Settings endpoints
 export const settingsAPI = {
   getNotificationSettings: async () => {
