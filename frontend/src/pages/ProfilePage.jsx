@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  IoMdAdd, IoMdCheckmark, IoMdClose, IoMdLock,
+  IoMdAdd, IoMdCheckmark, IoMdClose,
 } from 'react-icons/io';
 import {
   MdCalendarToday, MdHome, MdChat, MdSettings, MdArrowBack,
-  MdEdit, MdPerson, MdEmail, MdPhone, MdNotes, MdVisibility,
-  MdVisibilityOff,
+  MdEdit, MdPerson, MdEmail, MdPhone, MdNotes,
 } from 'react-icons/md';
 import { FaUserCircle } from 'react-icons/fa';
 import { authAPI } from '../services/api';
@@ -94,14 +93,6 @@ export default function ProfilePage() {
   const [isSaving, setIsSaving]       = useState(false);
   const [profileMsg, setProfileMsg]   = useState(null);
 
-  /* ── password section ── */
-  const [showPwSection, setShowPwSection] = useState(false);
-  const [pwForm, setPwForm] = useState({
-    currentPassword: '', newPassword: '', confirmPassword: '',
-  });
-  const [showPw, setShowPw]       = useState({ current: false, next: false, confirm: false });
-  const [isSavingPw, setIsSavingPw] = useState(false);
-  const [pwMsg, setPwMsg]           = useState(null);
 
   /* ── load user on mount ── */
   useEffect(() => {
@@ -178,12 +169,6 @@ export default function ProfilePage() {
     return () => clearTimeout(t);
   }, [profileMsg]);
 
-  useEffect(() => {
-    if (!pwMsg) return;
-    const t = setTimeout(() => setPwMsg(null), 4000);
-    return () => clearTimeout(t);
-  }, [pwMsg]);
-
   /* ── form handlers ── */
   const handleFormChange = (e) =>
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -247,60 +232,6 @@ export default function ProfilePage() {
     }
   };
 
-  /* ── password handlers ── */
-  const handlePwChange = (e) =>
-    setPwForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
-
-  const handleSavePassword = async () => {
-    if (!pwForm.currentPassword || !pwForm.newPassword || !pwForm.confirmPassword) {
-      setPwMsg({ text: 'All password fields are required.', type: 'error' });
-      return;
-    }
-    if (pwForm.newPassword !== pwForm.confirmPassword) {
-      setPwMsg({ text: 'New passwords do not match.', type: 'error' });
-      return;
-    }
-    if (pwForm.newPassword.length < 6) {
-      setPwMsg({ text: 'New password must be at least 6 characters.', type: 'error' });
-      return;
-    }
-
-    console.log('[ProfilePage] Changing password...');
-    setIsSavingPw(true);
-    try {
-      const response = await fetch(`${API_BASE}/api/user/me/password`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          currentPassword: pwForm.currentPassword,
-          newPassword: pwForm.newPassword,
-        }),
-      });
-
-      console.log('[ProfilePage] Password change status:', response.status);
-
-      if (!response.ok) {
-        let errMsg = `Server returned ${response.status}`;
-        try {
-          const errBody = await response.json();
-          errMsg = errBody.error || errMsg;
-        } catch (_) {}
-        throw new Error(errMsg);
-      }
-
-      console.log('[ProfilePage] Password changed successfully');
-      setPwForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
-      setShowPwSection(false);
-      setPwMsg({ text: '✓ Password changed successfully!', type: 'success' });
-    } catch (err) {
-      console.error('[ProfilePage] Password change error:', err);
-      setPwMsg({ text: err.message || 'Password change failed.', type: 'error' });
-    } finally {
-      setIsSavingPw(false);
-    }
-  };
-
   /* ── derived ── */
   const fullName = user
     ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Your Name'
@@ -335,22 +266,11 @@ export default function ProfilePage() {
           <MdArrowBack size={26} />
         </button>
         <h3>Profile</h3>
-        {!isEditing ? (
-          <button
-            className="profile-nav-edit-btn"
-            onClick={() => setIsEditing(true)}
-            title="Edit profile"
-          >
-            <MdEdit size={20} />
-          </button>
-        ) : (
-          <div style={{ width: 38 }} />
-        )}
+        <div style={{ width: 38 }} />
       </div>
 
       {/* ── Toasts ── */}
       <Toast message={profileMsg} />
-      <Toast message={pwMsg} />
 
       {/* ── Fetch-error banner (non-fatal) ── */}
       {fetchError && (
@@ -446,86 +366,6 @@ export default function ProfilePage() {
             </div>
           </div>
         )}
-
-        {/* ════ CHANGE PASSWORD ════ */}
-        <div className="profile-card">
-          <button
-            className="pw-toggle-header"
-            onClick={() => setShowPwSection((v) => !v)}
-          >
-            <span className="profile-card-title" style={{ margin: 0 }}>
-              <IoMdLock size={18} /> Change Password
-            </span>
-            <span className={`pw-chevron ${showPwSection ? 'open' : ''}`}>▾</span>
-          </button>
-
-          {showPwSection && (
-            <div className="pw-form">
-              {/* Current */}
-              <div className="edit-field pw-field">
-                <label className="edit-field-label">Current Password</label>
-                <div className="pw-input-wrap">
-                  <input type={showPw.current ? 'text' : 'password'}
-                    name="currentPassword" value={pwForm.currentPassword}
-                    onChange={handlePwChange} placeholder="Enter current password"
-                    className="edit-field-input" autoComplete="current-password" />
-                  <button type="button" className="pw-eye"
-                    onClick={() => setShowPw((p) => ({ ...p, current: !p.current }))}>
-                    {showPw.current ? <MdVisibilityOff size={18} /> : <MdVisibility size={18} />}
-                  </button>
-                </div>
-              </div>
-
-              {/* New */}
-              <div className="edit-field pw-field">
-                <label className="edit-field-label">New Password</label>
-                <div className="pw-input-wrap">
-                  <input type={showPw.next ? 'text' : 'password'}
-                    name="newPassword" value={pwForm.newPassword}
-                    onChange={handlePwChange} placeholder="At least 6 characters"
-                    className="edit-field-input" autoComplete="new-password" />
-                  <button type="button" className="pw-eye"
-                    onClick={() => setShowPw((p) => ({ ...p, next: !p.next }))}>
-                    {showPw.next ? <MdVisibilityOff size={18} /> : <MdVisibility size={18} />}
-                  </button>
-                </div>
-              </div>
-
-              {/* Confirm */}
-              <div className="edit-field pw-field">
-                <label className="edit-field-label">Confirm New Password</label>
-                <div className="pw-input-wrap">
-                  <input type={showPw.confirm ? 'text' : 'password'}
-                    name="confirmPassword" value={pwForm.confirmPassword}
-                    onChange={handlePwChange} placeholder="Repeat new password"
-                    className="edit-field-input" autoComplete="new-password" />
-                  <button type="button" className="pw-eye"
-                    onClick={() => setShowPw((p) => ({ ...p, confirm: !p.confirm }))}>
-                    {showPw.confirm ? <MdVisibilityOff size={18} /> : <MdVisibility size={18} />}
-                  </button>
-                </div>
-              </div>
-
-              {pwForm.newPassword.length > 0 && (
-                <div className={`pw-strength ${
-                  pwForm.newPassword.length >= 12 ? 'strong'
-                  : pwForm.newPassword.length >= 8  ? 'medium'
-                  : 'weak'
-                }`}>
-                  Strength:{' '}
-                  {pwForm.newPassword.length >= 12 ? 'Strong 💪'
-                   : pwForm.newPassword.length >= 8  ? 'Medium 👍'
-                   : 'Weak ⚠️'}
-                </div>
-              )}
-
-              <button className="btn-save-pw" onClick={handleSavePassword} disabled={isSavingPw}>
-                {isSavingPw ? <span className="btn-spinner" /> : <IoMdLock size={16} />}
-                {isSavingPw ? 'Updating…' : 'Update Password'}
-              </button>
-            </div>
-          )}
-        </div>
 
         <div style={{ height: 16 }} />
       </div>

@@ -5,9 +5,8 @@
 .qs-container {
   min-height: 100vh;
   background: #f0f2f5;
-  max-width: 430px;
+  width: 100%;
   margin: 0 auto;
-  box-shadow: 0 0 30px rgba(0, 0, 0, 0.1);
   position: relative;
   padding-bottom: 40px;
 }
@@ -587,7 +586,7 @@
 
 /* ── Responsive ── */
 @media (min-width: 768px) {
-  .qs-container { max-width: 800px; }
+  .qs-container { max-width: 900px; }
 
   .qs-timer-card,
   .qs-chat-section,
@@ -603,12 +602,19 @@
 }
 
 @media (min-width: 1024px) {
-  .qs-container { max-width: 1200px; }
+  .qs-container { max-width: 100%; }
+  .bottom-nav {
+    max-width: 100%;
+    left: 0;
+    transform: none;
+  }
 
   .qs-timer-card,
   .qs-chat-section,
   .qs-note-selector,
   .qs-quick-prompts {
-    max-width: 680px;
+    max-width: 1100px;
+    margin-left: auto;
+    margin-right: auto;
   }
 }

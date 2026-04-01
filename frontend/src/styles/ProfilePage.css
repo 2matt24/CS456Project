@@ -1,4 +1,4 @@
-/* ─────────────────────────────────────────────
+﻿/* ─────────────────────────────────────────────
    ProfilePage.css
    ───────────────────────────────────────────── */
 
@@ -6,9 +6,8 @@
 .profile-container {
   min-height: 100vh;
   background: #f0f2f5;
-  max-width: 430px;
+  width: 100%;
   margin: 0 auto;
-  box-shadow: 0 0 30px rgba(0, 0, 0, 0.1);
   position: relative;
   padding-bottom: 100px;
 }
@@ -560,9 +559,7 @@
 .bottom-nav {
   position: fixed;
   bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  max-width: 430px;
+  left: 0;n  width: 100%;
   width: 100%;
   background: white;
   display: flex;
@@ -595,18 +592,22 @@
 
 /* ── Responsive ── */
 @media (min-width: 768px) {
-  .profile-container { max-width: 800px; }
-  .bottom-nav        { max-width: 800px; }
+  .profile-container { max-width: 900px; }
+  .bottom-nav        { max-width: 900px; }
   .edit-grid         { grid-template-columns: 1fr 1fr; }
   .profile-body      { padding: 24px 24px 0; }
 }
 
 @media (min-width: 1024px) {
-  .profile-container { max-width: 1200px; }
-  .bottom-nav        { max-width: 1200px; }
+  .profile-container { max-width: 100%; }
+  .bottom-nav {
+    max-width: 100%;
+    left: 0;
+    transform: none;
+  }
 
   .profile-body {
-    max-width: 720px;
+    max-width: 1100px;
     margin: 0 auto;
     padding: 28px 0 0;
     width: 100%;

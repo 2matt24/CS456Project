@@ -5,9 +5,8 @@
 .add-course-container {
   min-height: 100vh;
   background: #f0f2f5;
-  max-width: 430px;
+  width: 100%;
   margin: 0 auto;
-  box-shadow: 0 0 30px rgba(0, 0, 0, 0.1);
   padding-bottom: 40px;
 }
 
@@ -196,10 +195,15 @@
 
 /* ── Responsive ── */
 @media (min-width: 768px) {
-  .add-course-container { max-width: 800px; }
+  .add-course-container { max-width: 900px; }
 }
 
 @media (min-width: 1024px) {
-  .add-course-container { max-width: 1200px; }
-  .course-form { max-width: 680px; margin: 0 auto; }
+  .add-course-container { max-width: 100%; }
+  .course-form { max-width: 1100px; margin: 0 auto; }
+  .bottom-nav {
+    max-width: 100%;
+    left: 0;
+    transform: none;
+  }
 }
