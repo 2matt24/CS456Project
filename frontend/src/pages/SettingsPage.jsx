@@ -130,12 +130,6 @@ export default function SettingsPage() {
             {isLoadingUser ? '' : (user?.email || 'No email')}
           </p>
         </div>
-        <button
-          className="settings-profile-edit-btn"
-          onClick={() => navigate('/profile')}
-        >
-          Edit
-        </button>
       </div>
 
       <div className="settings-body">
@@ -157,7 +151,7 @@ export default function SettingsPage() {
             <MdChevronRight size={22} color="#b0b8c4" />
           </button>
 
-          <button className="settings-action-row" onClick={() => navigate('/profile')}>
+          <button className="settings-action-row" onClick={() => navigate('/change-password')}>
             <div className="settings-action-icon indigo">
               <MdLock size={20} color="white" />
             </div>

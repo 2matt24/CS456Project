@@ -1,13 +1,11 @@
-.dashboard-container {
+﻿.dashboard-container {
   min-height: 100vh;
   background: #f8f9fa;
   padding-bottom: 80px;
-  max-width: 430px;
+  width: 100%;
   margin: 0 auto;
-  box-shadow: 0 0 30px rgba(0, 0, 0, 0.1);
   position: relative;
   overflow-x: hidden;
-  width: 100%;
 }
 
 .navbar {
@@ -122,9 +120,7 @@
 .bottom-nav {
   position: fixed;
   bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  max-width: 430px;
+  left: 0;n  width: 100%;
   width: 100%;
   background: white;
   display: flex;
@@ -190,20 +186,22 @@
 /* Responsive Design */
 @media (min-width: 768px) {
   .dashboard-container {
-    max-width: 800px;
+    max-width: 900px;
   }
 
   .bottom-nav {
-    max-width: 800px;
+    max-width: 900px;
   }
 }
 
 @media (min-width: 1024px) {
   .dashboard-container {
-    max-width: 1200px;
+    max-width: 100%;
   }
 
   .bottom-nav {
-    max-width: 1200px;
+    max-width: 100%;
+    left: 0;
+    transform: none;
   }
 }
