@@ -103,7 +103,7 @@ function AddCoursePage() {
 
         <div className="form-row">
           <div className="form-group">
-            <label>Start Date</label>
+            <label>Start Date <span className="label-optional">(optional)</span></label>
             <input
               type="date"
               value={startDate}
@@ -112,7 +112,7 @@ function AddCoursePage() {
           </div>
 
           <div className="form-group">
-            <label>End Date</label>
+            <label>End Date <span className="label-optional">(optional)</span></label>
             <input
               type="date"
               value={endDate}
