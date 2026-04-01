@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from aistudyassistant.extensions import db
 
@@ -15,4 +15,4 @@ class Course(db.Model):
     Icon       = db.Column(db.Unicode(50),  nullable=True)
     StartDate  = db.Column(db.Date,         nullable=True)
     EndDate    = db.Column(db.Date,         nullable=True)
-    CreatedAt  = db.Column(db.DateTime,     default=datetime.utcnow)
+    CreatedAt  = db.Column(db.DateTime,     default=lambda: datetime.now(timezone.utc))
