@@ -4,9 +4,10 @@ import { useNavigate } from 'react-router-dom';
 import { IoMdAdd } from 'react-icons/io';
 import { MdArrowBack, MdChevronRight } from 'react-icons/md';
 import { MdCalendarToday, MdHome, MdChat, MdSettings, MdPerson, MdLock, MdColorLens, MdInfo } from 'react-icons/md';
-import { MdNotifications, MdStar } from 'react-icons/md';
+import { MdNotifications, MdStar, MdTextFields, MdPalette, MdBrightness4, MdBrightness7, MdBrightnessAuto } from 'react-icons/md';
 import AddModal from '../components/AddModal';
 import { authAPI, settingsAPI } from '../services/api';
+import { useTheme, ACCENTS } from '../context/ThemeContext';
 import '../styles/SettingsPage.css';
 
 //const API_BASE = 'https://cs456project.onrender.com';
@@ -40,6 +41,7 @@ function Toggle({ checked, onChange, id, disabled = false }) {
 ──────────────────────────────────────── */
 export default function SettingsPage() {
   const navigate = useNavigate();
+  const { themePref, accent, fontSize, updateTheme, updateAccent, updateFontSize } = useTheme();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isLoadingUser, setIsLoadingUser] = useState(true);
   const [user, setUser] = useState(null);
@@ -227,9 +229,57 @@ export default function SettingsPage() {
           <h4 className="settings-card-title">
             <MdColorLens size={18} /> Appearance
           </h4>
-          <p className="settings-coming-soon-note">
-            Coming soon - customize your study environment
-          </p>
+
+          {/* Theme */}
+          <p className="settings-section-sub">Theme</p>
+          <div className="appearance-row">
+            {[
+              { key: 'light',  label: 'Light',  icon: <MdBrightness7 size={20} /> },
+              { key: 'dark',   label: 'Dark',   icon: <MdBrightness4 size={20} /> },
+              { key: 'system', label: 'System', icon: <MdBrightnessAuto size={20} /> },
+            ].map(({ key, label, icon }) => (
+              <button
+                key={key}
+                className={`appearance-option ${themePref === key ? 'selected' : ''}`}
+                onClick={() => updateTheme(key)}
+              >
+                {icon}
+                <span>{label}</span>
+              </button>
+            ))}
+          </div>
+
+          {/* Accent colour */}
+          <p className="settings-section-sub" style={{ marginTop: 18 }}>Accent Colour</p>
+          <div className="accent-row">
+            {Object.entries(ACCENTS).map(([key, a]) => (
+              <button
+                key={key}
+                className={`accent-swatch ${accent === key ? 'selected' : ''}`}
+                style={{ background: `linear-gradient(135deg, ${a.from}, ${a.to})` }}
+                onClick={() => updateAccent(key)}
+                title={a.name}
+              />
+            ))}
+          </div>
+
+          {/* Font size */}
+          <p className="settings-section-sub" style={{ marginTop: 18 }}>Text Size</p>
+          <div className="appearance-row">
+            {[
+              { key: 'normal', label: 'Normal', icon: <MdTextFields size={18} /> },
+              { key: 'large',  label: 'Large',  icon: <MdTextFields size={22} /> },
+            ].map(({ key, label, icon }) => (
+              <button
+                key={key}
+                className={`appearance-option ${fontSize === key ? 'selected' : ''}`}
+                onClick={() => updateFontSize(key)}
+              >
+                {icon}
+                <span>{label}</span>
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* ════ ABOUT ════ */}

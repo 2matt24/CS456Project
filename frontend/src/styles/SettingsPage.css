@@ -306,41 +306,66 @@
   margin: 0 0 12px;
 }
 
-/* ── Theme selector ── */
-.theme-selector {
+/* ── Appearance controls ── */
+.appearance-row {
   display: flex;
   gap: 10px;
 }
 
-.theme-option {
+.appearance-option {
   flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 6px;
-  padding: 14px 8px;
+  padding: 13px 8px;
   border: 2px solid #e0e4ef;
   border-radius: 14px;
   background: #fafbff;
   color: #555;
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
 }
 
-.theme-option:hover {
+.appearance-option:hover {
   border-color: #667eea;
   background: #f0f0ff;
   color: #667eea;
 }
 
-.theme-option.selected {
+.appearance-option.selected {
   border-color: #667eea;
   background: linear-gradient(135deg, #667eea, #764ba2);
   color: white;
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.35);
 }
+
+/* Accent colour swatches */
+.accent-row {
+  display: flex;
+  gap: 12px;
+}
+
+.accent-swatch {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+  outline: none;
+}
+
+.accent-swatch:hover { transform: scale(1.12); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+.accent-swatch.selected { border-color: #1a1a2e; transform: scale(1.18); box-shadow: 0 4px 16px rgba(0,0,0,0.25); }
+
+html[data-theme="dark"] .accent-swatch.selected { border-color: white; }
+html[data-theme="dark"] .appearance-option { background: #1e2133; border-color: #2d3348; color: #8b92a5; }
+html[data-theme="dark"] .appearance-option:hover { background: #252838; color: #667eea; border-color: #667eea; }
+html[data-theme="dark"] .settings-coming-soon-note { color: #4a5168; }
+html[data-theme="dark"] .settings-section-sub { color: #4a5168; }
 
 /* ── About rows ── */
 .about-row {
