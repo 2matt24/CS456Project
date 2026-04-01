@@ -9,7 +9,10 @@
   height: 100vh;
   width: 100%;
   margin: 0 auto;
-  background: #f0f2f5;
+  /* Dot-grid covers the full viewport */
+  background-color: #eef0f8;
+  background-image: radial-gradient(circle, #c8cde8 1px, transparent 1px);
+  background-size: 28px 28px;
   position: relative;
   overflow: hidden;
 }
@@ -88,10 +91,7 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
-  /* Dot-grid background */
-  background-color: #eef0f8;
-  background-image: radial-gradient(circle, #c8cde8 1px, transparent 1px);
-  background-size: 28px 28px;
+  background: transparent; /* background lives on .chat-container */
   /* Custom scrollbar */
   scrollbar-width: thin;
   scrollbar-color: #c4c9d4 transparent;
@@ -510,13 +510,6 @@
     transform: none;
   }
 
-  /* On wide screens, constrain the chat column to a readable width */
-  .chat-messages {
-    max-width: 1100px;
-    margin: 0 auto;
-    width: 100%;
-  }
-
   .chat-input-area {
     width: 100%;
     padding-left: 0;
@@ -529,6 +522,6 @@
   }
 
   .message-bubble {
-    max-width: 60%;
+    max-width: 55%;
   }
 }

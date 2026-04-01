@@ -310,6 +310,7 @@
 .appearance-row {
   display: flex;
   gap: 10px;
+  width: 100%;
 }
 
 .appearance-option {
@@ -318,15 +319,16 @@
   flex-direction: column;
   align-items: center;
   gap: 6px;
-  padding: 13px 8px;
+  padding: 14px 8px;
   border: 2px solid #e0e4ef;
   border-radius: 14px;
   background: #fafbff;
   color: #555;
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
+  min-width: 0;
 }
 
 .appearance-option:hover {
@@ -339,27 +341,40 @@
   border-color: #667eea;
   background: linear-gradient(135deg, #667eea, #764ba2);
   color: white;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.35);
+  box-shadow: 0 4px 14px rgba(102, 126, 234, 0.38);
 }
 
-/* Accent colour swatches */
+/* Accent colour swatches — full-width row with equal spacing */
 .accent-row {
   display: flex;
-  gap: 12px;
+  gap: 0;
+  width: 100%;
+  justify-content: space-around;
+  align-items: center;
+  padding: 6px 0;
 }
 
 .accent-swatch {
-  width: 40px;
-  height: 40px;
+  width: 52px;
+  height: 52px;
   border-radius: 50%;
   border: 3px solid transparent;
   cursor: pointer;
   transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
   outline: none;
+  flex-shrink: 0;
 }
 
-.accent-swatch:hover { transform: scale(1.12); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
-.accent-swatch.selected { border-color: #1a1a2e; transform: scale(1.18); box-shadow: 0 4px 16px rgba(0,0,0,0.25); }
+.accent-swatch:hover {
+  transform: scale(1.14);
+  box-shadow: 0 5px 16px rgba(0, 0, 0, 0.22);
+}
+
+.accent-swatch.selected {
+  border-color: #1a1a2e;
+  transform: scale(1.2);
+  box-shadow: 0 5px 18px rgba(0, 0, 0, 0.28);
+}
 
 html[data-theme="dark"] .accent-swatch.selected { border-color: white; }
 html[data-theme="dark"] .appearance-option { background: #1e2133; border-color: #2d3348; color: #8b92a5; }
