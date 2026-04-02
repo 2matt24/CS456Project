@@ -160,8 +160,50 @@ export const coursesAPI = {
       console.error('Create course error:', error);
       throw error;
     }
+  },
+
+ update: async (courseId, updates) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/courses/${courseId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(updates)
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to update course');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Update course error:', error);
+      throw error;
+    }
+  },
+
+  delete: async (courseId) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/courses/${courseId}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to delete course');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Delete course error:', error);
+      throw error;
+    }
   }
 };
+
+
 
 // Notes endpoints
 export const notesAPI = {

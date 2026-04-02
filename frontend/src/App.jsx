@@ -24,6 +24,7 @@ function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/courses/new" element={<AddCoursePage />} />
+        <Route path="/courses/:courseId/edit" element={<AddCoursePage />} />
         <Route path="/course/:courseId" element={<CoursePage />} />
         <Route path="/course/:courseId/notes/new" element={<NotesPage />} />
         <Route path="/course/:courseId/note/:noteId" element={<NoteViewPage />} />

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { IoCheckmarkCircle } from 'react-icons/io5';
 import { MdArrowBack } from 'react-icons/md';
 import { coursesAPI } from '../services/api';
@@ -12,6 +12,8 @@ const YEARS = ['2024', '2025', '2026', '2027', '2028'];
 
 function AddCoursePage() {
   const navigate = useNavigate();
+  const { courseId } = useParams();
+  const isEditMode = Boolean(courseId);
   const [courseName, setCourseName]       = useState('');
   const [courseCode, setCourseCode]       = useState('');
   const [semester, setSemester]           = useState('');
@@ -22,6 +24,41 @@ function AddCoursePage() {
   const [selectedIcon, setSelectedIcon]   = useState(ICONS[0]);
   const [isLoading, setIsLoading]         = useState(false);
   const [error, setError]                 = useState('');
+  const [isBootstrapping, setIsBootstrapping] = useState(isEditMode);
+
+  useEffect(() => {
+    if (!isEditMode) return;
+    (async () => {
+      try {
+        const allCourses = await coursesAPI.getAll();
+        const currentCourse = allCourses.find((c) => c.courseID === Number(courseId));
+        if (!currentCourse) {
+          setError('Course not found.');
+          return;
+        }
+        setCourseName(currentCourse.courseName || '');
+        setCourseCode(currentCourse.courseCode || '');
+        setSelectedColor(currentCourse.color || COLORS[0]);
+        setSelectedIcon(currentCourse.icon || ICONS[0]);
+        setStartDate(currentCourse.startDate || '');
+        setEndDate(currentCourse.endDate || '');
+
+        const semesterParts = (currentCourse.semester || '').split(' ');
+        const maybeYear = semesterParts[semesterParts.length - 1];
+        if (/^\d{4}$/.test(maybeYear)) {
+          setYear(maybeYear);
+          setSemester(semesterParts.slice(0, -1).join(' '));
+        } else {
+          setSemester(currentCourse.semester || '');
+        }
+      } catch {
+        setError('Failed to load course details.');
+      } finally {
+        setIsBootstrapping(false);
+      }
+    })();
+  }, [courseId, isEditMode]);
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -32,22 +69,52 @@ function AddCoursePage() {
     const semesterLabel = [semester, year].filter(Boolean).join(' ') || undefined;
 
     try {
-      await coursesAPI.create(
-        courseName,
-        courseCode,
-        semesterLabel,
-        selectedColor,
-        selectedIcon,
-        startDate || undefined,
-        endDate   || undefined,
-      );
+      if (isEditMode) {
+        await coursesAPI.update(courseId, {
+          courseName,
+          courseCode,
+          semester: semesterLabel,
+          color: selectedColor,
+          icon: selectedIcon,
+          startDate: startDate || null,
+          endDate: endDate || null,
+        });
+      } else {
+        await coursesAPI.create(
+          courseName,
+          courseCode,
+          semesterLabel,
+          selectedColor,
+          selectedIcon,
+          startDate || undefined,
+          endDate   || undefined,
+        );
+      }
       navigate('/dashboard');
     } catch (err) {
-      setError('Failed to create course. Please try again.');
+      setError(`Failed to ${isEditMode ? 'update' : 'create'} course. Please try again.`);
     } finally {
       setIsLoading(false);
     }
   };
+
+  if (isBootstrapping) {
+    return (
+      <div className="add-course-container">
+        <div className="acp-navbar">
+          <button className="acp-nav-btn" onClick={() => navigate('/dashboard')}>
+            <MdArrowBack size={22} />
+          </button>
+          <h3>Edit Course</h3>
+          <div style={{ width: 38 }} />
+        </div>
+        <form className="course-form">
+          <div className="error-message">Loading course details…</div>
+        </form>
+      </div>
+    );
+  }
+
 
   return (
     <div className="add-course-container">
@@ -55,7 +122,7 @@ function AddCoursePage() {
         <button className="acp-nav-btn" onClick={() => navigate('/dashboard')}>
           <MdArrowBack size={22} />
         </button>
-        <h3>Add Course</h3>
+        <h3>{isEditMode ? 'Edit Course' : 'Add Course'}</h3>
         <div style={{ width: 38 }} />
       </div>
 
@@ -151,7 +218,7 @@ function AddCoursePage() {
         </div>
 
         <button type="submit" className="btn-submit" disabled={isLoading}>
-          {isLoading ? 'Creating…' : <><IoCheckmarkCircle size={20} /> Create Course</>}
+          {isLoading ? (isEditMode ? 'Saving…' : 'Creating…') : <><IoCheckmarkCircle size={20} /> {isEditMode ? 'Save Changes' : 'Create Course'}</>}
         </button>
       </form>
     </div>
