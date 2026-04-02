@@ -205,14 +205,30 @@ html[data-theme="dark"] .note-item {
   border-color: var(--border);
 }
 
+html[data-theme="dark"] .note-details h4,
 html[data-theme="dark"] .note-item-title,
 html[data-theme="dark"] .cp-search-input {
   color: var(--text-primary);
 }
 
+html[data-theme="dark"] .note-date,
+html[data-theme="dark"] .note-filename {
+  color: var(--text-muted);
+}
+
+html[data-theme="dark"] .search-bar,
 html[data-theme="dark"] .cp-search-wrap {
   background: var(--bg-input);
   border-color: var(--border);
+}
+
+html[data-theme="dark"] .search-input,
+html[data-theme="dark"] .cp-search-input {
+  color: var(--text-primary);
+}
+
+html[data-theme="dark"] .search-input::placeholder {
+  color: var(--text-muted);
 }
 
 /* ─────────────────────────────────────────────
