@@ -25,7 +25,7 @@ function NotesPage() {
         setUploadedFile(file);
         setNoteTitle(file.name.replace(/\.[^/.]+$/, "")); // Remove extension
         setIsSaving(true);
-        setMessage('');
+        setMessage('⏳ Uploading and processing your file…');
 
         try {
             const formData = new FormData();
@@ -41,12 +41,12 @@ function NotesPage() {
 
             if (response.ok) {
                 const result = await response.json();
-                setMessage('✅ File uploaded and processed successfully!');
+                setMessage('✅ File uploaded successfully! Returning to course…');
                 setNoteContent(result.note.content);
 
                 setTimeout(() => {
                     navigate(`/course/${courseId}`);
-                }, 2000);
+                }, 3000);
             } else {
                 const error = await response.json();
                 setMessage(`❌ Upload failed: ${error.error}`);
