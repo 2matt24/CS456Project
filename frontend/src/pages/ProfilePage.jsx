@@ -24,7 +24,7 @@ function getInitials(firstName, lastName) {
 function formatDate(iso) {
   if (!iso) return 'N/A';
   return new Date(iso).toLocaleDateString('en-US', {
-    year: 'numeric', month: 'long', day: 'numeric',
+    year: 'numeric', month: 'long',
   });
 }
 
