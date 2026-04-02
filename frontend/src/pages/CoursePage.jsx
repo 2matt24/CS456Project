@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { IoMdNotifications, IoMdAdd } from 'react-icons/io';
-import { MdCalendarToday, MdHome, MdChat, MdSettings, MdArrowBack, MdBolt } from 'react-icons/md';
+import { MdCalendarToday, MdHome, MdChat, MdSettings, MdArrowBack, MdBolt, MdEdit, MdDelete } from 'react-icons/md';
 import { FaUserCircle } from 'react-icons/fa';
 import { IoDocumentTextOutline, IoSearchSharp } from 'react-icons/io5';
 import { coursesAPI, notesAPI } from '../services/api';
@@ -58,6 +58,23 @@ function CoursePage() {
   };
 
   const clearSearch = () => { setSearchQuery(''); setSearchResults([]); };
+
+  const handleDeleteNote = async (e, noteId) => {
+    e.stopPropagation();
+    if (!window.confirm('Delete this note? This cannot be undone.')) return;
+    try {
+      await notesAPI.delete(noteId);
+      setNotes(prev => prev.filter(n => n.noteID !== noteId));
+      setSearchResults(prev => prev.filter(r => r.noteId !== String(noteId)));
+    } catch (err) {
+      alert('Failed to delete note. Please try again.');
+    }
+  };
+
+  const handleEditNote = (e, note) => {
+    e.stopPropagation();
+    navigate(`/course/${courseId}/notes/new`, { state: { editNote: note } });
+  };
 
   if (isLoading) {
     return (
@@ -215,7 +232,14 @@ function CoursePage() {
                 <p className="note-filename">📎 {note.fileName}</p>
               )}
             </div>
-            <div className="note-arrow">›</div>
+            <div className="note-actions" onClick={e => e.stopPropagation()}>
+              <button className="note-action-btn edit" onClick={(e) => handleEditNote(e, note)} title="Edit note">
+                <MdEdit size={17} />
+              </button>
+              <button className="note-action-btn delete" onClick={(e) => handleDeleteNote(e, note.noteID)} title="Delete note">
+                <MdDelete size={17} />
+              </button>
+            </div>
           </div>
         ))}
       </div>

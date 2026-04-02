@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { scheduleAPI } from '../services/api';
+import { scheduleAPI, coursesAPI } from '../services/api';
 import { useNavigate } from 'react-router-dom';
 import { IoMdAdd } from 'react-icons/io';
 import {
@@ -110,10 +110,34 @@ export default function UploadSchedulePage() {
       for (const ev of eventsToSave) {
         await scheduleAPI.create(mapToBackendEvent(ev));
       }
+      // Auto-create courses for school schedules
+      if (scheduleType === 'school') {
+        const COURSE_ICONS = ['📚', '🎓', '📖', '🔬', '💻', '📐', '🧪', '📝'];
+        const COURSE_COLORS = ['#667eea', '#f093fb', '#4facfe', '#43e97b', '#ff6b6b', '#ffd648', '#0fd850', '#fa8231'];
+        const seen = new Set();
+        for (let i = 0; i < eventsToSave.length; i++) {
+          const ev = eventsToSave[i];
+          if (!ev.name || seen.has(ev.name)) continue;
+          seen.add(ev.name);
+          try {
+            await coursesAPI.create(
+              ev.name,
+              '',
+              '',
+              COURSE_COLORS[i % COURSE_COLORS.length],
+              COURSE_ICONS[i % COURSE_ICONS.length],
+              ev.startDate || null,
+              ev.endDate || null,
+            );
+          } catch (_) {
+            // non-fatal — course may already exist
+          }
+        }
+      }
       setSaveStatus('success');
       setTimeout(() => {
         setSaveStatus(null);
-        navigate('/calendar');
+        navigate('/dashboard');
       }, 1200);
     } catch (err) {
       setSaveStatus('error');
