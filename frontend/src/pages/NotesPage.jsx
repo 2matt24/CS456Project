@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { notesAPI } from '../services/api';
 import { IoMdAdd, IoMdCheckmark, IoMdDocument, IoMdCloudUpload } from 'react-icons/io';
 import { MdArrowBack } from 'react-icons/md';
@@ -10,8 +10,11 @@ import '../styles/NotesPage.css';
 function NotesPage() {
     const navigate = useNavigate();
     const { courseId } = useParams();
-    const [noteTitle, setNoteTitle] = useState('');
-    const [noteContent, setNoteContent] = useState('');
+    const location = useLocation();
+    const editNote = location.state?.editNote || null;
+
+    const [noteTitle, setNoteTitle] = useState(editNote?.title || '');
+    const [noteContent, setNoteContent] = useState(editNote?.content || '');
     const [uploadedFile, setUploadedFile] = useState(null);
     const [summary, setSummary] = useState('');
     const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
@@ -64,15 +67,14 @@ function NotesPage() {
         setMessage('');
 
         try {
-            const result = await notesAPI.create(courseId, noteTitle, noteContent);
-
-            if (result.success) {
+            if (editNote) {
+                await notesAPI.update(editNote.noteID, noteTitle, noteContent);
+                setMessage('Note updated successfully!');
+            } else {
+                await notesAPI.create(courseId, noteTitle, noteContent);
                 setMessage('Note saved successfully!');
-                // Clear form after 2 seconds and navigate back
-                setTimeout(() => {
-                    navigate(`/course/${courseId}`);
-                }, 2000);
             }
+            setTimeout(() => { navigate(`/course/${courseId}`); }, 1500);
         } catch (error) {
             setMessage('Failed to save note. Please try again.');
             console.error('Save note error:', error);
@@ -103,7 +105,7 @@ function NotesPage() {
                 <button className="notes-nav-btn" onClick={() => navigate(`/course/${courseId}`)}>
                     <MdArrowBack size={22} />
                 </button>
-                <h3>Create Note</h3>
+                <h3>{editNote ? 'Edit Note' : 'Create Note'}</h3>
                 <button
                     className="notes-nav-btn"
                     onClick={handleSaveNote}

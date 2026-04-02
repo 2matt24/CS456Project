@@ -90,7 +90,11 @@ const WELCOME_MESSAGE = {
 };
 
 function formatTime(date) {
-  return new Date(date).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+  // Ensure UTC timestamps from the backend (no timezone suffix) are parsed as UTC
+  const d = typeof date === 'string' && !date.endsWith('Z') && !date.includes('+')
+    ? new Date(date + 'Z')
+    : new Date(date);
+  return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 }
 
 const QUICK_PROMPTS = [

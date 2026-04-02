@@ -207,6 +207,42 @@ export const notesAPI = {
     }
   },
 
+  update: async (noteId, title, content) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/notes/${noteId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ title, content })
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to update note');
+      }
+      return await response.json();
+    } catch (error) {
+      console.error('Update note error:', error);
+      throw error;
+    }
+  },
+
+  delete: async (noteId) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/notes/${noteId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to delete note');
+      }
+      return await response.json();
+    } catch (error) {
+      console.error('Delete note error:', error);
+      throw error;
+    }
+  },
+
   summarize: async (content) => {
     try {
       const response = await fetch(`${API_BASE_URL}/api/notes/summarize`, {

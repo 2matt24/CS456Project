@@ -264,6 +264,26 @@ def update_note(note_id):
     return {"message": "Note updated", "note": _serialize_note(note)}, 200
 
 
+@notes_bp.route("/api/notes/<int:note_id>", methods=["DELETE"])
+def delete_note(note_id):
+    user_id = _current_user_id()
+    if not user_id:
+        return {"error": "Authentication required"}, 401
+
+    note = (
+        db.session.query(Note)
+        .join(Course, Note.CourseID == Course.CourseID)
+        .filter(Note.NoteID == note_id, Course.UserID == user_id)
+        .first()
+    )
+    if not note:
+        return {"error": "Note not found"}, 404
+
+    db.session.delete(note)
+    db.session.commit()
+    return {"message": "Note deleted"}, 200
+
+
 @notes_bp.route("/api/notes/summarize", methods=["POST"])
 def summarize_note_content():
     user_id = _current_user_id()
