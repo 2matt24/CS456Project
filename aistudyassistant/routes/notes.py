@@ -9,6 +9,8 @@ from aistudyassistant.services.neightnclient import summarize_text
 from aistudyassistant.services.azure_storage import AzureStorageService
 from aistudyassistant.services.pinecone_service import PineconeService
 from aistudyassistant.services.text_extractor import extract_text_from_file
+from aistudyassistant.routes.notifications import create_notification_for_user
+
 
 # blueprint for notes route
 notes_bp = Blueprint("notes", __name__)
@@ -309,5 +311,13 @@ def summarize_note_content():
     except Exception as e:
         print("AI summarization failed:", e)
         return {"error": "AI summarization service unavailable"}, 503
+
+    create_notification_for_user(
+        user_id=user_id,
+        title="Note summary created",
+        message=f"Your note summary is ready ({max_sentences} sentence max).",
+        ntype="note_summary",
+    )
+    db.session.commit()
 
     return {"summary": summary}, 200
