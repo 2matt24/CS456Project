@@ -26,6 +26,12 @@ const TYPE_LABELS = {
   personal: 'Personal / Other',
 };
 
+const EVENT_LABELS = {
+  school:   { singular: 'Class',    plural: 'Classes',    example: 'e.g. CS201 Lecture' },
+  work:     { singular: 'Shift',    plural: 'Shifts',     example: 'e.g. Morning Shift' },
+  personal: { singular: 'Activity', plural: 'Activities', example: 'e.g. Gym Session' },
+};
+
 function newEvent(id = Date.now()) {
   return {
     id,
@@ -57,6 +63,7 @@ export default function UploadSchedulePage() {
   const [saveError, setSaveError] = useState('');
 
   const typeLabel = scheduleType ? TYPE_LABELS[scheduleType] : '';
+  const labels = scheduleType ? EVENT_LABELS[scheduleType] : { singular: 'Event', plural: 'Events', example: 'e.g. Add an event' };
 
   function handleProcessFile() {
     setIsProcessing(true);
@@ -158,8 +165,8 @@ export default function UploadSchedulePage() {
     <div className="usp-extracted-list">
       <h4 className="usp-extracted-title">
         {uploadMethod === 'ai'
-          ? `Found ${extractedEvents.length} Events`
-          : 'Extracted Events'}
+          ? `Found ${extractedEvents.length} ${extractedEvents.length === 1 ? labels.singular : labels.plural}`
+          : `Extracted ${labels.plural}`}
       </h4>
       {extractedEvents.map((ev, i) => (
         <div key={i} className="usp-extracted-item">
@@ -407,11 +414,11 @@ export default function UploadSchedulePage() {
               style={{ borderLeftColor: ev.color }}
             >
               <div className="usp-form-group">
-                <label className="usp-form-label">EVENT NAME *</label>
+                <label className="usp-form-label">{labels.singular.toUpperCase()} NAME *</label>
                 <input
                   className="usp-form-input"
                   type="text"
-                  placeholder="e.g. CS201 Lecture"
+                  placeholder={labels.example}
                   value={ev.name}
                   onChange={(e) => updateEvent(ev.id, 'name', e.target.value)}
                 />
@@ -521,14 +528,14 @@ export default function UploadSchedulePage() {
                   className="usp-delete-event-btn"
                   onClick={() => deleteEvent(ev.id)}
                 >
-                  <MdDelete size={14} /> Remove Event
+                  <MdDelete size={14} /> Remove {labels.singular}
                 </button>
               )}
             </div>
           ))}
 
           <button type="button" className="usp-add-event-btn" onClick={addEvent}>
-            <MdAdd size={18} /> Add Another Event
+            <MdAdd size={18} /> Add Another {labels.singular}
           </button>
 
           <button
