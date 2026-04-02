@@ -12,10 +12,12 @@ const COLORS = ['#667eea', '#f093fb', '#4facfe', '#43e97b', '#ff6b6b'];
 const DAYS_SHORT = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 const DAYS_FULL = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
+const TODAY = new Date().toISOString().split('T')[0];
+
 const FAKE_EVENTS = [
-  { name: 'Introduction to Algorithms', time: '9:00 AM - 10:30 AM', days: 'Mon, Wed, Fri', color: '#667eea' },
-  { name: 'Data Structures Lab', time: '2:00 PM - 4:00 PM', days: 'Tuesday', color: '#f093fb' },
-  { name: 'Office Hours - Prof. Smith', time: '3:00 PM - 4:00 PM', days: 'Thursday', color: '#43e97b' },
+  { name: 'Introduction to Algorithms', startTime: '09:00', endTime: '10:30', days: ['Monday', 'Wednesday', 'Friday'], color: '#667eea', repeat: 'weekly', startDate: TODAY, location: '' },
+  { name: 'Data Structures Lab',        startTime: '14:00', endTime: '16:00', days: ['Tuesday'],                       color: '#f093fb', repeat: 'weekly', startDate: TODAY, location: '' },
+  { name: 'Office Hours - Prof. Smith', startTime: '15:00', endTime: '16:00', days: ['Thursday'],                      color: '#43e97b', repeat: 'weekly', startDate: TODAY, location: '' },
 ];
 
 const TYPE_LABELS = {
@@ -164,7 +166,7 @@ export default function UploadSchedulePage() {
           <div className="usp-event-color-dot" style={{ background: ev.color }} />
           <div>
             <p className="usp-event-name">{ev.name}</p>
-            <p className="usp-event-time">{ev.time} &bull; {ev.days}</p>
+            <p className="usp-event-time">{ev.startTime} – {ev.endTime} &bull; {Array.isArray(ev.days) ? ev.days.join(', ') : ev.days}</p>
           </div>
         </div>
       ))}
