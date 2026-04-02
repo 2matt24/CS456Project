@@ -5,7 +5,7 @@
 /* ── Shell ── */
 .profile-container {
   min-height: 100vh;
-  background: #f0f2f5;
+  background: #f8f9fa;
   width: 100%;
   margin: 0 auto;
   position: relative;
@@ -368,7 +368,7 @@
   justify-content: center;
   gap: 6px;
   padding: 13px;
-  background: linear-gradient(135deg, #43e97b 0%, #38d169 100%);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   border: none;
   border-radius: 12px;
@@ -376,12 +376,12 @@
   font-weight: 700;
   cursor: pointer;
   transition: transform 0.15s, box-shadow 0.2s;
-  box-shadow: 0 4px 14px rgba(67, 233, 123, 0.35);
+  box-shadow: 0 4px 14px rgba(102, 126, 234, 0.35);
 }
 
 .btn-save:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 6px 18px rgba(67, 233, 123, 0.45);
+  box-shadow: 0 6px 18px rgba(102, 126, 234, 0.45);
 }
 
 .btn-save:disabled {
@@ -559,7 +559,7 @@
 .bottom-nav {
   position: fixed;
   bottom: 0;
-  left: 0;n  width: 100%;
+  left: 0;
   width: 100%;
   background: white;
   display: flex;

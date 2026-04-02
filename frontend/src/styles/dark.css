@@ -10,7 +10,7 @@
   --accent-gradient: linear-gradient(135deg, var(--accent-from) 0%, var(--accent-to) 100%);
 
   /* Light defaults */
-  --bg:           #f0f2f5;
+  --bg:           #f8f9fa;
   --bg-card:      #ffffff;
   --bg-input:     #ffffff;
   --bg-input-alt: #f5f6ff;
@@ -48,7 +48,8 @@ html[data-theme="dark"] .chat-container,
 html[data-theme="dark"] .add-course-container,
 html[data-theme="dark"] .qs-container,
 html[data-theme="dark"] .placeholder-container,
-html[data-theme="dark"] .notif-container {
+html[data-theme="dark"] .notif-container,
+html[data-theme="dark"] .note-view-container {
   background: var(--bg);
 }
 
@@ -193,6 +194,66 @@ html[data-theme="dark"] .chat-date-separator span {
 /* The .dash-hero is already a gradient — looks great on dark */
 html[data-theme="dark"] .section-title,
 html[data-theme="dark"] .welcome-text {
+  color: var(--text-primary);
+}
+
+/* ─────────────────────────────────────────────
+   NoteViewPage
+───────────────────────────────────────────── */
+html[data-theme="dark"] .note-view-container {
+  background: var(--bg);
+}
+
+html[data-theme="dark"] .note-view-header,
+html[data-theme="dark"] .note-view-body,
+html[data-theme="dark"] .nv-chat-section {
+  background: var(--bg-card);
+  border-color: var(--border);
+  box-shadow: var(--shadow-card);
+}
+
+html[data-theme="dark"] .note-view-title {
+  color: var(--text-primary);
+}
+
+html[data-theme="dark"] .note-view-text {
+  color: var(--text-primary);
+}
+
+html[data-theme="dark"] .note-view-date,
+html[data-theme="dark"] .note-view-filename {
+  color: var(--text-muted);
+}
+
+html[data-theme="dark"] .nv-bubble-ai {
+  background: #252838;
+  border-color: var(--border);
+  color: var(--text-primary);
+}
+
+html[data-theme="dark"] .nv-bubble-ai .nv-bubble-text {
+  color: var(--text-primary);
+}
+
+html[data-theme="dark"] .nv-input-row {
+  background: var(--bg-input-alt);
+  border-color: var(--border);
+}
+
+html[data-theme="dark"] .nv-textarea {
+  color: var(--text-primary);
+}
+
+html[data-theme="dark"] .nv-textarea::placeholder {
+  color: var(--text-muted);
+}
+
+html[data-theme="dark"] .nv-summary-card {
+  background: #1e2133;
+  border-color: var(--border);
+}
+
+html[data-theme="dark"] .nv-summary-text {
   color: var(--text-primary);
 }
 
