@@ -84,50 +84,57 @@ def upload_note_file():
         return {"error": "Invalid course"}, 403
     
     try:
-        # Upload to Azure
-        #upload_result = storage_service.upload_file(file, user_id, course_id)
-        upload_result = get_storage_service().upload_file(file, user_id, course_id)
-        
-        # Reset file pointer for text extraction
-        file.seek(0)
-        
-        # Extract text from file
-        extracted_text = extract_text_from_file(file, upload_result['file_type'])
-        
+        original_filename = file.filename or "upload"
+        file_extension = original_filename.rsplit('.', 1)[1].lower() if '.' in original_filename else 'txt'
+
+        # ── 1. Try Azure upload (optional – skip gracefully if not configured) ──
+        file_url = None
+        try:
+            upload_result = get_storage_service().upload_file(file, user_id, course_id)
+            file_url = upload_result.get('url')
+            # Reset pointer after Azure consumed the stream
+            file.seek(0)
+        except Exception as azure_err:
+            print(f"Azure upload skipped (will save note without cloud storage): {azure_err}")
+            file.seek(0)
+
+        # ── 2. Extract text ──────────────────────────────────────────────────────
+        extracted_text = extract_text_from_file(file, file_extension)
         if not extracted_text:
-            extracted_text = f"File uploaded: {upload_result['filename']}"
-        
-        # Create note
+            extracted_text = f"File uploaded: {original_filename}"
+
+        # ── 3. Save note to database ─────────────────────────────────────────────
         note = Note(
             CourseID=course_id,
             Title=title,
             Content=extracted_text,
-            FileName=upload_result['filename'],
-            FileType=upload_result['file_type']
+            FileName=original_filename,
+            FileType=file_extension
         )
-        
         db.session.add(note)
         db.session.commit()
-        
-        # Add to Pinecone
-        get_pinecone_service().add_note(
-            note_id=note.NoteID,
-            content=extracted_text,
-            metadata={
-                "user_id": str(user_id),
-                "course_id": str(course_id),
-                "title": title,
-                "filename": upload_result['filename']
-            }
-        )
 
-       
+        # ── 4. Add to Pinecone (optional – skip gracefully if not configured) ───
+        try:
+            get_pinecone_service().add_note(
+                note_id=note.NoteID,
+                content=extracted_text,
+                metadata={
+                    "user_id": str(user_id),
+                    "course_id": str(course_id),
+                    "title": title,
+                    "filename": original_filename
+                }
+            )
+        except Exception as pinecone_err:
+            print(f"Pinecone indexing skipped: {pinecone_err}")
+
         return {
             "message": "File uploaded successfully",
             "note": _serialize_note(note),
-            "fileUrl": upload_result['url']
+            "fileUrl": file_url
         }, 201
-        
+
     except Exception as e:
         print(f"Upload error: {e}")
         return {"error": str(e)}, 500
@@ -203,7 +210,7 @@ def create_note():
     db.session.add(note)
     db.session.commit()
 
-    # Add to Pinecone for semantic search
+    # Add to Pinecone for semantic search (optional – skip if not configured)
     try:
         get_pinecone_service().add_note(
             note_id=note.NoteID,
@@ -214,9 +221,7 @@ def create_note():
                 "title": title
             }
         )
-      
     except Exception as e:
-        # Log error but don't fail the note creation
         print(f"Warning: Failed to add note to Pinecone: {e}")
 
     return {"message": "Note created", "note": _serialize_note(note)}, 201
