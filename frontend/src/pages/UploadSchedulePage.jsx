@@ -6,7 +6,6 @@ import {
   MdArrowBack, MdCalendarToday, MdHome, MdChat, MdSettings,
   MdCloudUpload, MdEdit, MdSmartToy, MdCheckCircle, MdAdd, MdDelete
 } from 'react-icons/md';
-import { FaSchool, FaBriefcase, FaRunning } from 'react-icons/fa';
 import '../styles/UploadSchedulePage.css';
 
 const COLORS = ['#667eea', '#f093fb', '#4facfe', '#43e97b', '#ff6b6b'];
@@ -530,19 +529,15 @@ export default function UploadSchedulePage() {
             <MdAdd size={18} /> Add Another Event
           </button>
 
-          <button className="usp-save-btn">
-            <MdCheckCircle size={18} /> Save Schedule
-          </button>
-          {saveStatus === 'success' && <p className="usp-save-success">Schedule saved!</p>}
-          {saveStatus === 'error' && <p className="usp-save-error">{saveError}</p>}
           <button
             className="usp-save-btn"
             type="button"
-            style={{ marginTop: 8, display: 'none' }}
             onClick={() => handleSave(events)}
           >
             <MdCheckCircle size={18} /> Save Schedule
           </button>
+          {saveStatus === 'success' && <p className="usp-save-success">Schedule saved!</p>}
+          {saveStatus === 'error' && <p className="usp-save-error">{saveError}</p>}
         </div>
 
         <BottomNav />

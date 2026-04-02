@@ -3,30 +3,66 @@ import { useNavigate } from 'react-router-dom';
 import { IoMdAdd } from 'react-icons/io';
 import {
   MdArrowBack, MdCalendarToday, MdHome, MdChat, MdSettings,
-  MdChevronLeft, MdChevronRight, MdLocationOn, MdAccessTime, MdClose
+  MdChevronLeft, MdChevronRight, MdLocationOn, MdAccessTime, MdClose,
+  MdRefresh,
 } from 'react-icons/md';
+import { scheduleAPI } from '../services/api';
 import '../styles/CalendarPage.css';
 
-const SAMPLE_EVENTS = [
-  { id: 1, title: 'CS456 Lecture', startHour: 9, startMin: 0, endHour: 10, endMin: 30, day: 1, color: '#667eea', location: 'Room 204', type: 'school' },
-  { id: 2, title: 'Data Structures Lab', startHour: 14, startMin: 0, endHour: 16, endMin: 0, day: 2, color: '#f093fb', location: 'Engineering Bldg', type: 'school' },
-  { id: 3, title: 'Study Group', startHour: 15, startMin: 30, endHour: 17, endMin: 0, day: 3, color: '#4facfe', location: 'Library', type: 'school' },
-  { id: 4, title: 'Work Shift', startHour: 10, startMin: 0, endHour: 14, endMin: 0, day: 4, color: '#feca57', location: 'Main Office', type: 'work' },
-  { id: 5, title: 'CS456 Lecture', startHour: 9, startMin: 0, endHour: 10, endMin: 30, day: 5, color: '#667eea', location: 'Room 204', type: 'school' },
-  { id: 6, title: 'Gym', startHour: 7, startMin: 0, endHour: 8, endMin: 30, day: 1, color: '#43e97b', location: 'Recreation Center', type: 'personal' },
-  { id: 7, title: 'Algorithms Exam', startHour: 13, startMin: 0, endHour: 15, endMin: 0, day: 3, color: '#ff6b6b', location: 'Exam Hall A', type: 'school' },
-  { id: 8, title: 'Office Hours', startHour: 15, startMin: 0, endHour: 16, endMin: 0, day: 4, color: '#667eea', location: 'Prof. Office', type: 'school' },
-];
-
-const HOURS = Array.from({ length: 15 }, (_, i) => i + 7); // 7am to 9pm
+const HOURS = Array.from({ length: 15 }, (_, i) => i + 7); // 7am–9pm
 const CELL_HEIGHT = 60;
 const TIME_GUTTER_WIDTH = 52;
+
+const DAY_NAME_TO_NUM = {
+  Monday: 1, Tuesday: 2, Wednesday: 3, Thursday: 4,
+  Friday: 5, Saturday: 6, Sunday: 7,
+};
+
+// ── Convert an API event (with "HH:MM" times and days array) into one or more
+//    internal calendar entries (with startHour/startMin/day: 1-7).
+//    A weekly event with days:["Monday","Wednesday"] expands into 2 entries.
+function apiEventsToCalendar(apiEvents) {
+  const result = [];
+  for (const ev of apiEvents) {
+    const [startH, startM] = (ev.startTime || '00:00').split(':').map(Number);
+    const [endH, endM]     = (ev.endTime   || '00:00').split(':').map(Number);
+    const base = {
+      id:       ev.eventID,
+      title:    ev.title,
+      color:    ev.color || '#667eea',
+      location: ev.location || '',
+      type:     ev.type || 'school',
+      startHour: startH,
+      startMin:  startM,
+      endHour:   endH,
+      endMin:    endM,
+    };
+
+    const days = Array.isArray(ev.days) ? ev.days : [];
+
+    if (days.length > 0) {
+      // Recurring: one entry per day-of-week
+      days.forEach(dayName => {
+        const dayNum = DAY_NAME_TO_NUM[dayName];
+        if (dayNum) {
+          result.push({ ...base, id: `${ev.eventID}-${dayName}`, day: dayNum });
+        }
+      });
+    } else if (ev.startDate) {
+      // One-off: figure out day-of-week from the date
+      const d = new Date(ev.startDate + 'T00:00:00');
+      const dow = d.getDay(); // 0 = Sun
+      result.push({ ...base, day: dow === 0 ? 7 : dow });
+    }
+  }
+  return result;
+}
 
 // ─── helper functions ────────────────────────────────────────────────────────
 
 function getWeekStart(date) {
   const d = new Date(date);
-  const day = d.getDay(); // 0 = Sun
+  const day = d.getDay();
   const diff = day === 0 ? -6 : 1 - day;
   d.setDate(d.getDate() + diff);
   d.setHours(0, 0, 0, 0);
@@ -44,8 +80,8 @@ function getWeekDays(weekStart) {
 function sameDay(a, b) {
   return (
     a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate()
+    a.getMonth()    === b.getMonth()    &&
+    a.getDate()     === b.getDate()
   );
 }
 
@@ -64,13 +100,13 @@ function formatTime(h, m) {
 }
 
 function getMonthGrid(date) {
-  const year = date.getFullYear();
+  const year  = date.getFullYear();
   const month = date.getMonth();
   const firstDay = new Date(year, month, 1);
-  const lastDay = new Date(year, month + 1, 0);
+  const lastDay  = new Date(year, month + 1, 0);
 
   let startDay = new Date(firstDay);
-  const dow = firstDay.getDay(); // 0 = Sun
+  const dow = firstDay.getDay();
   startDay.setDate(startDay.getDate() - (dow === 0 ? 6 : dow - 1));
 
   const days = [];
@@ -83,21 +119,18 @@ function getMonthGrid(date) {
   return days;
 }
 
-// Map a calendar date to recurring weekly events (ev.day: 1=Mon … 7=Sun)
-function getEventsForDayOfWeek(date) {
-  const dow = date.getDay(); // 0 = Sun
+function getEventsForDayOfWeek(date, calEvents) {
+  const dow    = date.getDay();
   const dayNum = dow === 0 ? 7 : dow;
-  return SAMPLE_EVENTS.filter(ev => ev.day === dayNum);
+  return calEvents.filter(ev => ev.day === dayNum);
 }
 
-function getAgendaItems(fromDate) {
+function getAgendaItems(fromDate, calEvents) {
   const items = [];
   for (let i = 0; i < 14; i++) {
     const d = new Date(fromDate);
     d.setDate(d.getDate() + i);
-    const dow = d.getDay();
-    const dayNum = dow === 0 ? 7 : dow;
-    const dayEvents = SAMPLE_EVENTS.filter(ev => ev.day === dayNum);
+    const dayEvents = getEventsForDayOfWeek(d, calEvents);
     if (dayEvents.length > 0 || sameDay(d, new Date())) {
       items.push({ date: new Date(d), events: dayEvents });
     }
@@ -109,50 +142,63 @@ function getAgendaItems(fromDate) {
 
 export default function CalendarPage() {
   const navigate = useNavigate();
-  const [view, setView] = useState('week');
+
+  const [view, setView]               = useState('week');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedEvent, setSelectedEvent] = useState(null);
-  const [selectedDay, setSelectedDay] = useState(null);
+  const [selectedDay, setSelectedDay]     = useState(null);
+  const [calEvents, setCalEvents]         = useState([]);
+  const [isLoading, setIsLoading]         = useState(true);
+  const [loadError, setLoadError]         = useState('');
   const gridRef = useRef(null);
 
-  const now = new Date();
+  const now       = new Date();
   const weekStart = getWeekStart(currentDate);
-  const weekDays = getWeekDays(weekStart);
-  const isCurrentWeek = weekDays.some(d => sameDay(d, now));
-  const currentTimeTop = (now.getHours() - 7 + now.getMinutes() / 60) * CELL_HEIGHT;
+  const weekDays  = getWeekDays(weekStart);
+  const isCurrentWeek   = weekDays.some(d => sameDay(d, now));
+  const currentTimeTop  = (now.getHours() - 7 + now.getMinutes() / 60) * CELL_HEIGHT;
 
-  // Auto-scroll week grid to show ~8am on mount / view switch
+  // ── Load events from API ────────────────────────────────────────────────────
+  useEffect(() => {
+    loadEvents();
+  }, []);
+
+  async function loadEvents() {
+    setIsLoading(true);
+    setLoadError('');
+    try {
+      const apiEvents = await scheduleAPI.getAll();
+      setCalEvents(apiEventsToCalendar(apiEvents));
+    } catch (err) {
+      console.error('[CalendarPage] load error:', err);
+      setLoadError('Could not load events. Pull down to retry.');
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  // Auto-scroll week grid to 8am on mount / view switch
   useEffect(() => {
     if (view === 'week' && gridRef.current) {
-      gridRef.current.scrollTop = CELL_HEIGHT; // skip 7am row
+      gridRef.current.scrollTop = CELL_HEIGHT;
     }
   }, [view]);
 
-  // ── navigation ──────────────────────────────────────────────────────────────
+  // ── Navigation ───────────────────────────────────────────────────────────────
   function goPrev() {
     const d = new Date(currentDate);
-    if (view === 'month') {
-      d.setMonth(d.getMonth() - 1);
-    } else {
-      d.setDate(d.getDate() - 7);
-    }
+    view === 'month' ? d.setMonth(d.getMonth() - 1) : d.setDate(d.getDate() - 7);
     setCurrentDate(d);
   }
-
   function goNext() {
     const d = new Date(currentDate);
-    if (view === 'month') {
-      d.setMonth(d.getMonth() + 1);
-    } else {
-      d.setDate(d.getDate() + 7);
-    }
+    view === 'month' ? d.setMonth(d.getMonth() + 1) : d.setDate(d.getDate() + 7);
     setCurrentDate(d);
   }
 
   // ── WEEK VIEW ────────────────────────────────────────────────────────────────
   const renderWeekView = () => (
     <div className="cal-week-container">
-      {/* Sticky header row */}
       <div className="cal-week-header">
         <div className="cal-time-gutter" />
         {weekDays.map((d, i) => (
@@ -165,9 +211,7 @@ export default function CalendarPage() {
         ))}
       </div>
 
-      {/* Scrollable grid */}
       <div className="cal-week-grid" ref={gridRef}>
-        {/* Hour rows (background grid) */}
         {HOURS.map(hour => (
           <div key={hour} className="cal-hour-row">
             <div className="cal-time-label">
@@ -179,22 +223,22 @@ export default function CalendarPage() {
           </div>
         ))}
 
-        {/* Absolutely positioned event blocks */}
-        {weekDays.map((d, di) =>
-          SAMPLE_EVENTS
+        {/* Event blocks */}
+        {weekDays.map((_, di) =>
+          calEvents
             .filter(ev => ev.day === di + 1)
             .map(ev => {
-              const top = ((ev.startHour - 7) + ev.startMin / 60) * CELL_HEIGHT;
+              const top    = ((ev.startHour - 7) + ev.startMin / 60) * CELL_HEIGHT;
               const height = ((ev.endHour - ev.startHour) + (ev.endMin - ev.startMin) / 60) * CELL_HEIGHT;
               return (
                 <div
                   key={ev.id}
                   className="cal-event-block"
                   style={{
-                    top: `${top}px`,
+                    top:    `${top}px`,
                     height: `${Math.max(height, 28)}px`,
-                    left: `calc(${TIME_GUTTER_WIDTH}px + ${di} * (100% - ${TIME_GUTTER_WIDTH}px) / 7 + 2px)`,
-                    width: `calc((100% - ${TIME_GUTTER_WIDTH}px) / 7 - 4px)`,
+                    left:   `calc(${TIME_GUTTER_WIDTH}px + ${di} * (100% - ${TIME_GUTTER_WIDTH}px) / 7 + 2px)`,
+                    width:  `calc((100% - ${TIME_GUTTER_WIDTH}px) / 7 - 4px)`,
                     background: ev.color,
                   }}
                   onClick={() => setSelectedEvent(ev)}
@@ -206,7 +250,6 @@ export default function CalendarPage() {
             })
         )}
 
-        {/* Current time indicator */}
         {isCurrentWeek && (
           <div className="cal-now-line" style={{ top: `${currentTimeTop}px` }} />
         )}
@@ -216,59 +259,49 @@ export default function CalendarPage() {
 
   // ── MONTH VIEW ───────────────────────────────────────────────────────────────
   const renderMonthView = () => {
-    const monthDays = getMonthGrid(currentDate);
+    const monthDays    = getMonthGrid(currentDate);
     const currentMonth = currentDate.getMonth();
-    const DOW_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const DOW_LABELS   = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
     return (
       <div className="cal-month-container">
-        {/* Day-of-week header */}
         <div className="cal-month-header-row">
           {DOW_LABELS.map(label => (
             <div key={label} className="cal-month-dow">{label}</div>
           ))}
         </div>
-
-        {/* Day cells */}
         <div className="cal-month-grid">
           {monthDays.map((day, idx) => {
-            const isOther = day.getMonth() !== currentMonth;
-            const isToday = sameDay(day, now);
+            const isOther    = day.getMonth() !== currentMonth;
+            const isToday    = sameDay(day, now);
             const isSelected = selectedDay && sameDay(day, selectedDay);
-            const dayEvents = getEventsForDayOfWeek(day);
+            const dayEvents  = getEventsForDayOfWeek(day, calEvents);
             const visibleDots = dayEvents.slice(0, 3);
-            const extraCount = dayEvents.length - 3;
+            const extraCount  = dayEvents.length - 3;
 
             return (
               <div
                 key={idx}
                 className={[
                   'cal-month-cell',
-                  isOther ? 'other-month' : '',
-                  isToday ? 'today' : '',
-                  isSelected ? 'selected' : '',
+                  isOther    ? 'other-month' : '',
+                  isToday    ? 'today'       : '',
+                  isSelected ? 'selected'    : '',
                 ].filter(Boolean).join(' ')}
                 onClick={() => setSelectedDay(isSelected ? null : new Date(day))}
               >
                 <div className="cal-month-date">{day.getDate()}</div>
                 <div className="cal-month-dots">
-                  {visibleDots.map(ev => (
-                    <div
-                      key={ev.id}
-                      className="cal-month-dot"
-                      style={{ background: ev.color }}
-                    />
+                  {visibleDots.map((ev, i) => (
+                    <div key={i} className="cal-month-dot" style={{ background: ev.color }} />
                   ))}
-                  {extraCount > 0 && (
-                    <span className="cal-month-more">+{extraCount}</span>
-                  )}
+                  {extraCount > 0 && <span className="cal-month-more">+{extraCount}</span>}
                 </div>
               </div>
             );
           })}
         </div>
 
-        {/* Selected-day event list */}
         {selectedDay && (
           <div className="cal-day-events">
             <div className="cal-day-events-title">
@@ -276,10 +309,10 @@ export default function CalendarPage() {
                 weekday: 'long', month: 'long', day: 'numeric',
               })}
             </div>
-            {getEventsForDayOfWeek(selectedDay).length === 0 ? (
+            {getEventsForDayOfWeek(selectedDay, calEvents).length === 0 ? (
               <p className="cal-agenda-free">No events</p>
             ) : (
-              getEventsForDayOfWeek(selectedDay).map(ev => (
+              getEventsForDayOfWeek(selectedDay, calEvents).map(ev => (
                 <div
                   key={ev.id}
                   className="cal-agenda-event"
@@ -306,44 +339,53 @@ export default function CalendarPage() {
 
   // ── AGENDA VIEW ──────────────────────────────────────────────────────────────
   const renderAgendaView = () => {
-    const agendaItems = getAgendaItems(currentDate);
-
+    const agendaItems = getAgendaItems(currentDate, calEvents);
     return (
       <div className="cal-agenda-container">
-        {agendaItems.map(group => (
-          <div key={group.date.toISOString()} className="cal-agenda-group">
-            <div className={`cal-agenda-date-header ${sameDay(group.date, new Date()) ? 'today' : ''}`}>
-              <span className="cal-agenda-weekday">
-                {group.date.toLocaleDateString('en-US', { weekday: 'long' })}
-              </span>
-              <span className="cal-agenda-datenum">
-                {group.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-              </span>
-            </div>
-            {group.events.length === 0 ? (
-              <p className="cal-agenda-free">No events</p>
-            ) : (
-              group.events.map(ev => (
-                <div
-                  key={ev.id}
-                  className="cal-agenda-event"
-                  onClick={() => setSelectedEvent(ev)}
-                  style={{ borderLeftColor: ev.color }}
-                >
-                  <div className="cal-agenda-event-time">
-                    {formatTime(ev.startHour, ev.startMin)} – {formatTime(ev.endHour, ev.endMin)}
-                  </div>
-                  <div className="cal-agenda-event-title">{ev.title}</div>
-                  {ev.location && (
-                    <div className="cal-agenda-event-loc">
-                      <MdLocationOn size={12} /> {ev.location}
-                    </div>
-                  )}
-                </div>
-              ))
-            )}
+        {agendaItems.length === 0 ? (
+          <div className="cal-empty-state">
+            <span style={{ fontSize: 48 }}>📅</span>
+            <p>No events in the next 14 days.</p>
+            <button className="cal-today-btn" onClick={() => navigate('/schedule/upload')}>
+              + Add Schedule
+            </button>
           </div>
-        ))}
+        ) : (
+          agendaItems.map(group => (
+            <div key={group.date.toISOString()} className="cal-agenda-group">
+              <div className={`cal-agenda-date-header ${sameDay(group.date, new Date()) ? 'today' : ''}`}>
+                <span className="cal-agenda-weekday">
+                  {group.date.toLocaleDateString('en-US', { weekday: 'long' })}
+                </span>
+                <span className="cal-agenda-datenum">
+                  {group.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                </span>
+              </div>
+              {group.events.length === 0 ? (
+                <p className="cal-agenda-free">No events</p>
+              ) : (
+                group.events.map(ev => (
+                  <div
+                    key={ev.id}
+                    className="cal-agenda-event"
+                    onClick={() => setSelectedEvent(ev)}
+                    style={{ borderLeftColor: ev.color }}
+                  >
+                    <div className="cal-agenda-event-time">
+                      {formatTime(ev.startHour, ev.startMin)} – {formatTime(ev.endHour, ev.endMin)}
+                    </div>
+                    <div className="cal-agenda-event-title">{ev.title}</div>
+                    {ev.location && (
+                      <div className="cal-agenda-event-loc">
+                        <MdLocationOn size={12} /> {ev.location}
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          ))
+        )}
       </div>
     );
   };
@@ -384,15 +426,53 @@ export default function CalendarPage() {
             </button>
           ))}
         </div>
-        <button className="cal-today-btn" onClick={() => setCurrentDate(new Date())}>Today</button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="cal-today-btn" style={{ background: 'none', border: '1px solid #e0e4ef', color: '#667eea' }} onClick={loadEvents} title="Refresh">
+            <MdRefresh size={18} />
+          </button>
+          <button className="cal-today-btn" onClick={() => setCurrentDate(new Date())}>Today</button>
+        </div>
       </div>
 
+      {/* Loading / Error states */}
+      {isLoading && (
+        <div className="cal-loading">
+          <div className="cal-spinner" />
+          <p>Loading your schedule…</p>
+        </div>
+      )}
+
+      {!isLoading && loadError && (
+        <div className="cal-error-banner">
+          {loadError}
+          <button onClick={loadEvents}><MdRefresh size={16} /> Retry</button>
+        </div>
+      )}
+
+      {/* Empty state (no events at all) */}
+      {!isLoading && !loadError && calEvents.length === 0 && (
+        <div className="cal-empty-state">
+          <span style={{ fontSize: 52 }}>📅</span>
+          <p style={{ fontWeight: 700, fontSize: 17, color: '#333', margin: '8px 0 4px' }}>
+            No events yet
+          </p>
+          <p style={{ color: '#9aa0b0', fontSize: 14, margin: '0 0 16px' }}>
+            Add your first schedule to see it here
+          </p>
+          <button className="cal-today-btn" onClick={() => navigate('/schedule/upload')}>
+            + Add Schedule
+          </button>
+        </div>
+      )}
+
       {/* View content */}
-      <div className="cal-content">
-        {view === 'week' && renderWeekView()}
-        {view === 'month' && renderMonthView()}
-        {view === 'agenda' && renderAgendaView()}
-      </div>
+      {!isLoading && (
+        <div className="cal-content">
+          {view === 'week'   && renderWeekView()}
+          {view === 'month'  && renderMonthView()}
+          {view === 'agenda' && renderAgendaView()}
+        </div>
+      )}
 
       {/* Event detail modal */}
       {selectedEvent && (
@@ -436,7 +516,7 @@ export default function CalendarPage() {
 
       {/* Bottom nav */}
       <div className="bottom-nav">
-        <div className="nav-item" onClick={() => navigate('/dashboard')}>
+        <div className="nav-item" onClick={() => navigate('/schedule/upload')}>
           <IoMdAdd size={28} />
         </div>
         <div className="nav-item active">
@@ -452,7 +532,6 @@ export default function CalendarPage() {
           <MdSettings size={26} />
         </div>
       </div>
-
     </div>
   );
 }
