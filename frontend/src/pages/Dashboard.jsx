@@ -22,13 +22,17 @@ function formatDate() {
   });
 }
 
-const FALLBACK_QUOTES = [
-  'Every expert was once a beginner.',
-  'Small steps every day lead to big results.',
-  'Consistency beats perfection every time.',
-  'Knowledge is the best investment you can make.',
-  'One note at a time, one concept at a time.',
-];
+const QUOTE_CACHE_KEY  = 'dashboard_quote';
+const QUOTE_CACHE_TIME = 'quote_timestamp';
+const CACHE_DURATION   = 60 * 60 * 1000; // 1 hour
+
+async function fetchAIQuote() {
+  const r = await fetch('https://cs456project.onrender.com/api/dashboard/quote', {
+    credentials: 'include',
+  });
+  const data = await r.json();
+  return data?.quote || 'Every expert was once a beginner.';
+}
 
 function Dashboard() {
   const navigate = useNavigate();
@@ -39,20 +43,45 @@ function Dashboard() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [firstName, setFirstName]       = useState('');
   const [unreadCount, setUnreadCount]   = useState(0);
-  const [quote, setQuote]               = useState(
-    () => FALLBACK_QUOTES[Math.floor(Math.random() * FALLBACK_QUOTES.length)]
-  );
+  const [quote, setQuote]               = useState('Loading inspiration…');
+  const [isRefreshingQuote, setIsRefreshingQuote] = useState(false);
 
   useEffect(() => {
     loadCourses();
     loadUser();
     notificationsAPI.getUnreadCount().then(setUnreadCount).catch(() => {});
-    // Fetch a motivational quote from DummyJSON (free, no key, CORS-friendly)
-    fetch('https://dummyjson.com/quotes/random')
-      .then(r => r.json())
-      .then(data => { if (data?.quote) setQuote(data.quote); })
-      .catch(() => {}); // silently use fallback if offline
+
+    // Load quote — serve from 1-hour localStorage cache, refresh via AI otherwise
+    const cachedQuote = localStorage.getItem(QUOTE_CACHE_KEY);
+    const cacheTime   = localStorage.getItem(QUOTE_CACHE_TIME);
+    const isCacheValid = cacheTime && (Date.now() - parseInt(cacheTime)) < CACHE_DURATION;
+
+    if (isCacheValid && cachedQuote) {
+      setQuote(cachedQuote);
+    } else {
+      fetchAIQuote()
+        .then(q => {
+          setQuote(q);
+          localStorage.setItem(QUOTE_CACHE_KEY, q);
+          localStorage.setItem(QUOTE_CACHE_TIME, Date.now().toString());
+        })
+        .catch(() => setQuote('Every expert was once a beginner.'));
+    }
   }, []);
+
+  const refreshQuote = async () => {
+    setIsRefreshingQuote(true);
+    try {
+      const q = await fetchAIQuote();
+      setQuote(q);
+      localStorage.setItem(QUOTE_CACHE_KEY, q);
+      localStorage.setItem(QUOTE_CACHE_TIME, Date.now().toString());
+    } catch {
+      // keep existing quote
+    } finally {
+      setIsRefreshingQuote(false);
+    }
+  };
 
   const handleLogout = async () => {
     try {
@@ -135,6 +164,14 @@ function Dashboard() {
             <div className="dash-stat-pill dash-stat-pill-wide">
               <MdMenuBook size={14} style={{ opacity: 0.8 }} />
               <span className="dash-stat-quote">{quote}</span>
+              <button
+                className="quote-refresh-btn"
+                onClick={refreshQuote}
+                disabled={isRefreshingQuote}
+                title="Get a new quote"
+              >
+                {isRefreshingQuote ? '⏳' : '🔄'}
+              </button>
             </div>
           </div>
         </div>

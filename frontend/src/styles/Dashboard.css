@@ -162,6 +162,28 @@
   font-weight: 500;
   font-style: italic;
   line-height: 1.35;
+  flex: 1;
+}
+
+.quote-refresh-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 12px;
+  opacity: 0.55;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: opacity 0.2s ease, transform 0.3s ease;
+  flex-shrink: 0;
+  line-height: 1;
+}
+.quote-refresh-btn:hover:not(:disabled) {
+  opacity: 1;
+  transform: rotate(180deg);
+}
+.quote-refresh-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.25;
 }
 
 /* ══════════════════════════════════════
