@@ -1,38 +1,31 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { IoMdNotifications, IoMdAdd, IoMdCamera, IoMdCreate } from 'react-icons/io';
-import { MdCalendarToday, MdHome, MdChat, MdSettings, MdArrowBack } from 'react-icons/md';
-import { FaUserCircle, FaFileUpload } from 'react-icons/fa';
+import { IoMdNotifications, IoMdAdd } from 'react-icons/io';
+import { MdCalendarToday, MdHome, MdChat, MdSettings, MdArrowBack, MdBolt, MdEdit, MdDelete } from 'react-icons/md';
+import { FaUserCircle } from 'react-icons/fa';
 import { IoDocumentTextOutline, IoSearchSharp } from 'react-icons/io5';
-import { authAPI, coursesAPI, notesAPI } from '../services/api';
+import { coursesAPI, notesAPI } from '../services/api';
 import StudyTimer from '../components/StudyTimer';
+import AddModal from '../components/AddModal';
 import '../styles/CoursePage.css';
 
 function CoursePage() {
   const navigate = useNavigate();
   const { courseId } = useParams();
-  const [course, setCourse] = useState(null);
-  const [notes, setNotes] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [course, setCourse]             = useState(null);
+  const [notes, setNotes]               = useState([]);
+  const [isLoading, setIsLoading]       = useState(true);
+  const [searchQuery, setSearchQuery]   = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
-  useEffect(() => {
-    const init = async () => {
-      const session = await authAPI.getSession();
-      if (!session.authenticated) {
-        navigate('/');
-        return;
-      }
-      loadCourseData();
-    };
-    init();
-  }, [courseId, loadCourseData, navigate]);
+  useEffect(() => { loadCourseData(); }, [courseId]);
 
-  const loadCourseData = useCallback(async () => {
+  const loadCourseData = async () => {
     try {
-      const currentCourse = await coursesAPI.getById(courseId);
+      const allCourses = await coursesAPI.getAll();
+      const currentCourse = allCourses.find(c => c.courseID === parseInt(courseId));
       setCourse(currentCourse);
       const courseNotes = await notesAPI.getForCourse(courseId);
       setNotes(courseNotes);
@@ -41,18 +34,22 @@ function CoursePage() {
     } finally {
       setIsLoading(false);
     }
-  }, [courseId]);
+  };
 
   const handleSearch = async () => {
-    if (!searchQuery.trim()) {
-      setSearchResults([]);
-      return;
-    }
-
+    if (!searchQuery.trim()) { setSearchResults([]); return; }
     setIsSearching(true);
     try {
-      const results = await notesAPI.search(searchQuery, courseId);
-      setSearchResults(results);
+      const response = await fetch('https://cs456project.onrender.com/api/notes/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ query: searchQuery }),
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setSearchResults(data.results || []);
+      }
     } catch (error) {
       console.error('Search error:', error);
     } finally {
@@ -60,80 +57,213 @@ function CoursePage() {
     }
   };
 
-  const clearSearch = () => {
-    setSearchQuery('');
-    setSearchResults([]);
+  const clearSearch = () => { setSearchQuery(''); setSearchResults([]); };
+
+  const handleDeleteNote = async (e, noteId) => {
+    e.stopPropagation();
+    if (!window.confirm('Delete this note? This cannot be undone.')) return;
+    try {
+      await notesAPI.delete(noteId);
+      setNotes(prev => prev.filter(n => n.noteID !== noteId));
+      setSearchResults(prev => prev.filter(r => r.noteId !== String(noteId)));
+    } catch (err) {
+      alert('Failed to delete note. Please try again.');
+    }
   };
 
-  if (isLoading) return <div className="course-container"><div className="loading-text">Loading course...</div></div>;
-  if (!course) return <div className="course-container"><div className="error-text">Course not found</div><button onClick={() => navigate('/dashboard')}>Back to Dashboard</button></div>;
+  const handleEditNote = (e, note) => {
+    e.stopPropagation();
+    navigate(`/course/${courseId}/notes/new`, { state: { editNote: note } });
+  };
+
+  if (isLoading) {
+    return (
+      <div className="course-container">
+        <div className="cp-loading">
+          <div className="cp-spinner" />
+          <p>Loading course…</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!course) {
+    return (
+      <div className="course-container">
+        <p className="error-text">Course not found.</p>
+        <button className="cp-back-btn" onClick={() => navigate('/dashboard')}>
+          Back to Dashboard
+        </button>
+      </div>
+    );
+  }
+
+  const displayNotes = searchResults.length > 0 ? null : notes;
 
   return (
     <div className="course-container">
+
+      {/* ── Navbar ── */}
       <div className="navbar">
-        <div className="menu-icon" onClick={() => navigate('/dashboard')}><MdArrowBack size={28} /></div>
+        <div className="menu-icon" onClick={() => navigate('/dashboard')}>
+          <MdArrowBack size={28} />
+        </div>
         <div className="nav-icons">
-          <span className="icon" onClick={() => navigate('/notifications')}><IoMdNotifications size={24} /></span>
-          <span className="icon" onClick={() => navigate('/profile')}><FaUserCircle size={24} /></span>
+          <span className="icon" onClick={() => navigate('/notifications')}>
+            <IoMdNotifications size={24} />
+          </span>
+          <span className="icon" onClick={() => navigate('/profile')}>
+            <FaUserCircle size={24} />
+          </span>
         </div>
       </div>
 
+      {/* ── Course header ── */}
       <div className="course-header">
-        <div className="course-icon-large" style={{ background: course.color }}>{course.icon}</div>
+        <div className="course-icon-large" style={{ background: course.color }}>
+          {course.icon}
+        </div>
         <h2 className="course-title">{course.courseName}</h2>
-        <p className="course-code">{course.courseCode}</p>
-        <p className="course-info">{course.semester}</p>
+        {course.courseCode && <p className="course-code">{course.courseCode}</p>}
+        {course.semester    && <p className="course-info">{course.semester}</p>}
       </div>
 
-      <div className="upload-options">
-        <div className="upload-option" onClick={() => navigate(`/course/${courseId}/notes/new`)}>
-          <IoMdCamera size={40} color="#667eea" />
-          <span>Scan Notes</span>
-        </div>
-        <div className="upload-option" onClick={() => navigate(`/course/${courseId}/notes/new`)}>
-          <FaFileUpload size={36} color="#43e97b" />
-          <span>Upload File</span>
-        </div>
-        <div className="upload-option" onClick={() => navigate(`/course/${courseId}/notes/new`)}>
-          <IoMdCreate size={40} color="#764ba2" />
-          <span>Type Manually</span>
-        </div>
+      {/* ── Action buttons ── */}
+      <div className="cp-actions">
+        <button
+          className="cp-add-note-btn"
+          onClick={() => navigate(`/course/${courseId}/notes/new`)}
+        >
+          <IoMdAdd size={22} />
+          Add Note
+        </button>
+        <button
+          className="cp-quick-study-btn"
+          onClick={() => navigate(`/course/${courseId}/quick-study`)}
+        >
+          <MdBolt size={20} />
+          Quick Study
+        </button>
       </div>
 
+      {/* ── Search ── */}
       <div className="search-section">
         <div className="search-bar">
-          <input type="text" className="search-input" placeholder="Search notes by topic or keyword..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSearch()} />
-          <button className="search-btn" onClick={handleSearch} disabled={isSearching || !searchQuery.trim()}>
-            <IoSearchSharp size={20} />
-            {isSearching ? 'Searching...' : 'Search'}
+          <input
+            type="text"
+            className="search-input"
+            placeholder="Search notes by topic or keyword…"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+          />
+          <button
+            className="search-btn"
+            onClick={handleSearch}
+            disabled={isSearching || !searchQuery.trim()}
+          >
+            <IoSearchSharp size={18} />
+            {isSearching ? 'Searching…' : 'Search'}
           </button>
-          {searchQuery && <button className="clear-btn" onClick={clearSearch}>Clear</button>}
+          {searchQuery && (
+            <button className="clear-btn" onClick={clearSearch}>✕</button>
+          )}
         </div>
       </div>
 
+      {/* ── Notes directory ── */}
       <div className="notes-section">
-        <h3 className="section-title"><IoDocumentTextOutline size={22} />{searchResults.length > 0 ? 'Search Results' : 'Notes Directory'}</h3>
-        {searchResults.length > 0 ? searchResults.map((result) => {
-          const note = notes.find((n) => n.noteID === parseInt(result.noteId, 10));
-          return note ? <div key={result.noteId} className="note-item search-result" onClick={() => navigate(`/course/${courseId}/note/${result.noteId}`)}><div className="note-icon"><IoDocumentTextOutline size={30} color="#667eea" /></div><div className="note-details"><h4>{result.title}</h4><p className="note-date">Relevance: {(result.score * 100).toFixed(0)}%</p></div></div> : null;
-        }) : notes.length === 0 ? <div className="empty-state"><p>No notes yet. Create your first note above!</p></div> : notes.map((note) => (
-          <div key={note.noteID} className="note-item" onClick={() => navigate(`/course/${courseId}/note/${note.noteID}`)}>
-            <div className="note-icon"><IoDocumentTextOutline size={30} color="#667eea" /></div>
-            <div className="note-details"><h4>{note.title}</h4><p className="note-date">{new Date(note.createdAt).toLocaleDateString()}</p>{note.fileName && <p className="note-filename">📎 {note.fileName}</p>}</div>
+        <h3 className="section-title">
+          <IoDocumentTextOutline size={20} />
+          {searchResults.length > 0 ? `Search Results (${searchResults.length})` : `Notes (${notes.length})`}
+        </h3>
+
+        {/* Search results */}
+        {searchResults.length > 0 && searchResults.map(result => {
+          const note = notes.find(n => n.noteID === parseInt(result.noteId));
+          return note ? (
+            <div
+              key={result.noteId}
+              className="note-item search-result"
+              onClick={() => navigate(`/course/${courseId}/note/${result.noteId}`)}
+            >
+              <div className="note-icon">
+                <IoDocumentTextOutline size={28} color="#667eea" />
+              </div>
+              <div className="note-details">
+                <h4>{result.title}</h4>
+                <p className="note-date">Relevance: {(result.score * 100).toFixed(0)}%</p>
+              </div>
+            </div>
+          ) : null;
+        })}
+
+        {/* Normal list */}
+        {searchResults.length === 0 && notes.length === 0 && (
+          <div className="empty-state">
+            <IoDocumentTextOutline size={44} color="#d0d5e0" />
+            <p>No notes yet.</p>
+            <button
+              className="empty-add-btn"
+              onClick={() => navigate(`/course/${courseId}/notes/new`)}
+            >
+              Create your first note
+            </button>
+          </div>
+        )}
+
+        {searchResults.length === 0 && notes.map(note => (
+          <div
+            key={note.noteID}
+            className="note-item"
+            onClick={() => navigate(`/course/${courseId}/note/${note.noteID}`)}
+          >
+            <div className="note-icon">
+              <IoDocumentTextOutline size={28} color="#667eea" />
+            </div>
+            <div className="note-details">
+              <h4>{note.title}</h4>
+              <p className="note-date">
+                {new Date(note.createdAt).toLocaleDateString('en-US', {
+                  month: 'short', day: 'numeric', year: 'numeric',
+                })}
+              </p>
+              {note.fileName && (
+                <p className="note-filename">📎 {note.fileName}</p>
+              )}
+            </div>
+            <div className="note-actions" onClick={e => e.stopPropagation()}>
+              <button className="note-action-btn edit" onClick={(e) => handleEditNote(e, note)} title="Edit note">
+                <MdEdit size={17} />
+              </button>
+              <button className="note-action-btn delete" onClick={(e) => handleDeleteNote(e, note.noteID)} title="Delete note">
+                <MdDelete size={17} />
+              </button>
+            </div>
           </div>
         ))}
       </div>
 
-      <div className="action-buttons"><button className="btn-action btn-primary" onClick={() => navigate(`/course/${courseId}/quick-study`)}>⚡ Quick Study</button></div>
-      <StudyTimer courseId={courseId} />
-
+      {/* ── Bottom navigation ── */}
       <div className="bottom-nav">
-        <div className="nav-item" onClick={() => navigate('/dashboard')}><IoMdAdd size={28} /></div>
-        <div className="nav-item" onClick={() => navigate('/calendar')}><MdCalendarToday size={24} /></div>
-        <div className="nav-item active" onClick={() => navigate('/dashboard')}><MdHome size={26} /></div>
-        <div className="nav-item" onClick={() => navigate('/chat')}><MdChat size={24} /></div>
-        <div className="nav-item" onClick={() => navigate('/settings')}><MdSettings size={26} /></div>
+        <div className="nav-item" onClick={() => setIsAddModalOpen(true)}>
+          <IoMdAdd size={28} />
+        </div>
+        <div className="nav-item" onClick={() => navigate('/calendar')}>
+          <MdCalendarToday size={24} />
+        </div>
+        <div className="nav-item active" onClick={() => navigate('/dashboard')}>
+          <MdHome size={26} />
+        </div>
+        <div className="nav-item" onClick={() => navigate('/chat')}>
+          <MdChat size={24} />
+        </div>
+        <div className="nav-item" onClick={() => navigate('/settings')}>
+          <MdSettings size={26} />
+        </div>
       </div>
+
+      <AddModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} />
     </div>
   );
 }

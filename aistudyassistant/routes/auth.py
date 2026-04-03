@@ -1,107 +1,214 @@
-# Feb 10th 2026, Amath Gaye.
-from datetime import datetime, timezone
 
-from flask import Blueprint, request, session
+# Feb 10th 2026, Amath Gaye. 
+#authentication 
+# references: https://flask.palletsprojects.com/en/latest/tutorial/views/ . https://www.geeksforgeeks.org/python/flask-tutorial/
+# refereces: https://werkzeug.palletsprojects.com/en/latest/utils/#module-werkzeug.security  https://www.geeksforgeeks.org/python/flask-blueprints/
+
+#references: https://www.geeksforgeeks.org/python/how-to-hash-passwords-in-python/   || https://www.geeksforgeeks.org/python/sqlalchemy-tutorial/
+#referecing http status codes: https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status
+#reference: jwt structure: https://www.geeksforgeeks.org/web-tech/json-web-token-jwt/
+from flask import Blueprint, request, jsonify, session
+
 from werkzeug.security import generate_password_hash, check_password_hash
 
-from aistudyassistant.extensions import db
 from aistudyassistant.models.user import User
-from aistudyassistant.services.auth_tokens import issue_auth_token, get_authenticated_user_id
+from aistudyassistant.extensions import db
 
+
+
+# blueprint instance(groups and organizes routes in modules)
 auth_bp = Blueprint("auth", __name__)
 
 
-def _serialize_user(user: User):
-    return {
-        "userID": user.UserID,
-        "email": user.Email,
-        "firstName": user.FirstName,
-        "lastName": user.LastName,
-    }
 
-
-def _build_auth_response(user: User, message: str, status_code: int = 200):
-    session["user_id"] = user.UserID
-    user.LastLogin = datetime.now(timezone.utc)
-    db.session.commit()
-    return {
-        "message": message,
-        "token": issue_auth_token(user.UserID),
-        "user": _serialize_user(user),
-    }, status_code
-
+#registering route 
 
 @auth_bp.route("/api/register", methods=["POST"])
 def register():
     data = request.get_json()
+
+    print("Incoming data:", data)
+
+
     if not data:
         return {"error": "No data provided"}, 400
 
-    email = (data.get("email") or "").strip().lower()
+    email = data.get("email")
     password = data.get("password")
-    first_name = (data.get("firstName") or "").strip() or None
-    last_name = (data.get("lastName") or "").strip() or None
+    first_name = data.get("firstName")
+    last_name = data.get("lastName")
 
-    if not email or not password:
-        return {"error": "Email and password required to register"}, 400
+    if not email or not password: 
+        return{"error":"Email and password required to register"}, 400
 
-    existing_user = User.query.filter_by(Email=email).first()
+    # Checking if an user already exists
+    existing_user = User.query.filter_by(Email=email).first() #sql query filtering email 
     if existing_user:
         return {"error": "User already exists"}, 400
 
-    new_user = User(
-        Email=email,
-        PasswordHash=generate_password_hash(password),
-        FirstName=first_name,
-        LastName=last_name,
-        CreatedAt=datetime.now(timezone.utc),
-        LastLogin=datetime.now(timezone.utc),
+    #hashing the password
+    hashedPassword = generate_password_hash(password)
+    
+    #matching
+    newUser = User(
+        Email= email,
+        PasswordHash = hashedPassword,
+        FirstName = first_name,
+        LastName = last_name
     )
 
-    db.session.add(new_user)
+    db.session.add(newUser)
     db.session.commit()
 
-    return _build_auth_response(new_user, "User has been registered successfully", 201)
+    return {"message": "User has been registered successfully"}, 201
 
 
+#login route
 @auth_bp.route("/api/login", methods=["POST"])
 def login():
     data = request.get_json()
+
     if not data:
         return {"error": "No data was provided"}, 400
 
-    email = (data.get("email") or "").strip().lower()
+    email = data.get("email")
     password = data.get("password")
 
     if not email or not password:
         return {"error": "Email and password required to login"}, 400
 
+#checking user email
     user = User.query.filter_by(Email=email).first()
-    if not user or not check_password_hash(user.PasswordHash, password):
+
+    if not user:
         return {"error": "Invalid credentials"}, 401
 
-    return _build_auth_response(user, "Login successful")
+    # checking hash 
+    if not check_password_hash(user.PasswordHash, password):
+        return {"error": "Invalid credentials"}, 401
+
+    # storing the user id 
+    session["user_id"] = user.UserID
+
+    return {
+        "message": "Login successful",
+        "user": user.Email
+    }, 200
 
 
+#--------- LOGOUT -----
 @auth_bp.route("/api/logout", methods=["POST"])
 def logout():
     session.clear()
     return {"message": "Logged out successfully"}, 200
 
 
-@auth_bp.route("/api/session", methods=["GET"])
-def get_session_state():
-    user_id = get_authenticated_user_id()
+#--------- CURRENT USER -----
+@auth_bp.route("/api/user/me", methods=["GET"])
+def get_current_user():
+    user_id = session.get("user_id")
     if not user_id:
-        return {"authenticated": False}, 200
+        return {"error": "Not authenticated"}, 401
 
     user = User.query.get(user_id)
     if not user:
-        session.clear()
-        return {"authenticated": False}, 200
+        return {"error": "User not found"}, 404
 
     return {
-        "authenticated": True,
-        "token": issue_auth_token(user.UserID),
-        "user": _serialize_user(user),
+        "user": {
+            "id": user.UserID,
+            "email": user.Email,
+            "firstName": user.FirstName,
+            "lastName": user.LastName,
+            "phone": user.Phone,
+            "bio": user.Bio,
+            "createdAt": user.CreatedAt.isoformat() if user.CreatedAt else None
+        }
     }, 200
+
+
+#--------- UPDATE PROFILE -----
+@auth_bp.route("/api/user/me", methods=["PUT"])
+def update_user():
+    user_id = session.get("user_id")
+    if not user_id:
+        return {"error": "Not authenticated"}, 401
+
+    user = User.query.get(user_id)
+    if not user:
+        return {"error": "User not found"}, 404
+
+    data = request.get_json() or {}
+
+    if "firstName" in data:
+        first = (data["firstName"] or "").strip()
+        if not first:
+            return {"error": "First name cannot be empty"}, 400
+        user.FirstName = first
+
+    if "lastName" in data:
+        last = (data["lastName"] or "").strip()
+        if not last:
+            return {"error": "Last name cannot be empty"}, 400
+        user.LastName = last
+
+    if "email" in data:
+        new_email = (data["email"] or "").strip().lower()
+        if not new_email:
+            return {"error": "Email cannot be empty"}, 400
+        # Check uniqueness only if email actually changed
+        if new_email != user.Email.lower():
+            existing = User.query.filter_by(Email=new_email).first()
+            if existing:
+                return {"error": "Email already in use"}, 409
+        user.Email = new_email
+
+    if "phone" in data:
+        user.Phone = (data["phone"] or "").strip() or None
+
+    if "bio" in data:
+        user.Bio = (data["bio"] or "").strip() or None
+
+    db.session.commit()
+
+    return {
+        "message": "Profile updated successfully",
+        "user": {
+            "id": user.UserID,
+            "email": user.Email,
+            "firstName": user.FirstName,
+            "lastName": user.LastName,
+            "phone": user.Phone,
+            "bio": user.Bio
+        }
+    }, 200
+
+
+#--------- CHANGE PASSWORD -----
+@auth_bp.route("/api/user/me/password", methods=["PUT"])
+def change_password():
+    user_id = session.get("user_id")
+    if not user_id:
+        return {"error": "Not authenticated"}, 401
+
+    user = User.query.get(user_id)
+    if not user:
+        return {"error": "User not found"}, 404
+
+    data = request.get_json() or {}
+    current_password = data.get("currentPassword", "")
+    new_password = data.get("newPassword", "")
+
+    if not current_password or not new_password:
+        return {"error": "Current and new password are required"}, 400
+
+    if not check_password_hash(user.PasswordHash, current_password):
+        return {"error": "Current password is incorrect"}, 401
+
+    if len(new_password) < 6:
+        return {"error": "New password must be at least 6 characters"}, 400
+
+    user.PasswordHash = generate_password_hash(new_password)
+    db.session.commit()
+
+    return {"message": "Password changed successfully"}, 200
