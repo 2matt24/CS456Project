@@ -6,6 +6,7 @@
 
 #references: https://www.geeksforgeeks.org/python/how-to-hash-passwords-in-python/   || https://www.geeksforgeeks.org/python/sqlalchemy-tutorial/
 #referecing http status codes: https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status
+#reference: jwt structure: https://www.geeksforgeeks.org/web-tech/json-web-token-jwt/
 from flask import Blueprint, request, jsonify, session
 
 from werkzeug.security import generate_password_hash, check_password_hash

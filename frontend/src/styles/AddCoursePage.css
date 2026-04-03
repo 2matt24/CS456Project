@@ -5,9 +5,8 @@
 .add-course-container {
   min-height: 100vh;
   background: #f0f2f5;
-  max-width: 430px;
+  width: 100%;
   margin: 0 auto;
-  box-shadow: 0 0 30px rgba(0, 0, 0, 0.1);
   padding-bottom: 40px;
 }
 
@@ -97,6 +96,29 @@
 }
 
 .form-group input::placeholder { color: #b0b8c4; }
+
+/* ── Date picker calendar icon — make it visible ── */
+.form-group input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.65;
+  filter: invert(40%) sepia(60%) saturate(400%) hue-rotate(210deg);
+  width: 18px;
+  height: 18px;
+}
+
+.form-group input[type="date"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
+
+/* ── Optional label suffix ── */
+.label-optional {
+  font-size: 11px;
+  font-weight: 500;
+  color: #b0b8c4;
+  margin-left: 5px;
+  text-transform: none;
+  letter-spacing: 0;
+}
 
 /* ── Two-column rows (semester+year, start+end) ── */
 .form-row {
@@ -196,10 +218,15 @@
 
 /* ── Responsive ── */
 @media (min-width: 768px) {
-  .add-course-container { max-width: 800px; }
+  .add-course-container { max-width: 900px; }
 }
 
 @media (min-width: 1024px) {
-  .add-course-container { max-width: 1200px; }
-  .course-form { max-width: 680px; margin: 0 auto; }
+  .add-course-container { max-width: 100%; }
+  .course-form { max-width: 1100px; margin: 0 auto; }
+  .bottom-nav {
+    max-width: 100%;
+    left: 0;
+    transform: none;
+  }
 }

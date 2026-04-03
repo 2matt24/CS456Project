@@ -10,6 +10,56 @@ import '../styles/ChatPage.css';
 
 const API_BASE = 'https://cs456project.onrender.com';
 
+/* ── Simple markdown renderer (no external lib needed) ── */
+function parseInline(text, key = 0) {
+  const regex = /(\*\*\*.*?\*\*\*|\*\*.*?\*\*|\*.*?\*|`.*?`)/g;
+  const parts = [];
+  let last = 0, match, i = 0;
+  while ((match = regex.exec(text)) !== null) {
+    if (match.index > last) parts.push(text.slice(last, match.index));
+    const raw = match[0];
+    if (raw.startsWith('***'))      parts.push(<strong key={i++}><em>{raw.slice(3,-3)}</em></strong>);
+    else if (raw.startsWith('**'))  parts.push(<strong key={i++}>{raw.slice(2,-2)}</strong>);
+    else if (raw.startsWith('*'))   parts.push(<em key={i++}>{raw.slice(1,-1)}</em>);
+    else if (raw.startsWith('`'))   parts.push(<code key={i++} style={{background:'#f0f0f0',padding:'1px 5px',borderRadius:4,fontSize:'0.88em',fontFamily:'monospace'}}>{raw.slice(1,-1)}</code>);
+    last = match.index + raw.length;
+  }
+  if (last < text.length) parts.push(text.slice(last));
+  return parts.length ? parts : text;
+}
+
+function renderMarkdown(text) {
+  if (!text) return null;
+  const lines = text.split('\n');
+  const elements = [];
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i];
+    const bulletMatch = line.match(/^(\s*)(\*|-|•|\d+\.)\s+(.*)$/);
+    if (bulletMatch) {
+      const items = [];
+      while (i < lines.length) {
+        const bl = lines[i].match(/^(\s*)(\*|-|•|\d+\.)\s+(.*)$/);
+        if (!bl) break;
+        items.push(<li key={i} style={{marginBottom:2}}>{parseInline(bl[3])}</li>);
+        i++;
+      }
+      elements.push(<ul key={`ul-${i}`} style={{paddingLeft:20,margin:'4px 0'}}>{items}</ul>);
+      continue;
+    }
+    if (line.match(/^#{1,3}\s/)) {
+      const content = line.replace(/^#{1,3}\s/, '');
+      elements.push(<strong key={i} style={{display:'block',marginTop:6,marginBottom:2}}>{parseInline(content)}</strong>);
+    } else if (line.trim() === '') {
+      elements.push(<br key={i} />);
+    } else {
+      elements.push(<span key={i} style={{display:'block'}}>{parseInline(line)}</span>);
+    }
+    i++;
+  }
+  return elements;
+}
+
 async function sendChatMessage(userMessage, history, noteContext, fileContext) {
   const response = await fetch(`${API_BASE}/api/chat`, {
     method: 'POST',
@@ -40,7 +90,11 @@ const WELCOME_MESSAGE = {
 };
 
 function formatTime(date) {
-  return new Date(date).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+  // Ensure UTC timestamps from the backend (no timezone suffix) are parsed as UTC
+  const d = typeof date === 'string' && !date.endsWith('Z') && !date.includes('+')
+    ? new Date(date + 'Z')
+    : new Date(date);
+  return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 }
 
 const QUICK_PROMPTS = [
@@ -214,7 +268,7 @@ function ChatPage() {
         </button>
       </div>
 
-      {/* ── Context Bar: Note Selector + File Upload ── */}
+      {/* ── Context Bar: Note Selector ── */}
       <div className="chat-context-bar">
         <select
           className="chat-note-select"
@@ -229,23 +283,8 @@ function ChatPage() {
             <option key={n.noteID} value={n.noteID}>{n.title}</option>
           ))}
         </select>
-
-        <label className="chat-upload-btn" title="Upload a file for context">
-          <IoMdAttach size={18} />
-          {fileName ? fileName.slice(0, 14) + (fileName.length > 14 ? '…' : '') : 'File'}
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".txt,.md,.pdf,.docx"
-            style={{ display: 'none' }}
-            onChange={handleFileUpload}
-          />
-        </label>
-
-        {(selectedNote || fileContext) && (
-          <button className="chat-clear-context-btn" onClick={() => { setSelectedNote(null); setFileContext(null); setFileName(''); }}>
-            ✕ Clear
-          </button>
+        {selectedNote && (
+          <button className="chat-clear-context-btn" onClick={() => setSelectedNote(null)}>✕</button>
         )}
       </div>
 
@@ -282,7 +321,9 @@ function ChatPage() {
                 : msg.isError ? 'error-bubble'
                 : 'ai-bubble'
               }`}>
-                <p className="message-text">{msg.text}</p>
+                <div className="message-text">
+                  {msg.role === 'ai' && !msg.isError ? renderMarkdown(msg.text) : msg.text}
+                </div>
                 <span className="message-time">{formatTime(msg.timestamp)}</span>
               </div>
 
@@ -329,7 +370,24 @@ function ChatPage() {
 
       {/* ── Input area ── */}
       <div className="chat-input-area">
+        {fileName && (
+          <div className="chat-file-chip">
+            <IoMdAttach size={14} />
+            <span>{fileName.length > 28 ? fileName.slice(0, 28) + '…' : fileName}</span>
+            <button className="chat-file-chip-remove" onClick={() => { setFileContext(null); setFileName(''); }}>✕</button>
+          </div>
+        )}
         <div className="chat-input-row">
+          <label className="chat-attach-btn" title="Attach a file for context">
+            <IoMdAttach size={20} />
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".txt,.md,.pdf,.docx"
+              style={{ display: 'none' }}
+              onChange={handleFileUpload}
+            />
+          </label>
           <textarea
             ref={textareaRef}
             className="chat-textarea"

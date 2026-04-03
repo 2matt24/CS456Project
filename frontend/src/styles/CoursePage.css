@@ -1,14 +1,13 @@
-/* ─────────────────────────────────────────────
+﻿/* ─────────────────────────────────────────────
    CoursePage.css
    ───────────────────────────────────────────── */
 
 .course-container {
   min-height: 100vh;
-  background: #f0f2f5;
+  background: #f8f9fa;
   padding-bottom: 90px;
-  max-width: 430px;
+  width: 100%;
   margin: 0 auto;
-  box-shadow: 0 0 30px rgba(0, 0, 0, 0.1);
   position: relative;
 }
 
@@ -332,6 +331,60 @@
   line-height: 1;
 }
 
+.note-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.note-item:hover .note-actions {
+  opacity: 1;
+}
+
+.note-action-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.note-action-btn.edit {
+  background: #f0f0ff;
+  color: #667eea;
+}
+
+.note-action-btn.edit:hover {
+  background: #667eea;
+  color: white;
+}
+
+.note-action-btn.delete {
+  background: #fff3f3;
+  color: #e74c3c;
+}
+
+.note-action-btn.delete:hover {
+  background: #e74c3c;
+  color: white;
+}
+
+html[data-theme="dark"] .note-action-btn.edit {
+  background: #252838;
+  color: #667eea;
+}
+
+html[data-theme="dark"] .note-action-btn.delete {
+  background: #2e1a1a;
+  color: #e74c3c;
+}
+
 .search-result {
   border-left: 3px solid #43e97b;
 }
@@ -388,9 +441,7 @@
 .bottom-nav {
   position: fixed;
   bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  max-width: 430px;
+  left: 0;
   width: 100%;
   background: white;
   display: flex;
@@ -419,18 +470,22 @@
 
 /* ── Responsive ── */
 @media (min-width: 768px) {
-  .course-container { max-width: 800px; }
-  .bottom-nav       { max-width: 800px; }
+  .course-container { max-width: 900px; }
+  .bottom-nav       { max-width: 900px; }
 }
 
 @media (min-width: 1024px) {
-  .course-container { max-width: 1200px; }
-  .bottom-nav       { max-width: 1200px; }
+  .course-container { max-width: 100%; }
+  .bottom-nav {
+    max-width: 100%;
+    left: 0;
+    transform: none;
+  }
 
   .cp-actions,
   .search-section,
   .notes-section {
-    max-width: 760px;
+    max-width: 1100px;
     margin-left: auto;
     margin-right: auto;
   }

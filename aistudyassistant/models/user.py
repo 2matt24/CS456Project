@@ -19,3 +19,7 @@ class User(db.Model):
     ProfilePicture = db.Column(db.String(500), nullable=True)
     CreatedAt = db.Column(db.DateTime)
     LastLogin = db.Column(db.DateTime)
+    # Notification preferences
+    StudyRemindersEnabled = db.Column(db.Boolean, nullable=False, default=True,  server_default="1")
+    NoteSummariesEnabled  = db.Column(db.Boolean, nullable=False, default=True,  server_default="1")
+    WeeklyReportEnabled   = db.Column(db.Boolean, nullable=False, default=False, server_default="0")

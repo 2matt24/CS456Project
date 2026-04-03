@@ -4,9 +4,10 @@ import { useNavigate } from 'react-router-dom';
 import { IoMdAdd } from 'react-icons/io';
 import { MdArrowBack, MdChevronRight } from 'react-icons/md';
 import { MdCalendarToday, MdHome, MdChat, MdSettings, MdPerson, MdLock, MdColorLens, MdInfo } from 'react-icons/md';
-import { MdNotifications, MdStar } from 'react-icons/md';
+import { MdNotifications, MdStar, MdTextFields, MdPalette, MdBrightness4, MdBrightness7, MdBrightnessAuto } from 'react-icons/md';
 import AddModal from '../components/AddModal';
 import { authAPI, settingsAPI } from '../services/api';
+import { useTheme, ACCENTS } from '../context/ThemeContext';
 import '../styles/SettingsPage.css';
 
 //const API_BASE = 'https://cs456project.onrender.com';
@@ -18,7 +19,7 @@ function getInitials(firstName, lastName) {
 }
 
 /* ─── Toggle switch component ─── */
-function Toggle({ checked, onChange, id }) {
+function Toggle({ checked, onChange, id, disabled = false }) {
   return (
     <label className="toggle" htmlFor={id}>
       <input
@@ -26,6 +27,7 @@ function Toggle({ checked, onChange, id }) {
         id={id}
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
+        disabled={disabled}
       />
       <span className="toggle-track">
         <span className="toggle-thumb" />
@@ -39,6 +41,7 @@ function Toggle({ checked, onChange, id }) {
 ──────────────────────────────────────── */
 export default function SettingsPage() {
   const navigate = useNavigate();
+  const { themePref, accent, fontSize, updateTheme, updateAccent, updateFontSize } = useTheme();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isLoadingUser, setIsLoadingUser] = useState(true);
   const [user, setUser] = useState(null);
@@ -55,13 +58,14 @@ export default function SettingsPage() {
     weeklyReport: false,
   });
   
+  const [isSavingNotifs, setIsSavingNotifs] = useState(false);
 
   useEffect(() => {
     const loadSettingsPageData = async () => {
       try {
         const [userData, notificationSettings, aboutData] = await Promise.all([
           authAPI.getMe(),
-          settingsAPI.getNotifications(),
+          settingsAPI.getNotificationSettings(),
           settingsAPI.getAbout(),
         ]);
 
@@ -84,8 +88,8 @@ export default function SettingsPage() {
     setIsSavingNotifs(true);
 
     try {
-      const saved = await settingsAPI.updateNotifications(next);
-      setNotifs(saved);
+      const saved = await settingsAPI.updateNotificationSettings(next);
+      setNotifs(saved.notifications || next);
     } catch {
       setNotifs(previous);
     } finally {
@@ -128,12 +132,6 @@ export default function SettingsPage() {
             {isLoadingUser ? '' : (user?.email || 'No email')}
           </p>
         </div>
-        <button
-          className="settings-profile-edit-btn"
-          onClick={() => navigate('/profile')}
-        >
-          Edit
-        </button>
       </div>
 
       <div className="settings-body">
@@ -155,7 +153,7 @@ export default function SettingsPage() {
             <MdChevronRight size={22} color="#b0b8c4" />
           </button>
 
-          <button className="settings-action-row" onClick={() => navigate('/profile')}>
+          <button className="settings-action-row" onClick={() => navigate('/change-password')}>
             <div className="settings-action-icon indigo">
               <MdLock size={20} color="white" />
             </div>
@@ -185,6 +183,7 @@ export default function SettingsPage() {
               id="studyReminders"
               checked={notifs.studyReminders}
               onChange={(v) => updateNotificationSetting('studyReminders', v)}
+              disabled={isSavingNotifs}
             />
           </div>
 
@@ -200,6 +199,7 @@ export default function SettingsPage() {
               id="noteSummaries"
               checked={notifs.noteSummaries}
               onChange={(v) => updateNotificationSetting('noteSummaries', v)}
+              disabled={isSavingNotifs}
             />
           </div>
 
@@ -215,6 +215,7 @@ export default function SettingsPage() {
               id="weeklyReport"
               checked={notifs.weeklyReport}
               onChange={(v) => updateNotificationSetting('weeklyReport', v)}
+              disabled={isSavingNotifs}
             />
           </div>
 
@@ -228,9 +229,57 @@ export default function SettingsPage() {
           <h4 className="settings-card-title">
             <MdColorLens size={18} /> Appearance
           </h4>
-          <p className="settings-coming-soon-note">
-            Coming soon - customize your study environment
-          </p>
+
+          {/* Theme */}
+          <p className="settings-section-sub">Theme</p>
+          <div className="appearance-row">
+            {[
+              { key: 'light',  label: 'Light',  icon: <MdBrightness7 size={20} /> },
+              { key: 'dark',   label: 'Dark',   icon: <MdBrightness4 size={20} /> },
+              { key: 'system', label: 'System', icon: <MdBrightnessAuto size={20} /> },
+            ].map(({ key, label, icon }) => (
+              <button
+                key={key}
+                className={`appearance-option ${themePref === key ? 'selected' : ''}`}
+                onClick={() => updateTheme(key)}
+              >
+                {icon}
+                <span>{label}</span>
+              </button>
+            ))}
+          </div>
+
+          {/* Accent colour */}
+          <p className="settings-section-sub" style={{ marginTop: 18 }}>Accent Colour</p>
+          <div className="accent-row">
+            {Object.entries(ACCENTS).map(([key, a]) => (
+              <button
+                key={key}
+                className={`accent-swatch ${accent === key ? 'selected' : ''}`}
+                style={{ background: `linear-gradient(135deg, ${a.from}, ${a.to})` }}
+                onClick={() => updateAccent(key)}
+                title={a.name}
+              />
+            ))}
+          </div>
+
+          {/* Font size */}
+          <p className="settings-section-sub" style={{ marginTop: 18 }}>Text Size</p>
+          <div className="appearance-row">
+            {[
+              { key: 'normal', label: 'Normal', icon: <MdTextFields size={18} /> },
+              { key: 'large',  label: 'Large',  icon: <MdTextFields size={22} /> },
+            ].map(({ key, label, icon }) => (
+              <button
+                key={key}
+                className={`appearance-option ${fontSize === key ? 'selected' : ''}`}
+                onClick={() => updateFontSize(key)}
+              >
+                {icon}
+                <span>{label}</span>
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* ════ ABOUT ════ */}
