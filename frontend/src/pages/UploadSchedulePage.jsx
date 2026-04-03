@@ -14,12 +14,6 @@ const DAYS_FULL = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Satu
 
 const TODAY = new Date().toISOString().split('T')[0];
 
-const FAKE_EVENTS = [
-  { name: 'Introduction to Algorithms', startTime: '09:00', endTime: '10:30', days: ['Monday', 'Wednesday', 'Friday'], color: '#667eea', repeat: 'weekly', startDate: TODAY, location: '' },
-  { name: 'Data Structures Lab',        startTime: '14:00', endTime: '16:00', days: ['Tuesday'],                       color: '#f093fb', repeat: 'weekly', startDate: TODAY, location: '' },
-  { name: 'Office Hours - Prof. Smith', startTime: '15:00', endTime: '16:00', days: ['Thursday'],                      color: '#43e97b', repeat: 'weekly', startDate: TODAY, location: '' },
-];
-
 const TYPE_LABELS = {
   school: 'School / Class',
   work: 'Work / Job',
@@ -65,20 +59,78 @@ export default function UploadSchedulePage() {
   const typeLabel = scheduleType ? TYPE_LABELS[scheduleType] : '';
   const labels = scheduleType ? EVENT_LABELS[scheduleType] : { singular: 'Event', plural: 'Events', example: 'e.g. Add an event' };
 
-  function handleProcessFile() {
+  async function handleProcessFile() {
+    if (!uploadedFile) return;
+
     setIsProcessing(true);
-    setTimeout(() => {
-      setExtractedEvents(FAKE_EVENTS);
+    setExtractedEvents([]);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', uploadedFile);
+      formData.append('scheduleType', scheduleType);
+
+      const response = await fetch('https://cs456project.onrender.com/api/schedules/extract', {
+        method: 'POST',
+        credentials: 'include',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Server error ${response.status}`);
+      }
+
+      const data = await response.json();
+      setExtractedEvents(data.events || []);
+
+      if (!data.events || data.events.length === 0) {
+        alert('No events found in file. Please try manual entry or a different file.');
+      }
+    } catch (error) {
+      console.error('File extraction error:', error);
+      alert(`Failed to extract schedule: ${error.message}\nPlease try manual entry.`);
+      setExtractedEvents([]);
+    } finally {
       setIsProcessing(false);
-    }, 2000);
+    }
   }
 
-  function handleProcessAI() {
+  async function handleProcessAI() {
+    if (!aiText.trim()) return;
+
     setIsProcessing(true);
-    setTimeout(() => {
-      setExtractedEvents(FAKE_EVENTS);
+    setExtractedEvents([]);
+
+    try {
+      const response = await fetch('https://cs456project.onrender.com/api/schedules/parse-text', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          text: aiText,
+          scheduleType: scheduleType,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Server error ${response.status}`);
+      }
+
+      const data = await response.json();
+      setExtractedEvents(data.events || []);
+
+      if (!data.events || data.events.length === 0) {
+        alert('Could not extract events from text. Please check formatting and try again.');
+      }
+    } catch (error) {
+      console.error('AI parsing error:', error);
+      alert(`Failed to parse schedule: ${error.message}\nPlease try manual entry.`);
+      setExtractedEvents([]);
+    } finally {
       setIsProcessing(false);
-    }, 2000);
+    }
   }
 
   function updateEvent(id, field, value) {
