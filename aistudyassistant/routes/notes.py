@@ -1,6 +1,15 @@
 #routes for notes
 # march 3rd 2026 Amath Gaye
+import json
+import os
+import re
+
+import google.generativeai as genai
 from flask import Blueprint, request, session
+
+_GEMINI_KEY = os.getenv("GEMINI_API_KEY", "")
+if _GEMINI_KEY:
+    genai.configure(api_key=_GEMINI_KEY)
 
 from aistudyassistant.extensions import db
 from aistudyassistant.models.note import Note
@@ -311,3 +320,78 @@ def summarize_note_content():
         return {"error": "AI summarization service unavailable"}, 503
 
     return {"summary": summary}, 200
+
+
+@notes_bp.route("/api/notes/generate-quiz", methods=["POST"])
+def generate_quiz():
+    """Generate practice multiple-choice questions from note content using Gemini."""
+    user_id = _current_user_id()
+    if not user_id:
+        return {"error": "Authentication required"}, 401
+
+    if not _GEMINI_KEY:
+        return {"error": "AI service not configured"}, 503
+
+    data           = request.get_json() or {}
+    content        = (data.get("content") or "").strip()
+    question_count = max(1, min(int(data.get("questionCount", 5)), 10))
+    difficulty     = data.get("difficulty", "medium")
+
+    if not content:
+        return {"error": "content is required"}, 400
+
+    # Truncate to avoid token overflow (~4 000 chars ≈ 1 000 tokens)
+    content_preview = content[:4000]
+
+    prompt = f"""You are an expert educator creating practice quiz questions.
+
+Generate {question_count} multiple-choice questions based on this study material:
+
+{content_preview}
+
+Requirements:
+- Difficulty level: {difficulty}
+- Each question must have exactly 4 answer options (A, B, C, D)
+- Only ONE correct answer per question
+- Include a brief explanation for why the answer is correct
+- Focus on key concepts, definitions, and important details
+
+Return ONLY a JSON array with this EXACT structure (no markdown, no explanation outside the JSON):
+[
+  {{
+    "question": "Question text here",
+    "options": ["Option A text", "Option B text", "Option C text", "Option D text"],
+    "correctAnswer": "A",
+    "explanation": "Why A is correct"
+  }}
+]"""
+
+    try:
+        model    = genai.GenerativeModel("gemini-2.5-flash")
+        response = model.generate_content(prompt)
+        raw      = response.text.strip()
+
+        # Strip markdown fences if present
+        raw = re.sub(r"^```(?:json)?\s*", "", raw)
+        raw = re.sub(r"\s*```$", "", raw)
+
+        questions = json.loads(raw)
+
+        if not isinstance(questions, list):
+            raise ValueError("Response is not a JSON array")
+
+        required = {"question", "options", "correctAnswer", "explanation"}
+        for q in questions:
+            if not required.issubset(q):
+                raise ValueError(f"Missing keys in question: {q}")
+            if len(q["options"]) != 4:
+                raise ValueError("Each question must have exactly 4 options")
+
+        return {"questions": questions, "count": len(questions)}, 200
+
+    except json.JSONDecodeError as exc:
+        print(f"[quiz] JSON parse error: {exc}\nRaw: {raw[:300]}")
+        return {"error": "Failed to parse quiz from AI response. Please try again."}, 500
+    except Exception as exc:
+        print(f"[quiz] Generation error: {exc}")
+        return {"error": f"Quiz generation failed: {str(exc)}"}, 500

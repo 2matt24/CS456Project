@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { scheduleAPI, coursesAPI } from '../services/api';
 import { useNavigate } from 'react-router-dom';
 import { IoMdAdd } from 'react-icons/io';
 import {
@@ -13,12 +12,6 @@ const DAYS_SHORT = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 const DAYS_FULL = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
 const TODAY = new Date().toISOString().split('T')[0];
-
-const FAKE_EVENTS = [
-  { name: 'Introduction to Algorithms', startTime: '09:00', endTime: '10:30', days: ['Monday', 'Wednesday', 'Friday'], color: '#667eea', repeat: 'weekly', startDate: TODAY, location: '' },
-  { name: 'Data Structures Lab',        startTime: '14:00', endTime: '16:00', days: ['Tuesday'],                       color: '#f093fb', repeat: 'weekly', startDate: TODAY, location: '' },
-  { name: 'Office Hours - Prof. Smith', startTime: '15:00', endTime: '16:00', days: ['Thursday'],                      color: '#43e97b', repeat: 'weekly', startDate: TODAY, location: '' },
-];
 
 const TYPE_LABELS = {
   school: 'School / Class',
@@ -59,26 +52,84 @@ export default function UploadSchedulePage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [events, setEvents] = useState([newEvent()]);
   const [extractedEvents, setExtractedEvents] = useState([]);
-  const [saveStatus, setSaveStatus] = useState(null); // 'success' | 'error' | null
-  const [saveError, setSaveError] = useState('');
+  const [fileMetadata, setFileMetadata] = useState(null);
 
   const typeLabel = scheduleType ? TYPE_LABELS[scheduleType] : '';
   const labels = scheduleType ? EVENT_LABELS[scheduleType] : { singular: 'Event', plural: 'Events', example: 'e.g. Add an event' };
 
-  function handleProcessFile() {
+  async function handleProcessFile() {
+    if (!uploadedFile) return;
+
     setIsProcessing(true);
-    setTimeout(() => {
-      setExtractedEvents(FAKE_EVENTS);
+    setExtractedEvents([]);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', uploadedFile);
+      formData.append('scheduleType', scheduleType);
+
+      const response = await fetch('https://cs456project.onrender.com/api/schedules/extract', {
+        method: 'POST',
+        credentials: 'include',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Server error ${response.status}`);
+      }
+
+      const data = await response.json();
+      setExtractedEvents(data.events || []);
+      setFileMetadata(data.fileMetadata || null);
+
+      if (!data.events || data.events.length === 0) {
+        alert('No events found in file. Please try manual entry or a different file.');
+      }
+    } catch (error) {
+      console.error('File extraction error:', error);
+      alert(`Failed to extract schedule: ${error.message}\nPlease try manual entry.`);
+      setExtractedEvents([]);
+    } finally {
       setIsProcessing(false);
-    }, 2000);
+    }
   }
 
-  function handleProcessAI() {
+  async function handleProcessAI() {
+    if (!aiText.trim()) return;
+
     setIsProcessing(true);
-    setTimeout(() => {
-      setExtractedEvents(FAKE_EVENTS);
+    setExtractedEvents([]);
+
+    try {
+      const response = await fetch('https://cs456project.onrender.com/api/schedules/parse-text', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          text: aiText,
+          scheduleType: scheduleType,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Server error ${response.status}`);
+      }
+
+      const data = await response.json();
+      setExtractedEvents(data.events || []);
+
+      if (!data.events || data.events.length === 0) {
+        alert('Could not extract events from text. Please check formatting and try again.');
+      }
+    } catch (error) {
+      console.error('AI parsing error:', error);
+      alert(`Failed to parse schedule: ${error.message}\nPlease try manual entry.`);
+      setExtractedEvents([]);
+    } finally {
       setIsProcessing(false);
-    }, 2000);
+    }
   }
 
   function updateEvent(id, field, value) {
@@ -87,61 +138,78 @@ export default function UploadSchedulePage() {
     );
   }
 
-  // Helper to map frontend event to backend event shape
-  function mapToBackendEvent(ev) {
-    return {
-      title: ev.name,
-      location: ev.location,
-      type: scheduleType || 'school',
-      color: ev.color,
-      repeat: (ev.repeat || 'once').toLowerCase(),
-      days: ev.days || [],
-      startTime: ev.startTime,
-      endTime: ev.endTime,
-      startDate: ev.startDate,
-      endDate: ev.endDate || null,
-    };
-  }
+  async function handleSaveSchedule() {
+    const eventsToSave = extractedEvents.length > 0 ? extractedEvents : events;
 
-  async function handleSave(eventsToSave) {
-    setSaveStatus(null);
-    setSaveError('');
+    if (eventsToSave.length === 0) {
+      alert('No events to save. Please add at least one event.');
+      return;
+    }
+
+    // Validate manual events
+    if (extractedEvents.length === 0) {
+      const invalid = events.find(ev =>
+        !ev.name.trim() ||
+        !ev.startTime ||
+        !ev.endTime ||
+        !ev.startDate ||
+        (ev.repeat === 'Weekly' && ev.days.length === 0)
+      );
+      if (invalid) {
+        alert('Please fill in all required fields: name, times, start date, and days (for weekly events).');
+        return;
+      }
+    }
+
+    setIsProcessing(true);
+
     try {
-      for (const ev of eventsToSave) {
-        await scheduleAPI.create(mapToBackendEvent(ev));
+      const response = await fetch('https://cs456project.onrender.com/api/schedules', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          scheduleType: scheduleType,
+          fileMetadata: fileMetadata,
+          events: eventsToSave.map(ev => ({
+            title: ev.name || ev.title,
+            location: ev.location || '',
+            type: scheduleType,
+            color: ev.color || '#667eea',
+            repeat: (ev.repeat || 'once').toLowerCase(),
+            days: Array.isArray(ev.days) ? ev.days : (ev.days ? ev.days.split(', ') : []),
+            startTime: ev.startTime || ev.time?.split(' - ')[0] || '09:00',
+            endTime: ev.endTime || ev.time?.split(' - ')[1] || '10:00',
+            startDate: ev.startDate || new Date().toISOString().split('T')[0],
+            endDate: ev.endDate || null,
+          })),
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to save schedule');
       }
-      // Auto-create courses for school schedules
-      if (scheduleType === 'school') {
-        const COURSE_ICONS = ['📚', '🎓', '📖', '🔬', '💻', '📐', '🧪', '📝'];
-        const COURSE_COLORS = ['#667eea', '#f093fb', '#4facfe', '#43e97b', '#ff6b6b', '#ffd648', '#0fd850', '#fa8231'];
-        const seen = new Set();
-        for (let i = 0; i < eventsToSave.length; i++) {
-          const ev = eventsToSave[i];
-          if (!ev.name || seen.has(ev.name)) continue;
-          seen.add(ev.name);
-          try {
-            await coursesAPI.create(
-              ev.name,
-              '',
-              '',
-              COURSE_COLORS[i % COURSE_COLORS.length],
-              COURSE_ICONS[i % COURSE_ICONS.length],
-              ev.startDate || null,
-              ev.endDate || null,
-            );
-          } catch (_) {
-            // non-fatal — course may already exist
-          }
-        }
+
+      const result = await response.json();
+      if (result.coursesCreated > 0 && result.courseNames && result.courseNames.length > 0) {
+        alert(
+          `✓ Schedule saved successfully!\n\n` +
+          `📅 ${result.eventsCreated} events added to calendar\n` +
+          `📚 ${result.coursesCreated} AI-generated courses:\n\n` +
+          result.courseNames.map(name => `  • ${name}`).join('\n') +
+          `\n\nCheck your dashboard to see them!`
+        );
+      } else {
+        alert(`✓ Schedule saved! ${result.eventsCreated} events added to calendar.`);
       }
-      setSaveStatus('success');
-      setTimeout(() => {
-        setSaveStatus(null);
-        navigate('/dashboard');
-      }, 1200);
-    } catch (err) {
-      setSaveStatus('error');
-      setSaveError(err.message || 'Failed to save schedule.');
+
+      setTimeout(() => navigate('/dashboard'), 1000);
+    } catch (error) {
+      console.error('Save schedule error:', error);
+      alert(`Failed to save schedule: ${error.message}`);
+    } finally {
+      setIsProcessing(false);
     }
   }
 
@@ -201,11 +269,17 @@ export default function UploadSchedulePage() {
           </div>
         </div>
       ))}
-      <button className="usp-save-btn" onClick={() => handleSave(extractedEvents)}>
-        <MdCheckCircle size={18} /> Save Schedule
+      <button
+        className="usp-save-btn"
+        onClick={handleSaveSchedule}
+        disabled={isProcessing}
+      >
+        {isProcessing ? (
+          <><span className="btn-spinner" /> Saving…</>
+        ) : (
+          <><MdCheckCircle size={18} /> Save Schedule</>
+        )}
       </button>
-      {saveStatus === 'success' && <p className="usp-save-success">Schedule saved!</p>}
-      {saveStatus === 'error' && <p className="usp-save-error">{saveError}</p>}
     </div>
   );
 
@@ -565,12 +639,15 @@ export default function UploadSchedulePage() {
           <button
             className="usp-save-btn"
             type="button"
-            onClick={() => handleSave(events)}
+            onClick={handleSaveSchedule}
+            disabled={isProcessing}
           >
-            <MdCheckCircle size={18} /> Save Schedule
+            {isProcessing ? (
+              <><span className="btn-spinner" /> Saving…</>
+            ) : (
+              <><MdCheckCircle size={18} /> Save Schedule</>
+            )}
           </button>
-          {saveStatus === 'success' && <p className="usp-save-success">Schedule saved!</p>}
-          {saveStatus === 'error' && <p className="usp-save-error">{saveError}</p>}
         </div>
 
         <BottomNav />
@@ -620,8 +697,6 @@ export default function UploadSchedulePage() {
           )}
 
           {extractedEvents.length > 0 && <ExtractedEventsList />}
-          {saveStatus === 'success' && <p className="usp-save-success">Schedule saved!</p>}
-          {saveStatus === 'error' && <p className="usp-save-error">{saveError}</p>}
         </div>
 
         <BottomNav />

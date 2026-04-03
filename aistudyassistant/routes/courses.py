@@ -4,6 +4,7 @@ from flask import Blueprint, request, session
 
 from aistudyassistant.extensions import db
 from aistudyassistant.models.course import Course
+from aistudyassistant.models.schedule_event import ScheduleEvent
 
 
 courses_bp = Blueprint("courses", __name__)
@@ -84,3 +85,69 @@ def create_course():
     db.session.commit()
 
     return {"message": "Course created", "course": _serialize_course(course)}, 201
+
+
+@courses_bp.route("/api/courses/<int:course_id>", methods=["PUT"])
+def update_course(course_id):
+    user_id = _current_user_id()
+    if not user_id:
+        return {"error": "Authentication required"}, 401
+
+    course = Course.query.filter_by(CourseID=course_id, UserID=user_id).first()
+    if not course:
+        return {"error": "Course not found"}, 404
+
+    data = request.get_json() or {}
+
+    def _parse_date(val):
+        try:
+            from datetime import date
+            return date.fromisoformat(val) if val else None
+        except (ValueError, TypeError):
+            return None
+
+    if "courseName" in data:
+        name = (data["courseName"] or "").strip()
+        if not name:
+            return {"error": "courseName cannot be empty"}, 400
+        course.CourseName = name
+    if "courseCode" in data:
+        course.CourseCode = (data["courseCode"] or "").strip() or None
+    if "semester"   in data:
+        course.Semester = (data["semester"] or "").strip() or None
+    if "color"      in data:
+        course.Color = data["color"]
+    if "icon"       in data:
+        course.Icon = data["icon"]
+    if "startDate"  in data:
+        course.StartDate = _parse_date(data["startDate"])
+    if "endDate"    in data:
+        course.EndDate = _parse_date(data["endDate"])
+
+    db.session.commit()
+    return {"message": "Course updated", "course": _serialize_course(course)}, 200
+
+
+@courses_bp.route("/api/courses/<int:course_id>", methods=["DELETE"])
+def delete_course(course_id):
+    user_id = _current_user_id()
+    if not user_id:
+        return {"error": "Authentication required"}, 401
+
+    course = Course.query.filter_by(CourseID=course_id, UserID=user_id).first()
+    if not course:
+        return {"error": "Course not found"}, 404
+
+    course_name = course.CourseName
+
+    # Cascade-delete any school schedule events whose title matches this course name
+    ScheduleEvent.query.filter_by(
+        UserID=user_id,
+        Title=course_name,
+        Type="school",
+    ).delete(synchronize_session=False)
+
+    db.session.delete(course)
+    db.session.commit()
+
+    return {"message": "Course and related calendar events deleted"}, 200

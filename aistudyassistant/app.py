@@ -17,6 +17,7 @@ from aistudyassistant.routes.chat import chat_bp
 from aistudyassistant.routes.notifications import notifications_bp
 from aistudyassistant.routes.settings import settings_bp
 from aistudyassistant.routes.schedule import schedule_bp
+from aistudyassistant.routes.dashboard import dashboard_bp
 
 from aistudyassistant.models.user import User
 from aistudyassistant.models.note import Note
@@ -87,6 +88,7 @@ app.register_blueprint(chat_bp)
 app.register_blueprint(notifications_bp)
 app.register_blueprint(settings_bp)
 app.register_blueprint(schedule_bp)
+app.register_blueprint(dashboard_bp)
 
 @app.route("/api/test-users")
 def test_users():
