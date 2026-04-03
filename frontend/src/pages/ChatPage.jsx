@@ -67,8 +67,9 @@ async function sendChatMessage(userMessage, history, noteContext, fileContext) {
     credentials: 'include',
     body: JSON.stringify({
       message:     userMessage,
-      history:     history.filter((m) => m.id !== 'welcome'),
+      history:     history.filter((m) => m.id !== 'welcome' && m.role !== 'system'),
       noteContext: noteContext ? { title: noteContext.title, content: noteContext.content } : null,
+      noteId:      noteContext?.noteID || null,
       fileContext: fileContext || null,
     }),
   });
@@ -276,15 +277,47 @@ function ChatPage() {
           onChange={(e) => {
             const note = allNotes.find((n) => n.noteID === parseInt(e.target.value));
             setSelectedNote(note || null);
+            if (note) {
+              setMessages(prev => [...prev, {
+                id: Date.now(),
+                role: 'system',
+                text: `📚 Now chatting about: "${note.title}"${note.courseName ? ` · ${note.courseName}` : ''}`,
+                timestamp: new Date(),
+              }]);
+            } else {
+              setMessages(prev => [...prev, {
+                id: Date.now(),
+                role: 'system',
+                text: '💬 Switched to general chat',
+                timestamp: new Date(),
+              }]);
+            }
           }}
         >
           <option value="">💬 General chat</option>
           {allNotes.map((n) => (
-            <option key={n.noteID} value={n.noteID}>{n.title}</option>
+            <option key={n.noteID} value={n.noteID}>
+              📝 {n.title}{n.courseName ? ` (${n.courseName})` : ''}
+            </option>
           ))}
         </select>
+
         {selectedNote && (
-          <button className="chat-clear-context-btn" onClick={() => setSelectedNote(null)}>✕</button>
+          <div className="chat-context-indicator">
+            <span className="context-label">📚 {selectedNote.title}</span>
+            <button
+              className="chat-clear-context-btn"
+              onClick={() => {
+                setSelectedNote(null);
+                setMessages(prev => [...prev, {
+                  id: Date.now(),
+                  role: 'system',
+                  text: '💬 Switched to general chat',
+                  timestamp: new Date(),
+                }]);
+              }}
+            >✕</button>
+          </div>
         )}
       </div>
 
@@ -309,7 +342,11 @@ function ChatPage() {
               </div>
             )}
 
-            <div className={`message-row ${msg.role === 'user' ? 'message-row-user' : 'message-row-ai'}`}>
+            <div className={`message-row ${
+              msg.role === 'user' ? 'message-row-user'
+              : msg.role === 'system' ? 'message-row-system'
+              : 'message-row-ai'
+            }`}>
               {msg.role === 'ai' && (
                 <div className="msg-avatar ai-msg-avatar">
                   <RiRobot2Fill size={14} color="white" />
@@ -318,13 +355,16 @@ function ChatPage() {
 
               <div className={`message-bubble ${
                 msg.role === 'user' ? 'user-bubble'
+                : msg.role === 'system' ? 'system-bubble'
                 : msg.isError ? 'error-bubble'
                 : 'ai-bubble'
               }`}>
                 <div className="message-text">
                   {msg.role === 'ai' && !msg.isError ? renderMarkdown(msg.text) : msg.text}
                 </div>
-                <span className="message-time">{formatTime(msg.timestamp)}</span>
+                {msg.role !== 'system' && (
+                  <span className="message-time">{formatTime(msg.timestamp)}</span>
+                )}
               </div>
 
               {msg.role === 'user' && (

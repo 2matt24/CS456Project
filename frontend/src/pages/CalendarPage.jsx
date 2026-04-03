@@ -4,7 +4,7 @@ import { IoMdAdd } from 'react-icons/io';
 import {
   MdArrowBack, MdCalendarToday, MdHome, MdChat, MdSettings,
   MdChevronLeft, MdChevronRight, MdLocationOn, MdAccessTime, MdClose,
-  MdRefresh,
+  MdRefresh, MdAttachFile,
 } from 'react-icons/md';
 import { scheduleAPI } from '../services/api';
 import '../styles/CalendarPage.css';
@@ -36,6 +36,9 @@ function apiEventsToCalendar(apiEvents) {
       startMin:  startM,
       endHour:   endH,
       endMin:    endM,
+      uploadedFileUrl:  ev.uploadedFileUrl  || null,
+      uploadedFileName: ev.uploadedFileName || null,
+      uploadedFileType: ev.uploadedFileType || null,
     };
 
     const days = Array.isArray(ev.days) ? ev.days : [];
@@ -509,6 +512,19 @@ export default function CalendarPage() {
                   ? '💼 Work'
                   : '🏃 Personal'}
               </div>
+              {selectedEvent.uploadedFileUrl && (
+                <div className="cal-modal-file">
+                  <MdAttachFile size={16} color="#667eea" />
+                  <a
+                    href={selectedEvent.uploadedFileUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="cal-file-link"
+                  >
+                    View Original Schedule ({selectedEvent.uploadedFileName || 'file'})
+                  </a>
+                </div>
+              )}
             </div>
           </div>
         </div>
