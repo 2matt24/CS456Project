@@ -189,7 +189,16 @@ export default function UploadSchedulePage() {
       }
 
       const result = await response.json();
-      alert(`✓ Schedule saved successfully!${result.coursesCreated ? ` ${result.coursesCreated} courses created.` : ''}`);
+      if (result.coursesCreated > 0 && result.courseNames && result.courseNames.length > 0) {
+        alert(
+          `✓ Schedule saved successfully!\n\n` +
+          `📅 ${result.eventsCreated} events added to calendar\n` +
+          `📚 ${result.coursesCreated} courses created:\n\n` +
+          result.courseNames.map(name => `  • ${name}`).join('\n')
+        );
+      } else {
+        alert(`✓ Schedule saved! ${result.eventsCreated} events added to calendar.`);
+      }
 
       setTimeout(() => navigate('/dashboard'), 1000);
     } catch (error) {
