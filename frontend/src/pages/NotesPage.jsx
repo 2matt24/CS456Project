@@ -69,12 +69,12 @@ function NotesPage() {
         try {
             if (editNote) {
                 await notesAPI.update(editNote.noteID, noteTitle, noteContent);
-                setMessage('Note updated successfully!');
+                setMessage('✓ Note updated! Returning to course...');
             } else {
                 await notesAPI.create(courseId, noteTitle, noteContent);
-                setMessage('Note saved successfully!');
+                setMessage('✓ Note saved! Returning to course...');
             }
-            setTimeout(() => { navigate(`/course/${courseId}`); }, 1500);
+            setTimeout(() => { navigate(`/course/${courseId}`); }, 800);
         } catch (error) {
             setMessage('Failed to save note. Please try again.');
             console.error('Save note error:', error);
