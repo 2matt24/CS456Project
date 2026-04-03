@@ -72,37 +72,65 @@ def _parse_date(val):
         return None
 
 
-def pick_course_icon(course_name: str) -> str:
-    """Return an appropriate emoji icon based on course name keywords."""
-    name = course_name.lower()
+def extract_course_info_with_ai(class_name: str, start_date: str = None) -> dict:
+    """Use Gemini AI to extract structured course info from a class name.
 
-    if any(w in name for w in ["cs", "computer", "programming", "software", "coding", "python", "java", "web", "algorithm"]):
-        return "💻"
-    if any(w in name for w in ["math", "calculus", "algebra", "geometry", "statistics", "stat", "linear"]):
-        return "🧮"
-    if any(w in name for w in ["data", "database", "sql", "analytics", "machine learning", "ai", "artificial"]):
-        return "🗄️"
-    if any(w in name for w in ["chem", "chemistry", "organic", "molecular"]):
-        return "⚗️"
-    if any(w in name for w in ["physics", "quantum", "mechanics"]):
-        return "🔬"
-    if any(w in name for w in ["bio", "biology", "anatomy", "ecology", "genetics"]):
-        return "🧬"
-    if any(w in name for w in ["business", "economics", "finance", "accounting", "marketing", "management"]):
-        return "📊"
-    if any(w in name for w in ["art", "design", "graphic", "visual", "studio"]):
-        return "🎨"
-    if any(w in name for w in ["english", "literature", "writing", "composition", "rhetoric"]):
-        return "📖"
-    if any(w in name for w in ["history", "government", "politics", "sociology", "anthropology"]):
-        return "🏛️"
-    if any(w in name for w in ["music", "theater", "theatre", "drama", "performance"]):
-        return "🎭"
-    if any(w in name for w in ["engineering", "mechanical", "electrical", "civil", "structural"]):
-        return "⚙️"
-    if "lab" in name:
-        return "🔬"
-    return "📚"
+    Returns a dict with keys: course_code, clean_name, icon, subject_area.
+    Falls back to simple parsing if Gemini is unavailable or fails.
+    """
+    if _GEMINI_KEY:
+        try:
+            prompt = (
+                f'Analyze this course/class name and extract structured information.\n\n'
+                f'Course Name: "{class_name}"\n'
+                + (f'Start Date: {start_date}\n' if start_date else '')
+                + '''
+Return ONLY a JSON object with this exact structure (no markdown, no explanation):
+{
+  "course_code": "extracted course code if present (e.g., CS201, MATH301) or empty string",
+  "clean_name": "cleaned course name without code",
+  "icon": "single emoji that best represents this subject",
+  "subject_area": "subject category (Computer Science, Mathematics, Science, Business, Arts, etc.)"
+}
+
+Examples:
+Input: "CS201 - Data Structures"
+Output: {"course_code": "CS201", "clean_name": "Data Structures", "icon": "💻", "subject_area": "Computer Science"}
+
+Input: "Introduction to Biology"
+Output: {"course_code": "", "clean_name": "Introduction to Biology", "icon": "🧬", "subject_area": "Biology"}
+
+Input: "MATH 301 Calculus II"
+Output: {"course_code": "MATH 301", "clean_name": "Calculus II", "icon": "🧮", "subject_area": "Mathematics"}
+'''
+            )
+            model = genai.GenerativeModel("gemini-2.0-flash-exp")
+            response = model.generate_content(prompt)
+            raw = response.text.strip()
+            raw = re.sub(r"^```(?:json)?\s*", "", raw)
+            raw = re.sub(r"\s*```$", "", raw)
+            info = json.loads(raw)
+            if all(k in info for k in ("course_code", "clean_name", "icon", "subject_area")):
+                return info
+        except Exception as e:
+            print(f"Gemini course extraction error: {e}")
+
+    # Fallback — simple regex
+    code = ""
+    m = re.match(r"^([A-Za-z]{2,6}\s*\d{2,4}[A-Za-z]?)", class_name.strip())
+    if m:
+        code = m.group(1).strip()
+    elif " - " in class_name:
+        potential = class_name.split(" - ")[0].strip()
+        if any(c.isalpha() for c in potential) and any(c.isdigit() for c in potential):
+            code = potential
+
+    return {
+        "course_code": code,
+        "clean_name": class_name.split(" - ")[-1].strip() if " - " in class_name else class_name,
+        "icon": "📚",
+        "subject_area": "General",
+    }
 
 
 def _infer_semester(start_date_str: str):
@@ -121,27 +149,6 @@ def _infer_semester(start_date_str: str):
             return f"Fall {year}", year
     except Exception:
         return "", None
-
-
-def _extract_course_code(class_name: str) -> str:
-    """Try to extract a course code from the class name.
-
-    Examples:
-        'CS201 - Data Structures' → 'CS201'
-        'MATH 301 - Calculus II'  → 'MATH 301'
-        'Introduction to Biology' → ''
-    """
-    # Pattern: letters + optional space + digits at the start (e.g. CS201, MATH 301)
-    m = re.match(r'^([A-Za-z]{2,6}\s*\d{2,4})', class_name.strip())
-    if m:
-        return m.group(1).strip()
-
-    # Fallback: take text before ' - ' and check if it looks like a code
-    if " - " in class_name:
-        potential = class_name.split(" - ")[0].strip()
-        if any(c.isalpha() for c in potential) and any(c.isdigit() for c in potential):
-            return potential
-    return ""
 
 
 def _gemini_parse_schedule(text: str, schedule_type: str) -> list:
@@ -422,15 +429,13 @@ def save_schedule_batch():
             if existing:
                 continue
 
-            # Extract course code from title
-            course_code = _extract_course_code(class_name)
+            start_date_str = first_event.get("startDate")
+
+            # Use Gemini AI to extract course code + icon + subject
+            course_info = extract_course_info_with_ai(class_name, start_date_str)
 
             # Infer semester from start date
-            start_date_str = first_event.get("startDate")
             semester, _ = _infer_semester(start_date_str)
-
-            # Pick smart icon
-            icon = pick_course_icon(class_name)
 
             # Color: use event color, fall back to rotating palette
             color = first_event.get("color") or COURSE_COLORS[idx % len(COURSE_COLORS)]
@@ -438,16 +443,17 @@ def save_schedule_batch():
             new_course = Course(
                 UserID=user_id,
                 CourseName=class_name,
-                CourseCode=course_code,
+                CourseCode=course_info["course_code"],
                 Semester=semester,
                 Color=color,
-                Icon=icon,
+                Icon=course_info["icon"],
                 StartDate=_parse_date(start_date_str),
                 EndDate=_parse_date(first_event.get("endDate")),
             )
             db.session.add(new_course)
             courses_created += 1
             course_names_created.append(class_name)
+            print(f"AI-created course: {class_name} → Code: {course_info['course_code']}, Icon: {course_info['icon']}, Subject: {course_info['subject_area']}")
 
         if courses_created > 0:
             db.session.commit()

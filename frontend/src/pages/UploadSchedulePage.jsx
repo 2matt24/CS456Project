@@ -193,8 +193,9 @@ export default function UploadSchedulePage() {
         alert(
           `✓ Schedule saved successfully!\n\n` +
           `📅 ${result.eventsCreated} events added to calendar\n` +
-          `📚 ${result.coursesCreated} courses created:\n\n` +
-          result.courseNames.map(name => `  • ${name}`).join('\n')
+          `📚 ${result.coursesCreated} AI-generated courses:\n\n` +
+          result.courseNames.map(name => `  • ${name}`).join('\n') +
+          `\n\nCheck your dashboard to see them!`
         );
       } else {
         alert(`✓ Schedule saved! ${result.eventsCreated} events added to calendar.`);
