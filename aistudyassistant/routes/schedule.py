@@ -72,50 +72,15 @@ def _parse_date(val):
         return None
 
 
-def extract_course_info_with_ai(class_name: str, start_date: str = None) -> dict:
-    """Use Gemini AI to extract structured course info from a class name.
+# ── In-memory cache: course name → extracted info ─────────────────────────────
+# Survives the lifetime of the Render worker process.
+# If the same class name appears across multiple users' uploads, only the
+# first one ever hits the Gemini API; everyone else gets the cached result.
+_course_info_cache: dict = {}
 
-    Returns a dict with keys: course_code, clean_name, icon, subject_area.
-    Falls back to simple parsing if Gemini is unavailable or fails.
-    """
-    if _GEMINI_KEY:
-        try:
-            prompt = (
-                f'Analyze this course/class name and extract structured information.\n\n'
-                f'Course Name: "{class_name}"\n'
-                + (f'Start Date: {start_date}\n' if start_date else '')
-                + '''
-Return ONLY a JSON object with this exact structure (no markdown, no explanation):
-{
-  "course_code": "extracted course code if present (e.g., CS201, MATH301) or empty string",
-  "clean_name": "cleaned course name without code",
-  "icon": "single emoji that best represents this subject",
-  "subject_area": "subject category (Computer Science, Mathematics, Science, Business, Arts, etc.)"
-}
 
-Examples:
-Input: "CS201 - Data Structures"
-Output: {"course_code": "CS201", "clean_name": "Data Structures", "icon": "💻", "subject_area": "Computer Science"}
-
-Input: "Introduction to Biology"
-Output: {"course_code": "", "clean_name": "Introduction to Biology", "icon": "🧬", "subject_area": "Biology"}
-
-Input: "MATH 301 Calculus II"
-Output: {"course_code": "MATH 301", "clean_name": "Calculus II", "icon": "🧮", "subject_area": "Mathematics"}
-'''
-            )
-            model = genai.GenerativeModel("gemini-2.0-flash-exp")
-            response = model.generate_content(prompt)
-            raw = response.text.strip()
-            raw = re.sub(r"^```(?:json)?\s*", "", raw)
-            raw = re.sub(r"\s*```$", "", raw)
-            info = json.loads(raw)
-            if all(k in info for k in ("course_code", "clean_name", "icon", "subject_area")):
-                return info
-        except Exception as e:
-            print(f"Gemini course extraction error: {e}")
-
-    # Fallback — simple regex
+def _fallback_course_info(class_name: str) -> dict:
+    """Regex-based fallback when Gemini is unavailable or fails."""
     code = ""
     m = re.match(r"^([A-Za-z]{2,6}\s*\d{2,4}[A-Za-z]?)", class_name.strip())
     if m:
@@ -124,13 +89,102 @@ Output: {"course_code": "MATH 301", "clean_name": "Calculus II", "icon": "🧮",
         potential = class_name.split(" - ")[0].strip()
         if any(c.isalpha() for c in potential) and any(c.isdigit() for c in potential):
             code = potential
-
     return {
         "course_code": code,
         "clean_name": class_name.split(" - ")[-1].strip() if " - " in class_name else class_name,
         "icon": "📚",
         "subject_area": "General",
     }
+
+
+def extract_multiple_courses_with_ai(names_and_dates: list) -> dict:
+    """Send ALL unique class names in ONE Gemini call and return a name→info map.
+
+    Args:
+        names_and_dates: list of (class_name, start_date_str) tuples
+
+    Returns:
+        dict mapping class_name → {course_code, clean_name, icon, subject_area}
+    """
+    # Split into cached vs uncached
+    result_map = {}
+    to_fetch = []
+
+    for name, date in names_and_dates:
+        if name in _course_info_cache:
+            result_map[name] = _course_info_cache[name]
+        else:
+            to_fetch.append((name, date))
+
+    if not to_fetch:
+        return result_map  # 100% cache hit — zero API calls
+
+    if not _GEMINI_KEY:
+        for name, _ in to_fetch:
+            info = _fallback_course_info(name)
+            result_map[name] = info
+            _course_info_cache[name] = info
+        return result_map
+
+    # Build a single batch prompt for all uncached names
+    courses_json = json.dumps(
+        [{"name": n, "startDate": d or ""} for n, d in to_fetch],
+        ensure_ascii=False,
+    )
+    prompt = f"""Analyze these course/class names and extract structured information.
+
+Courses:
+{courses_json}
+
+Return ONLY a JSON array (no markdown, no explanation) with one object per course, in the same order:
+[
+  {{
+    "course_code": "extracted code if present (e.g. CS201, MATH 301) or empty string",
+    "clean_name": "cleaned name without code prefix",
+    "icon": "single emoji representing the subject",
+    "subject_area": "subject category"
+  }}
+]
+
+Examples:
+"CS201 - Data Structures" → {{"course_code": "CS201", "clean_name": "Data Structures", "icon": "💻", "subject_area": "Computer Science"}}
+"Introduction to Biology" → {{"course_code": "", "clean_name": "Introduction to Biology", "icon": "🧬", "subject_area": "Biology"}}
+"MATH 301 Calculus II"   → {{"course_code": "MATH 301", "clean_name": "Calculus II", "icon": "🧮", "subject_area": "Mathematics"}}
+"Studio Art 2D Design"   → {{"course_code": "", "clean_name": "Studio Art 2D Design", "icon": "🎨", "subject_area": "Art"}}
+"""
+
+    try:
+        model = genai.GenerativeModel("gemini-2.0-flash-exp")
+        response = model.generate_content(prompt)
+        raw = response.text.strip()
+        raw = re.sub(r"^```(?:json)?\s*", "", raw)
+        raw = re.sub(r"\s*```$", "", raw)
+        parsed = json.loads(raw)
+
+        required_keys = {"course_code", "clean_name", "icon", "subject_area"}
+        if isinstance(parsed, list) and len(parsed) == len(to_fetch):
+            for (name, _), info in zip(to_fetch, parsed):
+                if isinstance(info, dict) and required_keys.issubset(info):
+                    _course_info_cache[name] = info
+                    result_map[name] = info
+                else:
+                    # Partial failure — fallback for this entry
+                    info = _fallback_course_info(name)
+                    _course_info_cache[name] = info
+                    result_map[name] = info
+            print(f"Batch AI extraction: {len(to_fetch)} courses in 1 API call")
+            return result_map
+
+    except Exception as e:
+        print(f"Gemini batch course extraction error: {e}")
+
+    # Full fallback — Gemini failed entirely
+    for name, _ in to_fetch:
+        info = _fallback_course_info(name)
+        _course_info_cache[name] = info
+        result_map[name] = info
+
+    return result_map
 
 
 def _infer_semester(start_date_str: str):
@@ -420,6 +474,12 @@ def save_schedule_batch():
             if class_name and class_name not in unique_classes:
                 unique_classes[class_name] = event
 
+        # ONE batch Gemini call for all unique class names (cache handles repeats)
+        names_and_dates = [
+            (name, ev.get("startDate")) for name, ev in unique_classes.items()
+        ]
+        course_info_map = extract_multiple_courses_with_ai(names_and_dates)
+
         for idx, (class_name, first_event) in enumerate(unique_classes.items()):
             # Skip if course already exists for this user
             existing = Course.query.filter_by(
@@ -430,15 +490,9 @@ def save_schedule_batch():
                 continue
 
             start_date_str = first_event.get("startDate")
-
-            # Use Gemini AI to extract course code + icon + subject
-            course_info = extract_course_info_with_ai(class_name, start_date_str)
-
-            # Infer semester from start date
-            semester, _ = _infer_semester(start_date_str)
-
-            # Color: use event color, fall back to rotating palette
-            color = first_event.get("color") or COURSE_COLORS[idx % len(COURSE_COLORS)]
+            course_info    = course_info_map.get(class_name, _fallback_course_info(class_name))
+            semester, _    = _infer_semester(start_date_str)
+            color          = first_event.get("color") or COURSE_COLORS[idx % len(COURSE_COLORS)]
 
             new_course = Course(
                 UserID=user_id,
@@ -453,7 +507,12 @@ def save_schedule_batch():
             db.session.add(new_course)
             courses_created += 1
             course_names_created.append(class_name)
-            print(f"AI-created course: {class_name} → Code: {course_info['course_code']}, Icon: {course_info['icon']}, Subject: {course_info['subject_area']}")
+            print(
+                f"AI-created course: {class_name} → "
+                f"Code: {course_info['course_code']}, "
+                f"Icon: {course_info['icon']}, "
+                f"Subject: {course_info['subject_area']}"
+            )
 
         if courses_created > 0:
             db.session.commit()
