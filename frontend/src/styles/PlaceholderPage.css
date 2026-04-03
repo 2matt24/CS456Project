@@ -1,0 +1,179 @@
+.placeholder-container {
+  min-height: 100vh;
+  background: #f8f9fa;
+  padding-bottom: 80px;
+  width: 100%;
+  margin: 0 auto;
+  position: relative;
+}
+
+.placeholder-content {
+  padding: 40px 20px;
+  text-align: center;
+}
+
+.placeholder-icon {
+  margin-bottom: 30px;
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+.placeholder-content h2 {
+  font-size: 28px;
+  color: #333;
+  margin-bottom: 15px;
+  font-weight: 700;
+}
+
+.placeholder-content p {
+  font-size: 16px;
+  color: #666;
+  line-height: 1.6;
+  margin-bottom: 30px;
+  max-width: 300px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.coming-soon-badge {
+  display: inline-block;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 12px 30px;
+  border-radius: 25px;
+  font-weight: 600;
+  font-size: 14px;
+  margin-top: 20px;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+/* Feature List (for Chat page) */
+.feature-list {
+  margin-top: 40px;
+  text-align: left;
+  max-width: 320px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.feature-item {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 15px;
+  background: white;
+  border-radius: 12px;
+  margin-bottom: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.feature-icon {
+  font-size: 24px;
+}
+
+.feature-item span:last-child {
+  font-size: 14px;
+  color: #333;
+  font-weight: 500;
+}
+
+/* Profile Section (for Settings page) */
+.profile-section {
+  background: white;
+  border-radius: 20px;
+  padding: 30px;
+  margin-bottom: 30px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+}
+
+.profile-avatar {
+  margin-bottom: 15px;
+}
+
+.profile-section h3 {
+  font-size: 22px;
+  color: #333;
+  margin-bottom: 5px;
+}
+
+.profile-email {
+  font-size: 14px;
+  color: #999;
+}
+
+/* Settings List */
+.settings-list {
+  margin-bottom: 30px;
+}
+
+.settings-item {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  background: white;
+  padding: 18px;
+  border-radius: 12px;
+  margin-bottom: 12px;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.settings-item:hover {
+  transform: translateX(5px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.settings-item-icon {
+  width: 50px;
+  height: 50px;
+  background: #f8f9fa;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.settings-item-content {
+  flex: 1;
+  text-align: left;
+}
+
+.settings-item-content h4 {
+  font-size: 16px;
+  color: #333;
+  margin-bottom: 4px;
+  font-weight: 600;
+}
+
+.settings-item-content p {
+  font-size: 13px;
+  color: #999;
+  margin: 0;
+}
+
+/* Responsive */
+@media (min-width: 768px) {
+  .placeholder-container {
+    max-width: 900px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .placeholder-container {
+    max-width: 100%;
+  }
+  .placeholder-content {
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+  .bottom-nav {
+    max-width: 100%;
+    left: 0;
+    transform: none;
+  }
+}

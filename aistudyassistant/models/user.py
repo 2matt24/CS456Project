@@ -14,5 +14,12 @@ class User(db.Model):
     PasswordHash = db.Column(db.String(255), nullable=False)
     FirstName = db.Column(db.String(100))
     LastName = db.Column(db.String(100))
+    Phone = db.Column(db.String(30))
+    Bio = db.Column(db.String(500))
+    ProfilePicture = db.Column(db.String(500), nullable=True)
     CreatedAt = db.Column(db.DateTime)
     LastLogin = db.Column(db.DateTime)
+    # Notification preferences
+    StudyRemindersEnabled = db.Column(db.Boolean, nullable=False, default=True,  server_default="1")
+    NoteSummariesEnabled  = db.Column(db.Boolean, nullable=False, default=True,  server_default="1")
+    WeeklyReportEnabled   = db.Column(db.Boolean, nullable=False, default=False, server_default="0")

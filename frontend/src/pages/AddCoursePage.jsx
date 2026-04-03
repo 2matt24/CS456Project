@@ -1,29 +1,46 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { IoArrowBack } from 'react-icons/io5';
+import { IoCheckmarkCircle } from 'react-icons/io5';
+import { MdArrowBack } from 'react-icons/md';
 import { coursesAPI } from '../services/api';
 import '../styles/AddCoursePage.css';
 
 const COLORS = ['#667eea', '#f093fb', '#4facfe', '#43e97b', '#ff6b6b', '#feca57', '#48dbfb', '#ff9ff3'];
-const ICONS = ['📚', '💻', '🧮', '🗄️', '🎨', '🔬', '📊', '🎭', '⚗️', '🏛️', '📖', '✏️'];
+const ICONS  = ['📚', '💻', '🧮', '🗄️', '🎨', '🔬', '📊', '🎭', '⚗️', '🏛️', '📖', '✏️'];
+const SEMESTERS = ['Spring', 'Fall', 'Summer', 'Self-Paced'];
+const YEARS = ['2024', '2025', '2026', '2027', '2028'];
 
 function AddCoursePage() {
   const navigate = useNavigate();
-  const [courseName, setCourseName] = useState('');
-  const [courseCode, setCourseCode] = useState('');
-  const [semester, setSemester] = useState('');
+  const [courseName, setCourseName]       = useState('');
+  const [courseCode, setCourseCode]       = useState('');
+  const [semester, setSemester]           = useState('');
+  const [year, setYear]                   = useState('');
+  const [startDate, setStartDate]         = useState('');
+  const [endDate, setEndDate]             = useState('');
   const [selectedColor, setSelectedColor] = useState(COLORS[0]);
-  const [selectedIcon, setSelectedIcon] = useState(ICONS[0]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [selectedIcon, setSelectedIcon]   = useState(ICONS[0]);
+  const [isLoading, setIsLoading]         = useState(false);
+  const [error, setError]                 = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
 
+    // Build semester label e.g. "Fall 2025"
+    const semesterLabel = [semester, year].filter(Boolean).join(' ') || undefined;
+
     try {
-      await coursesAPI.create(courseName, courseCode, semester, selectedColor, selectedIcon);
+      await coursesAPI.create(
+        courseName,
+        courseCode,
+        semesterLabel,
+        selectedColor,
+        selectedIcon,
+        startDate || undefined,
+        endDate   || undefined,
+      );
       navigate('/dashboard');
     } catch {
       setError('Failed to create course. Please try again.');
@@ -34,12 +51,12 @@ function AddCoursePage() {
 
   return (
     <div className="add-course-container">
-      <div className="navbar">
-        <div className="menu-icon" onClick={() => navigate('/dashboard')}>
-          <IoArrowBack size={28} />
-        </div>
+      <div className="acp-navbar">
+        <button className="acp-nav-btn" onClick={() => navigate('/dashboard')}>
+          <MdArrowBack size={22} />
+        </button>
         <h3>Add Course</h3>
-        <div style={{ width: '28px' }}></div>
+        <div style={{ width: 38 }} />
       </div>
 
       <form onSubmit={handleSubmit} className="course-form">
@@ -66,20 +83,48 @@ function AddCoursePage() {
           />
         </div>
 
-        <div className="form-group">
-          <label>Semester</label>
-          <input
-            type="text"
-            placeholder="e.g., Spring 2025"
-            value={semester}
-            onChange={(e) => setSemester(e.target.value)}
-          />
+        <div className="form-row">
+          <div className="form-group">
+            <label>Semester</label>
+            <select value={semester} onChange={(e) => setSemester(e.target.value)}>
+              <option value="">Select…</option>
+              {SEMESTERS.map((s) => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </div>
+
+          <div className="form-group">
+            <label>Year</label>
+            <select value={year} onChange={(e) => setYear(e.target.value)}>
+              <option value="">Select…</option>
+              {YEARS.map((y) => <option key={y} value={y}>{y}</option>)}
+            </select>
+          </div>
+        </div>
+
+        <div className="form-row">
+          <div className="form-group">
+            <label>Start Date <span className="label-optional">(optional)</span></label>
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+            />
+          </div>
+
+          <div className="form-group">
+            <label>End Date <span className="label-optional">(optional)</span></label>
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+            />
+          </div>
         </div>
 
         <div className="form-group">
           <label>Choose Color</label>
           <div className="color-picker">
-            {COLORS.map(color => (
+            {COLORS.map((color) => (
               <div
                 key={color}
                 className={`color-option ${selectedColor === color ? 'selected' : ''}`}
@@ -93,7 +138,7 @@ function AddCoursePage() {
         <div className="form-group">
           <label>Choose Icon</label>
           <div className="icon-picker">
-            {ICONS.map(icon => (
+            {ICONS.map((icon) => (
               <div
                 key={icon}
                 className={`icon-option ${selectedIcon === icon ? 'selected' : ''}`}
@@ -106,7 +151,7 @@ function AddCoursePage() {
         </div>
 
         <button type="submit" className="btn-submit" disabled={isLoading}>
-          {isLoading ? 'Creating...' : 'Create Course'}
+          {isLoading ? 'Creating…' : <><IoCheckmarkCircle size={20} /> Create Course</>}
         </button>
       </form>
     </div>

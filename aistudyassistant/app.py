@@ -13,35 +13,43 @@ from aistudyassistant.routes.auth import auth_bp
 from aistudyassistant.routes.notes import notes_bp
 from aistudyassistant.routes.courses import courses_bp
 from aistudyassistant.routes.study_sessions import study_sessions_bp
+from aistudyassistant.routes.chat import chat_bp
+from aistudyassistant.routes.notifications import notifications_bp
+from aistudyassistant.routes.settings import settings_bp
+from aistudyassistant.routes.schedule import schedule_bp
 
 from aistudyassistant.models.user import User
 from aistudyassistant.models.note import Note
 from aistudyassistant.models.course import Course
 from aistudyassistant.models.study_session import StudySession
-
+from aistudyassistant.models.chat_history import ChatHistory
+from aistudyassistant.models.notification import Notification
+from aistudyassistant.models.schedule_event import ScheduleEvent
+from aistudyassistant.routes.oauth import oauth_bp, oauth # Import the oauth object from the oauth module
 
 
 app = Flask(__name__)
-#app.secret_key = os.getenv("SECRET_KEY")
+
 app.secret_key = os.getenv("SECRET_KEY", "dev-secret-key")
 
-#app.config["SESSION_COOKIE_HTTPONLY"] = True
-#app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
-#app.config["SESSION_COOKIE_SECURE"] = False
+
+
+
+
 app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = os.getenv("SESSION_COOKIE_SAMESITE", "None")
 app.config["SESSION_COOKIE_SECURE"] = os.getenv("SESSION_COOKIE_SECURE", "true").lower() == "true"
 
 
+
+
 #CORS
-allowed_origins = [
-    origin.strip()
-    for origin in os.getenv(
-        "CORS_ORIGINS",
-        "https://cs456project.vercel.app,http://localhost:5173"
-    ).split(",")
-    if origin.strip()
-]
+allowed_origins = os.getenv(
+    "CORS_ORIGINS",
+    "https://cs-456-project-huy8.vercel.app,http://localhost:5173"
+).split(",")
+
+allowed_origins = [origin.strip() for origin in allowed_origins]
 
 CORS(app, supports_credentials=True, origins=allowed_origins)
 
@@ -69,11 +77,16 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 db.init_app(app)
 
 
-
-app.register_blueprint(auth_bp) 
+oauth.init_app(app)
+app.register_blueprint(oauth_bp) # Register the OAuth blueprint before the auth blueprint
+app.register_blueprint(auth_bp) # Register the auth blueprint after the OAuth blueprint to ensure routes are properly registered
 app.register_blueprint(notes_bp)
 app.register_blueprint(courses_bp)
 app.register_blueprint(study_sessions_bp)
+app.register_blueprint(chat_bp)
+app.register_blueprint(notifications_bp)
+app.register_blueprint(settings_bp)
+app.register_blueprint(schedule_bp)
 
 @app.route("/api/test-users")
 def test_users():
@@ -96,6 +109,12 @@ def test_db():
 @app.route("/api/health")
 def health():
     return {"status": "ok"}
+
+
+@app.after_request
+def debug_response(response):
+    print("SET-COOKIE HEADER:", response.headers.get("Set-Cookie"))
+    return response
 
 if __name__ == "__main__":
     app.run()
