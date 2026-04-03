@@ -52,6 +52,7 @@ export default function UploadSchedulePage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [events, setEvents] = useState([newEvent()]);
   const [extractedEvents, setExtractedEvents] = useState([]);
+  const [fileMetadata, setFileMetadata] = useState(null);
 
   const typeLabel = scheduleType ? TYPE_LABELS[scheduleType] : '';
   const labels = scheduleType ? EVENT_LABELS[scheduleType] : { singular: 'Event', plural: 'Events', example: 'e.g. Add an event' };
@@ -80,6 +81,7 @@ export default function UploadSchedulePage() {
 
       const data = await response.json();
       setExtractedEvents(data.events || []);
+      setFileMetadata(data.fileMetadata || null);
 
       if (!data.events || data.events.length === 0) {
         alert('No events found in file. Please try manual entry or a different file.');
@@ -168,6 +170,7 @@ export default function UploadSchedulePage() {
         credentials: 'include',
         body: JSON.stringify({
           scheduleType: scheduleType,
+          fileMetadata: fileMetadata,
           events: eventsToSave.map(ev => ({
             title: ev.name || ev.title,
             location: ev.location || '',

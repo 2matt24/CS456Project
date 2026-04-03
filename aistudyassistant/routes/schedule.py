@@ -35,19 +35,22 @@ def _current_user_id():
 
 def _serialize_event(ev: ScheduleEvent):
     return {
-        "eventID":   ev.EventID,
-        "userID":    ev.UserID,
-        "title":     ev.Title,
-        "location":  ev.Location,
-        "type":      ev.Type,
-        "color":     ev.Color,
-        "repeat":    ev.Repeat,
-        "days":      ev.get_days(),
-        "startTime": ev.StartTime.strftime("%H:%M") if ev.StartTime else None,
-        "endTime":   ev.EndTime.strftime("%H:%M")   if ev.EndTime   else None,
-        "startDate": ev.StartDate.isoformat()       if ev.StartDate else None,
-        "endDate":   ev.EndDate.isoformat()         if ev.EndDate   else None,
-        "createdAt": ev.CreatedAt.isoformat()       if ev.CreatedAt else None,
+        "eventID":          ev.EventID,
+        "userID":           ev.UserID,
+        "title":            ev.Title,
+        "location":         ev.Location,
+        "type":             ev.Type,
+        "color":            ev.Color,
+        "repeat":           ev.Repeat,
+        "days":             ev.get_days(),
+        "startTime":        ev.StartTime.strftime("%H:%M") if ev.StartTime else None,
+        "endTime":          ev.EndTime.strftime("%H:%M")   if ev.EndTime   else None,
+        "startDate":        ev.StartDate.isoformat()       if ev.StartDate else None,
+        "endDate":          ev.EndDate.isoformat()         if ev.EndDate   else None,
+        "createdAt":        ev.CreatedAt.isoformat()       if ev.CreatedAt else None,
+        "uploadedFileName": ev.UploadedFileName,
+        "uploadedFileUrl":  ev.UploadedFileUrl,
+        "uploadedFileType": ev.UploadedFileType,
     }
 
 
@@ -420,6 +423,7 @@ def save_schedule_batch():
     data          = request.get_json() or {}
     schedule_type = (data.get("scheduleType") or "school").strip().lower()
     events        = data.get("events") or []
+    file_metadata = data.get("fileMetadata")  # optional — present when uploaded via file
 
     if not events:
         return {"error": "No events provided"}, 400
@@ -455,6 +459,9 @@ def save_schedule_batch():
             EndTime=end_time,
             StartDate=start_date,
             EndDate=end_date,
+            UploadedFileName=file_metadata.get("fileName") if file_metadata else None,
+            UploadedFileUrl=file_metadata.get("fileUrl")   if file_metadata else None,
+            UploadedFileType=file_metadata.get("fileType") if file_metadata else None,
         )
         ev.set_days(days if isinstance(days, list) else [])
         db.session.add(ev)
@@ -538,21 +545,46 @@ def extract_schedule_from_file():
 
     uploaded = request.files["file"]
     schedule_type = (request.form.get("scheduleType") or "school").strip().lower()
-    filename = (uploaded.filename or "").lower()
+    original_filename = uploaded.filename or "schedule"
+    filename = original_filename.lower()
+
+    # Read all bytes upfront so we can reuse them for both extraction and Azure upload
+    file_bytes = uploaded.read()
+    file_ext = filename.rsplit(".", 1)[-1] if "." in filename else "bin"
+
+    # ── Upload original file to Azure Blob Storage (non-fatal) ───────────────
+    file_metadata = None
+    try:
+        conn_str = os.getenv("AZURE_STORAGE_CONNECTION_STRING")
+        if conn_str:
+            import uuid
+            from azure.storage.blob import BlobServiceClient
+            from werkzeug.utils import secure_filename
+            safe_name = secure_filename(original_filename)
+            blob_name = f"schedules/{user_id}/{uuid.uuid4()}_{safe_name}"
+            blob_svc  = BlobServiceClient.from_connection_string(conn_str)
+            blob_client = blob_svc.get_blob_client(container="notes-files", blob=blob_name)
+            blob_client.upload_blob(io.BytesIO(file_bytes), overwrite=True)
+            file_metadata = {
+                "fileName": original_filename,
+                "fileUrl":  blob_client.url,
+                "fileType": file_ext,
+            }
+            print(f"Schedule file stored in Azure: {blob_client.url}")
+    except Exception as e:
+        print(f"Schedule Azure upload failed (non-fatal): {e}")
 
     extracted_text = None
 
     # ── ICS files: parse directly ────────────────────────────────────────────
     if filename.endswith(".ics"):
-        raw = uploaded.read().decode("utf-8", errors="ignore")
-        # Build a simple text summary Gemini can parse
-        extracted_text = raw
+        extracted_text = file_bytes.decode("utf-8", errors="ignore")
 
     # ── PDF / DOCX / TXT: extract text ──────────────────────────────────────
     elif filename.endswith(".pdf"):
         try:
             import PyPDF2
-            reader = PyPDF2.PdfReader(io.BytesIO(uploaded.read()))
+            reader = PyPDF2.PdfReader(io.BytesIO(file_bytes))
             extracted_text = "\n".join(p.extract_text() or "" for p in reader.pages).strip()
         except Exception as e:
             print(f"PDF extract error: {e}")
@@ -560,20 +592,19 @@ def extract_schedule_from_file():
     elif filename.endswith(".docx"):
         try:
             import docx
-            doc = docx.Document(io.BytesIO(uploaded.read()))
+            doc = docx.Document(io.BytesIO(file_bytes))
             extracted_text = "\n".join(p.text for p in doc.paragraphs if p.text.strip())
         except Exception as e:
             print(f"DOCX extract error: {e}")
 
     elif filename.endswith((".txt", ".md")):
-        extracted_text = uploaded.read().decode("utf-8", errors="ignore")
+        extracted_text = file_bytes.decode("utf-8", errors="ignore")
 
     # ── Images: use Gemini vision ────────────────────────────────────────────
     elif filename.endswith((".png", ".jpg", ".jpeg", ".webp")):
         if not _GEMINI_KEY:
             return {"error": "AI service not configured"}, 503
         try:
-            img_bytes = uploaded.read()
             ext = filename.rsplit(".", 1)[-1]
             mime = "image/jpeg" if ext in ("jpg", "jpeg") else f"image/{ext}"
             today = datetime.now().strftime("%Y-%m-%d")
@@ -586,13 +617,13 @@ def extract_schedule_from_file():
             )
             model = genai.GenerativeModel("gemini-2.5-flash")
             response = model.generate_content([
-                {"mime_type": mime, "data": img_bytes},
+                {"mime_type": mime, "data": file_bytes},
                 prompt,
             ])
             raw = re.sub(r"^```(?:json)?\s*", "", response.text.strip())
             raw = re.sub(r"\s*```$", "", raw)
             events = json.loads(raw)
-            return {"events": events if isinstance(events, list) else []}, 200
+            return {"events": events if isinstance(events, list) else [], "fileMetadata": file_metadata}, 200
         except Exception as e:
             print(f"Vision extract error: {e}")
             return {"error": f"Could not extract schedule from image: {str(e)}"}, 422
@@ -607,7 +638,7 @@ def extract_schedule_from_file():
         return {"error": "AI service not configured"}, 503
 
     events = _gemini_parse_schedule(extracted_text, schedule_type)
-    return {"events": events}, 200
+    return {"events": events, "fileMetadata": file_metadata}, 200
 
 
 # ── POST /api/schedules/parse-text — parse pasted schedule text via AI ────────

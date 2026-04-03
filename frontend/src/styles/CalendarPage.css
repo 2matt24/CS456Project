@@ -597,6 +597,29 @@
   margin-top: 4px;
 }
 
+.cal-modal-file {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  margin-top: 12px;
+  border: 1px solid #e0e0e0;
+}
+
+.cal-file-link {
+  color: #667eea;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cal-file-link:hover { text-decoration: underline; }
+
 /* ════════════════════════════════════════
    BOTTOM NAV
 ════════════════════════════════════════ */
