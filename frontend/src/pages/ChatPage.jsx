@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { IoMdAdd, IoMdSend, IoMdAttach, IoMdBookmark } from 'react-icons/io';
+import { IoMdAdd, IoMdSend, IoMdAttach, IoMdBookmark, IoMdMenu, IoMdClose, IoMdTrash } from 'react-icons/io';
 import { MdCalendarToday, MdHome, MdChat, MdSettings, MdArrowBack, MdDeleteSweep } from 'react-icons/md';
 import { RiRobot2Fill } from 'react-icons/ri';
 import { FaUserCircle } from 'react-icons/fa';
@@ -60,16 +60,18 @@ function renderMarkdown(text) {
   return elements;
 }
 
-async function sendChatMessage(userMessage, history, noteContext, fileContext) {
+async function sendChatMessage(userMessage, history, noteContext, fileContext, sessionId, conversationTitle) {
   const response = await fetch(`${API_BASE}/api/chat`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
     body: JSON.stringify({
-      message:     userMessage,
-      history:     history.filter(m => m.id !== 'welcome' && m.role !== 'system'),
-      noteContext: noteContext ? { noteID: noteContext.noteID, title: noteContext.title, content: noteContext.content } : null,
-      fileContext: fileContext || null,
+      message:           userMessage,
+      history:           history.filter(m => m.id !== 'welcome' && m.role !== 'system'),
+      noteContext:       noteContext ? { noteID: noteContext.noteID, title: noteContext.title, content: noteContext.content } : null,
+      fileContext:       fileContext || null,
+      sessionId:         sessionId || null,
+      conversationTitle: conversationTitle || null,
     }),
   });
   if (!response.ok) {
@@ -77,9 +79,8 @@ async function sendChatMessage(userMessage, history, noteContext, fileContext) {
     throw new Error(err.error || `Server error ${response.status}`);
   }
   const data = await response.json();
-  const text = data?.response;
-  if (!text) throw new Error('Empty response from server');
-  return text;
+  if (!data?.response) throw new Error('Empty response from server');
+  return { text: data.response, sessionId: data.sessionId };
 }
 
 const WELCOME_MESSAGE = {
@@ -175,13 +176,131 @@ function ChatPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isTyping]);
 
-  const handleFileUpload = (e) => {
+  // Sidebar / conversation history
+  const [showSidebar, setShowSidebar]               = useState(false);
+  const [savedConversations, setSavedConversations] = useState([]);
+  const [currentSessionId, setCurrentSessionId]     = useState(null);
+
+  const [isUploadingFile, setIsUploadingFile] = useState(false);
+
+  const loadConversations = async () => {
+    try {
+      const resp = await fetch(`${API_BASE}/api/chat/conversations`, { credentials: 'include' });
+      if (resp.ok) {
+        const data = await resp.json();
+        setSavedConversations(data.conversations || []);
+      }
+    } catch (e) {
+      console.warn('[ChatPage] load conversations failed:', e);
+    }
+  };
+
+  const openSidebar = () => {
+    loadConversations();
+    setShowSidebar(true);
+  };
+
+  const loadConversation = async (sid) => {
+    try {
+      const resp = await fetch(`${API_BASE}/api/chat/conversations/${sid}`, { credentials: 'include' });
+      if (resp.ok) {
+        const data = await resp.json();
+        const msgs = (data.messages || []).map((m, i) => ({
+          id: `${sid}-${i}`,
+          role: m.role === 'user' ? 'user' : 'ai',
+          text: m.text,
+          timestamp: new Date(m.timestamp),
+        }));
+        setMessages([WELCOME_MESSAGE, ...msgs]);
+        setCurrentSessionId(sid);
+        setShowSidebar(false);
+        setSelectedNote(null);
+        setFileContext(null);
+        setFileName('');
+      }
+    } catch (e) {
+      console.warn('[ChatPage] load conversation failed:', e);
+    }
+  };
+
+  const handleDeleteConversation = async (e, sid) => {
+    e.stopPropagation();
+    if (!window.confirm('Delete this conversation? This cannot be undone.')) return;
+    try {
+      await fetch(`${API_BASE}/api/chat/conversations/${sid}`, { method: 'DELETE', credentials: 'include' });
+      if (sid === currentSessionId) {
+        setMessages([{ ...WELCOME_MESSAGE, timestamp: new Date() }]);
+        setCurrentSessionId(null);
+      }
+      await loadConversations();
+    } catch (e) {
+      console.warn('[ChatPage] delete conversation failed:', e);
+    }
+  };
+
+  const handleFileUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
+    // Reset input so same file can be re-selected
+    e.target.value = '';
+
+    const ext = file.name.split('.').pop().toLowerCase();
+    const textTypes = ['txt', 'md', 'csv'];
+
+    if (textTypes.includes(ext)) {
+      // Plain text — read directly in browser
+      setFileName(file.name);
+      const reader = new FileReader();
+      reader.onload = (ev) => setFileContext(ev.target.result);
+      reader.readAsText(file);
+      return;
+    }
+
+    // PDF / DOCX — send to backend for extraction
+    if (!['pdf', 'docx', 'doc'].includes(ext)) {
+      alert('Supported file types: .txt, .md, .pdf, .docx');
+      return;
+    }
+
+    setIsUploadingFile(true);
     setFileName(file.name);
-    const reader = new FileReader();
-    reader.onload = (ev) => setFileContext(ev.target.result);
-    reader.readAsText(file);
+
+    try {
+      const formData = new FormData();
+      // Re-use the notes upload endpoint just for text extraction
+      // We pass a dummy courseId; the backend extracts text and returns content
+      formData.append('file', file);
+      formData.append('courseId', '0');        // backend validates ownership but we only need the text
+      formData.append('title', file.name);
+      formData.append('extractOnly', 'true');  // hint to backend (won't break if ignored)
+
+      const response = await fetch(`${API_BASE}/api/chat/extract-file`, {
+        method: 'POST',
+        credentials: 'include',
+        body: formData,
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setFileContext(data.text || '');
+        if (!data.text) {
+          alert('Could not extract text from this file. Try copy-pasting the content instead.');
+          setFileName('');
+        }
+      } else {
+        // Fallback: guide user to use note dropdown instead
+        setFileName('');
+        setFileContext(null);
+        alert(`Could not process "${file.name}".\n\nTip: Upload this file as a note first, then select it from the note dropdown above to chat about it.`);
+      }
+    } catch (err) {
+      console.error('[ChatPage] file extract error:', err);
+      setFileName('');
+      setFileContext(null);
+      alert('Upload failed. Try uploading this file as a note, then select it from the note dropdown above.');
+    } finally {
+      setIsUploadingFile(false);
+    }
   };
 
   const handleSend = async () => {
@@ -198,7 +317,12 @@ function ChatPage() {
       const noteContext = selectedNote
         ? { noteID: selectedNote.noteID, title: selectedNote.title, content: selectedNote.content }
         : null;
-      const aiText = await sendChatMessage(text, messages, noteContext, fileContext);
+      // First message in a new session → auto-title from text
+      const convTitle = currentSessionId ? null : text.slice(0, 60) + (text.length > 60 ? '…' : '');
+      const { text: aiText, sessionId: newSid } = await sendChatMessage(
+        text, messages, noteContext, fileContext, currentSessionId, convTitle
+      );
+      if (!currentSessionId && newSid) setCurrentSessionId(newSid);
       setMessages(prev => [...prev, { id: Date.now() + 1, role: 'ai', text: aiText, timestamp: new Date() }]);
     } catch (err) {
       console.warn('[ChatPage] AI request failed:', err.message);
@@ -226,6 +350,7 @@ function ChatPage() {
     const confirmed = window.confirm('Clear this conversation?\n\nYour chat history will be deleted and a new conversation will start.');
     if (!confirmed) return;
     setMessages([{ ...WELCOME_MESSAGE, timestamp: new Date() }]);
+    setCurrentSessionId(null);
     chatAPI.clearHistory();
   };
 
@@ -263,11 +388,76 @@ function ChatPage() {
     <>
     <div className="chat-container">
 
+      {/* ── Sidebar overlay ── */}
+      {showSidebar && (
+        <div className="chat-sidebar-overlay" onClick={() => setShowSidebar(false)}>
+          <div className="chat-sidebar" onClick={e => e.stopPropagation()}>
+            <div className="chat-sidebar-header">
+              <span className="chat-sidebar-title">💬 Chat History</span>
+              <button className="chat-sidebar-close" onClick={() => setShowSidebar(false)}>
+                <IoMdClose size={22} />
+              </button>
+            </div>
+
+            <button
+              className="new-chat-btn"
+              onClick={() => {
+                setMessages([{ ...WELCOME_MESSAGE, timestamp: new Date() }]);
+                setCurrentSessionId(null);
+                setSelectedNote(null);
+                setFileContext(null);
+                setFileName('');
+                setShowSidebar(false);
+              }}
+            >
+              + New Chat
+            </button>
+
+            <div className="conv-list">
+              {savedConversations.length === 0 ? (
+                <div className="conv-empty">No saved conversations yet.</div>
+              ) : (
+                savedConversations.map(conv => (
+                  <div
+                    key={conv.sessionId}
+                    className={`conversation-item ${conv.sessionId === currentSessionId ? 'conv-active' : ''}`}
+                    onClick={() => loadConversation(conv.sessionId)}
+                  >
+                    <div className="conv-info">
+                      <span className="conv-title">{conv.title}</span>
+                      {conv.noteTitle && (
+                        <span className="conv-note-tag">📝 {conv.noteTitle}</span>
+                      )}
+                      <span className="conv-meta">
+                        {conv.messageCount} msg{conv.messageCount !== 1 ? 's' : ''}
+                        {conv.lastMessageAt ? ` · ${new Date(conv.lastMessageAt).toLocaleDateString()}` : ''}
+                      </span>
+                    </div>
+                    <button
+                      className="conv-delete"
+                      title="Delete conversation"
+                      onClick={e => handleDeleteConversation(e, conv.sessionId)}
+                    >
+                      <IoMdTrash size={16} />
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Navbar ── */}
       <div className="chat-navbar">
-        <button className="chat-nav-btn" onClick={() => navigate('/dashboard')}>
-          <MdArrowBack size={26} />
-        </button>
+        <div className="chat-nav-left">
+          <button className="chat-nav-btn" onClick={openSidebar} title="Chat history">
+            <IoMdMenu size={24} />
+          </button>
+          <button className="chat-nav-btn" onClick={() => navigate('/dashboard')} title="Back to dashboard">
+            <MdArrowBack size={24} />
+          </button>
+        </div>
 
         <div className="chat-nav-center">
           <div className="chat-nav-avatar">
@@ -280,9 +470,6 @@ function ChatPage() {
         </div>
 
         <div className="chat-nav-actions">
-          <button className="chat-nav-btn" onClick={saveChat} title="About saved chats">
-            <IoMdBookmark size={20} />
-          </button>
           <button className="chat-nav-btn" onClick={clearChat} title="Clear chat">
             <MdDeleteSweep size={22} />
           </button>
@@ -402,9 +589,11 @@ function ChatPage() {
       <div className="chat-input-area">
         {fileName && (
           <div className="chat-file-chip">
-            <IoMdAttach size={14} />
-            <span>{fileName.length > 28 ? fileName.slice(0, 28) + '…' : fileName}</span>
-            <button className="chat-file-chip-remove" onClick={() => { setFileContext(null); setFileName(''); }}>✕</button>
+            {isUploadingFile ? <span className="chip-spinner" /> : <IoMdAttach size={14} />}
+            <span>{isUploadingFile ? 'Extracting text…' : (fileName.length > 32 ? fileName.slice(0, 32) + '…' : fileName)}</span>
+            {!isUploadingFile && (
+              <button className="chat-file-chip-remove" onClick={() => { setFileContext(null); setFileName(''); }}>✕</button>
+            )}
           </div>
         )}
 
