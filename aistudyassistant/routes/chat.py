@@ -1,21 +1,22 @@
 import os
+import uuid
 
 import google.generativeai as genai
 from flask import Blueprint, request, session
+from sqlalchemy import func, desc
 
 from aistudyassistant.extensions import db
 from aistudyassistant.models.chat_history import ChatHistory
+from aistudyassistant.services.text_extractor import extract_text_from_file
 
 chat_bp = Blueprint("chat", __name__)
 
-# Configure Gemini once at import time.  Key lives only in the server env.
 _GEMINI_KEY = os.getenv("GEMINI_API_KEY", "")
 if _GEMINI_KEY:
     genai.configure(api_key=_GEMINI_KEY)
 
 _MODEL_NAME = "gemini-2.5-flash"
 
-# System prompt shared by all chat surfaces
 _BASE_SYSTEM = (
     "You are a helpful AI Study Assistant for a student productivity app. "
     "Help students understand concepts, quiz them on their notes, suggest study "
@@ -30,28 +31,24 @@ def _current_user_id():
 
 
 def _build_system_prompt(note_context, file_context):
-    """Append optional note / file context to the base system prompt."""
     parts = [_BASE_SYSTEM]
     if note_context and note_context.get("title") and note_context.get("content"):
         parts.append(
             f'\n\nThe student is currently discussing a note titled '
             f'"{note_context["title"]}". '
-            f'Note content:\n\n{note_context["content"]}'
+            f'Note content:\n\n{note_context["content"][:3000]}'
         )
     if file_context:
-        parts.append(f"\n\nThe student has shared the following file content:\n\n{file_context}")
+        parts.append(f"\n\nThe student has shared the following file content:\n\n{file_context[:2000]}")
     return "".join(parts)
 
 
 def _build_gemini_history(history):
-    """
-    Convert the frontend message list to the format expected by the
-    google-generativeai SDK: list of Content dicts with role + parts.
-    The welcome message (id == 'welcome') is skipped.
-    """
     result = []
     for msg in history:
         if msg.get("id") == "welcome":
+            continue
+        if msg.get("role") == "system":
             continue
         role = "user" if msg.get("role") == "user" else "model"
         text = (msg.get("text") or "").strip()
@@ -61,72 +58,178 @@ def _build_gemini_history(history):
 
 
 # ── POST /api/chat ────────────────────────────────────────────────────────────
-# Accepts:
-#   message      (str, required)  — the user's latest message
-#   history      (list, optional) — previous turns [{role, text, id}, ...]
-#   noteContext  (obj, optional)  — {title, content}
-#   fileContext  (str, optional)  — raw text from an uploaded file
-#   noteId       (int, optional)  — FK for persistence
 @chat_bp.route("/api/chat", methods=["POST"])
 def chat_message():
     user_id = _current_user_id()
     if not user_id:
         return {"error": "Authentication required"}, 401
 
-    data         = request.get_json() or {}
-    message      = (data.get("message") or "").strip()
-    history      = data.get("history") or []
-    note_context = data.get("noteContext")   # {title, content} or None
-    file_context = data.get("fileContext")   # str or None
-    note_id      = data.get("noteId")        # int or None
+    data               = request.get_json() or {}
+    message            = (data.get("message") or "").strip()
+    history            = data.get("history") or []
+    note_context       = data.get("noteContext")
+    file_context       = data.get("fileContext")
+    note_id            = data.get("noteId")
+    session_id         = data.get("sessionId") or str(uuid.uuid4())
+    conversation_title = data.get("conversationTitle") or ""
 
     if not message:
         return {"error": "message is required"}, 400
 
-    # ── Call Gemini ──────────────────────────────────────────────────────────
+    # Auto-generate title from first message if none provided
+    if not conversation_title:
+        conversation_title = message[:60] + ("…" if len(message) > 60 else "")
+
     ai_response = ""
     if not _GEMINI_KEY:
-        ai_response = (
-            "AI is not configured on this server. "
-            "Please ask the administrator to set GEMINI_API_KEY."
-        )
+        ai_response = "AI is not configured on this server. Please set GEMINI_API_KEY."
     else:
         try:
-            system_prompt = _build_system_prompt(note_context, file_context)
+            system_prompt  = _build_system_prompt(note_context, file_context)
             gemini_history = _build_gemini_history(history)
 
             model = genai.GenerativeModel(
                 model_name=_MODEL_NAME,
                 system_instruction=system_prompt,
-                generation_config=genai.GenerationConfig(
-                    temperature=0.7,
-                    max_output_tokens=600,
-                ),
+                generation_config=genai.GenerationConfig(temperature=0.7, max_output_tokens=600),
             )
 
             chat_session = model.start_chat(history=gemini_history)
-            result = chat_session.send_message(message)
-            ai_response = result.text or ""
+            result       = chat_session.send_message(message)
+            ai_response  = result.text or ""
         except Exception as exc:
             print(f"[chat] Gemini error: {exc}")
             return {"error": "AI service unavailable. Please try again shortly."}, 503
 
-    # ── Persist the exchange ─────────────────────────────────────────────────
     try:
         entry = ChatHistory(
             UserID=user_id,
             NoteID=int(note_id) if note_id else None,
             Message=message,
             Response=ai_response,
+            SessionID=session_id,
+            ConversationTitle=conversation_title,
         )
         db.session.add(entry)
         db.session.commit()
     except Exception as exc:
         db.session.rollback()
         print(f"[chat] DB persist error: {exc}")
-        # Non-fatal — still return the AI response even if DB write fails
 
-    return {"response": ai_response}, 200
+    return {"response": ai_response, "sessionId": session_id}, 200
+
+
+# ── POST /api/chat/extract-file ───────────────────────────────────────────────
+@chat_bp.route("/api/chat/extract-file", methods=["POST"])
+def extract_file_for_chat():
+    user_id = _current_user_id()
+    if not user_id:
+        return {"error": "Authentication required"}, 401
+
+    file = request.files.get("file")
+    if not file or not file.filename:
+        return {"error": "No file provided"}, 400
+
+    filename = file.filename
+    ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else "txt"
+
+    try:
+        text = extract_text_from_file(file, ext)
+        if not text or not text.strip():
+            return {"error": "Could not extract text from file"}, 422
+        return {"text": text[:8000], "fileName": filename}, 200
+    except Exception as exc:
+        print(f"[chat/extract-file] error: {exc}")
+        return {"error": str(exc)}, 500
+
+
+# ── GET /api/chat/conversations ───────────────────────────────────────────────
+@chat_bp.route("/api/chat/conversations", methods=["GET"])
+def get_conversations():
+    user_id = _current_user_id()
+    if not user_id:
+        return {"error": "Authentication required"}, 401
+
+    try:
+        rows = (
+            db.session.query(
+                ChatHistory.SessionID,
+                ChatHistory.ConversationTitle,
+                ChatHistory.NoteID,
+                func.max(ChatHistory.CreatedAt).label("last_at"),
+                func.count(ChatHistory.ChatID).label("msg_count"),
+            )
+            .filter(
+                ChatHistory.UserID == user_id,
+                ChatHistory.SessionID.isnot(None),
+            )
+            .group_by(ChatHistory.SessionID, ChatHistory.ConversationTitle, ChatHistory.NoteID)
+            .order_by(desc("last_at"))
+            .limit(50)
+            .all()
+        )
+    except Exception as exc:
+        print(f"[chat/conversations] query error: {exc}")
+        return {"conversations": []}, 200  # graceful fallback if columns don't exist yet
+
+    result = []
+    for r in rows:
+        note_title = None
+        if r.NoteID:
+            try:
+                from aistudyassistant.models.note import Note
+                note = Note.query.get(r.NoteID)
+                note_title = note.Title if note else None
+            except Exception:
+                pass
+
+        result.append({
+            "sessionId":    r.SessionID,
+            "title":        r.ConversationTitle or "Untitled Chat",
+            "noteTitle":    note_title,
+            "lastMessageAt": r.last_at.isoformat() if r.last_at else None,
+            "messageCount": r.msg_count,
+        })
+
+    return {"conversations": result}, 200
+
+
+# ── GET /api/chat/conversations/<session_id> ──────────────────────────────────
+@chat_bp.route("/api/chat/conversations/<session_id>", methods=["GET"])
+def get_conversation(session_id):
+    user_id = _current_user_id()
+    if not user_id:
+        return {"error": "Authentication required"}, 401
+
+    rows = (
+        ChatHistory.query
+        .filter_by(UserID=user_id, SessionID=session_id)
+        .order_by(ChatHistory.CreatedAt.asc())
+        .all()
+    )
+
+    messages = []
+    for h in rows:
+        messages.append({"role": "user", "text": h.Message,  "timestamp": h.CreatedAt.isoformat()})
+        messages.append({"role": "ai",   "text": h.Response, "timestamp": h.CreatedAt.isoformat()})
+
+    return {"messages": messages, "sessionId": session_id}, 200
+
+
+# ── DELETE /api/chat/conversations/<session_id> ───────────────────────────────
+@chat_bp.route("/api/chat/conversations/<session_id>", methods=["DELETE"])
+def delete_conversation(session_id):
+    user_id = _current_user_id()
+    if not user_id:
+        return {"error": "Authentication required"}, 401
+
+    try:
+        ChatHistory.query.filter_by(UserID=user_id, SessionID=session_id).delete()
+        db.session.commit()
+        return {"message": "Conversation deleted"}, 200
+    except Exception as exc:
+        db.session.rollback()
+        return {"error": str(exc)}, 500
 
 
 # ── GET /api/chat/history ─────────────────────────────────────────────────────
@@ -143,11 +246,7 @@ def get_chat_history():
     if note_id:
         query = query.filter_by(NoteID=note_id)
 
-    rows = (
-        query.order_by(ChatHistory.CreatedAt.desc())
-        .limit(limit)
-        .all()
-    )
+    rows = query.order_by(ChatHistory.CreatedAt.desc()).limit(limit).all()
 
     return {
         "history": [
@@ -156,6 +255,7 @@ def get_chat_history():
                 "message":   h.Message,
                 "response":  h.Response,
                 "noteID":    h.NoteID,
+                "sessionId": h.SessionID,
                 "createdAt": h.CreatedAt.isoformat(),
             }
             for h in rows
