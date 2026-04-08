@@ -15,3 +15,4 @@ class ChatHistory(db.Model):
     # Conversation grouping (added for sidebar history feature)
     SessionID         = db.Column(db.String(100), nullable=True, index=True)
     ConversationTitle = db.Column(db.String(255), nullable=True)
+    CourseID          = db.Column(db.Integer,     nullable=True)
