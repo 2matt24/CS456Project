@@ -1,10 +1,10 @@
-
-
 from __future__ import annotations
 
 import json
 import os
-from typing import Any, Optional
+import re
+from collections import Counter
+from typing import Optional
 from urllib import error, request
 
 
@@ -29,13 +29,10 @@ class N8NClient:
             raise SummarizationError("content is required")
 
         if not self.webhook_url:
-            raise SummarizationError(
-                "Summarizer is not configured. Set N8N_SUMMARIZER_WEBHOOK_URL."
-            )
+            return _fallback_summary(text, max_sentences)
 
         payload = {
             "content": text,
-            "text": text,
             "maxSentences": max_sentences,
             "provider": "gemini",
             "task": "summarize_notes",
@@ -48,7 +45,7 @@ class N8NClient:
         req = request.Request(
             self.webhook_url,
             data=json.dumps(payload).encode("utf-8"),
-            headers={**headers, "Accept": "application/json, text/plain"},
+            headers=headers,
             method="POST",
         )
 
@@ -67,14 +64,10 @@ class N8NClient:
         if status < 200 or status >= 300:
             raise SummarizationError(f"n8n webhook returned status {status}")
 
-        if not body or not body.strip():
-            raise SummarizationError("n8n webhook returned an empty response")
-
         try:
-            payload = json.loads(body)
-        except json.JSONDecodeError:
-            # Some workflows return plain text rather than JSON.
-            return body.strip()
+            payload = json.loads(body) if body else {}
+        except json.JSONDecodeError as exc:
+            raise SummarizationError("n8n webhook returned non-JSON response") from exc
 
         summary = _extract_summary(payload)
         if not summary:
@@ -83,40 +76,52 @@ class N8NClient:
         return summary
 
 
-def _extract_summary(payload: Any) -> Optional[str]:
-    """Accept common n8n response formats and extract summary text."""
-
-    if isinstance(payload, str) and payload.strip():
-        return payload.strip()
-
-    if isinstance(payload, list):
-        for item in payload:
-            nested_summary = _extract_summary(item)
-            if nested_summary:
-                return nested_summary
-        return None
-
+def _extract_summary(payload: dict) -> Optional[str]:
     if not isinstance(payload, dict):
         return None
 
-    for key in ("summary", "content", "text", "output", "message", "response"):
-        value = payload.get(key)
-        if isinstance(value, str) and value.strip():
-            return value.strip()
+    summary = payload.get("summary")
+    if isinstance(summary, str) and summary.strip():
+        return summary.strip()
 
-    for key in ("data", "result", "body", "json", "message"):
-        nested_summary = _extract_summary(payload.get(key))
-        if nested_summary:
-            return nested_summary
+    content = payload.get("content")
+    if isinstance(content, str) and content.strip():
+        return content.strip()
 
-    if "choices" in payload and isinstance(payload["choices"], list):
-        nested_summary = _extract_summary(payload["choices"])
-        if nested_summary:
-            return nested_summary
+    data = payload.get("data")
+    if isinstance(data, dict):
+        nested = data.get("summary")
+        if isinstance(nested, str) and nested.strip():
+            return nested.strip()
 
     return None
 
+
+def _fallback_summary(text: str, max_sentences: int) -> str:
+    cleaned = re.sub(r"\s+", " ", text).strip()
+    sentences = [s.strip() for s in re.split(r"(?<=[.!?])\s+", cleaned) if s.strip()]
+    if not sentences:
+        return cleaned[:500]
+    if len(sentences) <= max_sentences:
+        return " ".join(sentences)
+
+    words = re.findall(r"[A-Za-z']+", cleaned.lower())
+    stopwords = {
+        'the','a','an','and','or','but','if','then','than','for','from','to','of','in','on','at','by','with','is','are','was','were','be','been','being','it','this','that','these','those','as','into','about','over','after','before','during','through','between','we','you','they','he','she','i','my','our','your','their'
+    }
+    freq = Counter(word for word in words if len(word) > 2 and word not in stopwords)
+    ranked = []
+    for idx, sentence in enumerate(sentences):
+        sentence_words = re.findall(r"[A-Za-z']+", sentence.lower())
+        score = sum(freq[word] for word in sentence_words)
+        ranked.append((score, idx, sentence))
+    best = sorted(ranked, key=lambda item: (-item[0], item[1]))[:max_sentences]
+    ordered = [sentence for _, _, sentence in sorted(best, key=lambda item: item[1])]
+    return " ".join(ordered)
+
+
 _client = N8NClient()
+
 
 def summarize_text(text: str, max_sentences: int = 3) -> str:
     return _client.summarize_text(text, max_sentences)

@@ -1,15 +1,19 @@
-from flask import Blueprint, request, session
+from flask import Blueprint, request
 from datetime import datetime, timedelta, timezone
 from aistudyassistant.extensions import db
 from aistudyassistant.models.course import Course
 from aistudyassistant.models.study_session import StudySession
-
+from aistudyassistant.models.notification import Notification
+from aistudyassistant.routes.notifications import create_notification_for_user
 
 study_sessions_bp = Blueprint("study_sessions", __name__)
 
 
+from aistudyassistant.services.auth_tokens import get_authenticated_user_id
+
+
 def _current_user_id():
-    return session.get("user_id")
+    return get_authenticated_user_id()
 
 
 def _serialize_study_session(study_session: StudySession):
@@ -91,6 +95,16 @@ def create_study_session():
     )
 
     db.session.add(study_session)
+
+    if session_type == "study":
+        create_notification_for_user(
+            user_id=user_id,
+            title="Study session completed",
+            message=f"Great work! You completed a {duration_minutes}-minute study session for {owned_course.CourseName}.",
+            ntype="achievement",
+        )
+
+
     db.session.commit()
 
     return {
@@ -129,6 +143,31 @@ def get_weekly_stats():
     
     # Weekly goal (can be configurable per user/course later)
     weekly_goal = 10  # 10 hours per week
+
+    existing_weekly_reminder = (
+        Notification.query
+        .filter(
+            Notification.UserID == user_id,
+            Notification.Type == "weekly_report_reminder",
+            Notification.CreatedAt >= start_of_week
+        )
+        .first()
+    )
+
+    if not existing_weekly_reminder:
+        goal_remaining = max(0, round(weekly_goal - total_hours, 1))
+        reminder_message = (
+            f"Weekly report: you're at {total_hours}/{weekly_goal} hours this week."
+            if goal_remaining == 0
+            else f"Weekly report: {goal_remaining} more hour(s) to reach your {weekly_goal}-hour goal."
+        )
+        create_notification_for_user(
+            user_id=user_id,
+            title="Weekly report reminder",
+            message=reminder_message,
+            ntype="weekly_report_reminder",
+        )
+        db.session.commit()
     
     return {
         "hoursThisWeek": total_hours,

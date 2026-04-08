@@ -85,6 +85,10 @@ export default function ProfilePage() {
   const [fetchError, setFetchError] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
+  /* ── profile picture ── */
+  const [profilePicture, setProfilePicture]   = useState(null);
+  const [isUploadingPic, setIsUploadingPic]   = useState(false);
+
   /* ── edit mode ── */
   const [isEditing, setIsEditing]     = useState(false);
   const [form, setForm]               = useState({
@@ -136,6 +140,7 @@ export default function ProfilePage() {
 
       const u = data.user;
       setUser(u);
+      setProfilePicture(u.profilePicture || null);
       populateForm(u);
     } catch (err) {
       console.error('[ProfilePage] Network error:', err);
@@ -232,6 +237,47 @@ export default function ProfilePage() {
     }
   };
 
+  /* ── profile picture upload ── */
+  const handleProfilePictureUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setProfileMsg({ text: 'Please upload an image file (JPG, PNG, GIF)', type: 'error' });
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setProfileMsg({ text: 'Image must be smaller than 5MB', type: 'error' });
+      return;
+    }
+
+    setIsUploadingPic(true);
+    try {
+      const formData = new FormData();
+      formData.append('profilePicture', file);
+
+      const response = await fetch(`${API_BASE}/api/user/me/profile-picture`, {
+        method: 'POST',
+        credentials: 'include',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Upload failed');
+      }
+
+      const data = await response.json();
+      setProfilePicture(data.profilePictureUrl);
+      setUser(prev => ({ ...prev, profilePicture: data.profilePictureUrl }));
+      setProfileMsg({ text: '✓ Profile picture updated!', type: 'success' });
+    } catch (error) {
+      setProfileMsg({ text: error.message || 'Failed to upload picture', type: 'error' });
+    } finally {
+      setIsUploadingPic(false);
+    }
+  };
+
   /* ── derived ── */
   const fullName = user
     ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Your Name'
@@ -281,14 +327,37 @@ export default function ProfilePage() {
 
       {/* ── Hero header ── */}
       <div className="profile-hero">
-        <div className="profile-avatar">
-          {(user?.firstName || user?.lastName) ? (
+        <div className="profile-avatar" style={{ position: 'relative' }}>
+          {profilePicture ? (
+            <img
+              src={profilePicture}
+              alt="Profile"
+              style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
+            />
+          ) : (user?.firstName || user?.lastName) ? (
             <span className="profile-initials">
               {getInitials(user.firstName, user.lastName)}
             </span>
           ) : (
             <FaUserCircle size={52} color="rgba(255,255,255,0.85)" />
           )}
+
+          <label
+            className={`profile-pic-upload-btn${isUploadingPic ? ' uploading' : ''}`}
+            title="Change profile picture"
+          >
+            {isUploadingPic
+              ? <span className="btn-spinner" style={{ width: 12, height: 12, borderWidth: 2 }} />
+              : <MdEdit size={14} color="white" />
+            }
+            <input
+              type="file"
+              accept="image/*"
+              style={{ display: 'none' }}
+              onChange={handleProfilePictureUpload}
+              disabled={isUploadingPic}
+            />
+          </label>
         </div>
         <h2 className="profile-hero-name">{fullName}</h2>
         <p className="profile-hero-email">{user?.email || 'No email set'}</p>

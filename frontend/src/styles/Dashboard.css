@@ -162,6 +162,28 @@
   font-weight: 500;
   font-style: italic;
   line-height: 1.35;
+  flex: 1;
+}
+
+.quote-refresh-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 12px;
+  opacity: 0.55;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: opacity 0.2s ease, transform 0.3s ease;
+  flex-shrink: 0;
+  line-height: 1;
+}
+.quote-refresh-btn:hover:not(:disabled) {
+  opacity: 1;
+  transform: rotate(180deg);
+}
+.quote-refresh-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.25;
 }
 
 /* ══════════════════════════════════════
@@ -219,6 +241,40 @@
   max-width: 100%;
   overflow-x: hidden;
   box-sizing: border-box;
+}
+
+.dash-course-wrap {
+  position: relative;
+}
+
+.dash-course-actions {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  display: flex;
+  gap: 6px;
+  z-index: 5;
+}
+
+.dash-course-action-btn {
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: white;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.22);
+}
+
+.dash-course-action-btn.edit {
+  background: rgba(102, 126, 234, 0.95);
+}
+
+.dash-course-action-btn.delete {
+  background: rgba(255, 107, 107, 0.95);
 }
 
 /* ══════════════════════════════════════

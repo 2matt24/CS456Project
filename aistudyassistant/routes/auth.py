@@ -6,7 +6,12 @@
 #references: https://www.geeksforgeeks.org/python/how-to-hash-passwords-in-python/   || https://www.geeksforgeeks.org/python/sqlalchemy-tutorial/
 #referecing http status codes: https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status
 #reference: jwt structure: https://www.geeksforgeeks.org/web-tech/json-web-token-jwt/
+import io
+import os
+import uuid
+
 from flask import Blueprint, request, jsonify, session
+from werkzeug.utils import secure_filename
 
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -119,13 +124,14 @@ def get_current_user():
 
     return {
         "user": {
-            "id": user.UserID,
-            "email": user.Email,
-            "firstName": user.FirstName,
-            "lastName": user.LastName,
-            "phone": user.Phone,
-            "bio": user.Bio,
-            "createdAt": user.CreatedAt.isoformat() if user.CreatedAt else None
+            "id":             user.UserID,
+            "email":          user.Email,
+            "firstName":      user.FirstName,
+            "lastName":       user.LastName,
+            "phone":          user.Phone,
+            "bio":            user.Bio,
+            "profilePicture": user.ProfilePicture,
+            "createdAt":      user.CreatedAt.isoformat() if user.CreatedAt else None,
         }
     }, 200
 
@@ -215,3 +221,52 @@ def change_password():
     db.session.commit()
 
     return {"message": "Password changed successfully"}, 200
+
+
+#--------- UPLOAD PROFILE PICTURE -----
+@auth_bp.route("/api/user/me/profile-picture", methods=["POST"])
+def upload_profile_picture():
+    user_id = session.get("user_id")
+    if not user_id:
+        return {"error": "Not authenticated"}, 401
+
+    file = request.files.get("profilePicture")
+    if not file or not file.filename:
+        return {"error": "No file provided"}, 400
+
+    # Validate MIME type
+    allowed_types = {"image/jpeg", "image/png", "image/gif", "image/webp"}
+    if file.mimetype not in allowed_types:
+        return {"error": "Only JPG, PNG, GIF, and WEBP images are allowed"}, 415
+
+    # Read bytes and validate size (5 MB limit)
+    file_bytes = file.read()
+    if len(file_bytes) > 5 * 1024 * 1024:
+        return {"error": "Image must be smaller than 5 MB"}, 413
+
+    # Upload to Azure Blob Storage
+    conn_str = os.getenv("AZURE_STORAGE_CONNECTION_STRING")
+    if not conn_str:
+        return {"error": "Storage service not configured"}, 503
+
+    try:
+        from azure.storage.blob import BlobServiceClient
+        safe_name  = secure_filename(file.filename)
+        blob_name  = f"profiles/{user_id}/{uuid.uuid4()}_{safe_name}"
+        blob_svc   = BlobServiceClient.from_connection_string(conn_str)
+        blob_client = blob_svc.get_blob_client(container="notes-files", blob=blob_name)
+        blob_client.upload_blob(io.BytesIO(file_bytes), overwrite=True)
+        file_url = blob_client.url
+    except Exception as exc:
+        print(f"[profile-picture] Azure upload error: {exc}")
+        return {"error": "Failed to upload image. Please try again."}, 500
+
+    # Persist URL on the User record
+    user = User.query.get(user_id)
+    if not user:
+        return {"error": "User not found"}, 404
+
+    user.ProfilePicture = file_url
+    db.session.commit()
+
+    return {"profilePictureUrl": file_url}, 200

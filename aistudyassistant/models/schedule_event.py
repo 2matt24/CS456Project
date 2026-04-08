@@ -22,6 +22,11 @@ class ScheduleEvent(db.Model):
     CreatedAt = db.Column(db.DateTime,     default=lambda: datetime.now(timezone.utc))
     UpdatedAt = db.Column(db.DateTime,     default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
+    # Original uploaded schedule file reference
+    UploadedFileName = db.Column(db.Unicode(255), nullable=True)
+    UploadedFileUrl  = db.Column(db.Unicode(500), nullable=True)
+    UploadedFileType = db.Column(db.String(50),   nullable=True)
+
     # ── helpers
 
     def get_days(self):

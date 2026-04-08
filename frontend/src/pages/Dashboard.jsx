@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { IoMdAdd, IoMdNotifications, IoMdPower } from 'react-icons/io';
 import { MdCalendarToday, MdHome, MdChat, MdSettings, MdMenuBook } from 'react-icons/md';
+import { MdEdit, MdDelete } from 'react-icons/md';
 import { FaUserCircle } from 'react-icons/fa';
 import CourseCard from '../components/CourseCard';
 import AddModal from '../components/AddModal';
@@ -22,13 +23,17 @@ function formatDate() {
   });
 }
 
-const FALLBACK_QUOTES = [
-  'Every expert was once a beginner.',
-  'Small steps every day lead to big results.',
-  'Consistency beats perfection every time.',
-  'Knowledge is the best investment you can make.',
-  'One note at a time, one concept at a time.',
-];
+const QUOTE_CACHE_KEY  = 'dashboard_quote';
+const QUOTE_CACHE_TIME = 'quote_timestamp';
+const CACHE_DURATION   = 60 * 60 * 1000; // 1 hour
+
+async function fetchAIQuote() {
+  const r = await fetch('https://cs456project.onrender.com/api/dashboard/quote', {
+    credentials: 'include',
+  });
+  const data = await r.json();
+  return data?.quote || 'Every expert was once a beginner.';
+}
 
 function Dashboard() {
   const navigate = useNavigate();
@@ -39,20 +44,45 @@ function Dashboard() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [firstName, setFirstName]       = useState('');
   const [unreadCount, setUnreadCount]   = useState(0);
-  const [quote, setQuote]               = useState(
-    () => FALLBACK_QUOTES[Math.floor(Math.random() * FALLBACK_QUOTES.length)]
-  );
+  const [quote, setQuote]               = useState('Loading inspiration…');
+  const [isRefreshingQuote, setIsRefreshingQuote] = useState(false);
 
   useEffect(() => {
     loadCourses();
     loadUser();
     notificationsAPI.getUnreadCount().then(setUnreadCount).catch(() => {});
-    // Fetch a motivational quote from DummyJSON (free, no key, CORS-friendly)
-    fetch('https://dummyjson.com/quotes/random')
-      .then(r => r.json())
-      .then(data => { if (data?.quote) setQuote(data.quote); })
-      .catch(() => {}); // silently use fallback if offline
+
+    // Load quote — serve from 1-hour localStorage cache, refresh via AI otherwise
+    const cachedQuote = localStorage.getItem(QUOTE_CACHE_KEY);
+    const cacheTime   = localStorage.getItem(QUOTE_CACHE_TIME);
+    const isCacheValid = cacheTime && (Date.now() - parseInt(cacheTime)) < CACHE_DURATION;
+
+    if (isCacheValid && cachedQuote) {
+      setQuote(cachedQuote);
+    } else {
+      fetchAIQuote()
+        .then(q => {
+          setQuote(q);
+          localStorage.setItem(QUOTE_CACHE_KEY, q);
+          localStorage.setItem(QUOTE_CACHE_TIME, Date.now().toString());
+        })
+        .catch(() => setQuote('Every expert was once a beginner.'));
+    }
   }, []);
+
+  const refreshQuote = async () => {
+    setIsRefreshingQuote(true);
+    try {
+      const q = await fetchAIQuote();
+      setQuote(q);
+      localStorage.setItem(QUOTE_CACHE_KEY, q);
+      localStorage.setItem(QUOTE_CACHE_TIME, Date.now().toString());
+    } catch {
+      // keep existing quote
+    } finally {
+      setIsRefreshingQuote(false);
+    }
+  };
 
   const handleLogout = async () => {
     try {
@@ -82,6 +112,22 @@ function Dashboard() {
       console.error('Load courses error:', err);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleEditCourse = (e, courseId) => {
+    e.stopPropagation();
+    navigate(`/courses/${courseId}/edit`);
+  };
+
+  const handleDeleteCourse = async (e, courseId) => {
+    e.stopPropagation();
+    if (!window.confirm('Delete this course and all of its notes/sessions? This cannot be undone.')) return;
+    try {
+      await coursesAPI.delete(courseId);
+      setCourses((prev) => prev.filter((course) => course.courseID !== courseId));
+    } catch (err) {
+      alert('Failed to delete course. Please try again.');
     }
   };
 
@@ -135,6 +181,14 @@ function Dashboard() {
             <div className="dash-stat-pill dash-stat-pill-wide">
               <MdMenuBook size={14} style={{ opacity: 0.8 }} />
               <span className="dash-stat-quote">{quote}</span>
+              <button
+                className="quote-refresh-btn"
+                onClick={refreshQuote}
+                disabled={isRefreshingQuote}
+                title="Get a new quote"
+              >
+                {isRefreshingQuote ? '⏳' : '🔄'}
+              </button>
             </div>
           </div>
         </div>
@@ -172,10 +226,25 @@ function Dashboard() {
 
           <div className="courses-grid">
             {courses.map(course => (
-              <CourseCard
-                key={course.courseID}
-                course={course}
-              />
+              <div key={course.courseID} className="dash-course-wrap">
+              <CourseCard course={course} />
+              <div className="dash-course-actions" onClick={(e) => e.stopPropagation()}>
+                <button
+                  className="dash-course-action-btn edit"
+                  onClick={(e) => handleEditCourse(e, course.courseID)}
+                  title="Edit course"
+                >
+                  <MdEdit size={16} />
+                </button>
+                <button
+                  className="dash-course-action-btn delete"
+                  onClick={(e) => handleDeleteCourse(e, course.courseID)}
+                  title="Delete course"
+                >
+                  <MdDelete size={16} />
+                </button>
+              </div>
+            </div>
             ))}
           </div>
         </div>

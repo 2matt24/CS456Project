@@ -20,6 +20,24 @@ def _serialize(n: Notification):
         "createdAt":      n.CreatedAt.isoformat(),
     }
 
+def create_notification_for_user(user_id, title, message, ntype="system"):
+    """Create and persist a notification for a specific user."""
+    clean_title = (title or "").strip()
+    clean_message = (message or "").strip()
+    clean_type = (ntype or "system").strip()
+
+    if not user_id or not clean_title or not clean_message:
+        return None
+
+    notif = Notification(
+        UserID=user_id,
+        Title=clean_title,
+        Message=clean_message,
+        Type=clean_type,
+    )
+    db.session.add(notif)
+    return notif
+
 
 # ── GET /api/notifications ────────────────────────────────────────────────────
 @notifications_bp.route("/api/notifications", methods=["GET"])
@@ -99,7 +117,11 @@ def create_notification():
     if not title or not message:
         return {"error": "title and message are required"}, 400
 
-    notif = Notification(UserID=user_id, Title=title, Message=message, Type=ntype)
-    db.session.add(notif)
+    
+    notif = create_notification_for_user(user_id, title, message, ntype)
+    if notif is None:
+        return {"error": "title and message are required"}, 400
     db.session.commit()
     return {"message": "Created", "notification": _serialize(notif)}, 201
+
+
