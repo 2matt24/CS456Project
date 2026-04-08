@@ -175,13 +175,71 @@ function ChatPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isTyping]);
 
-  const handleFileUpload = (e) => {
+  const [isUploadingFile, setIsUploadingFile] = useState(false);
+
+  const handleFileUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
+    // Reset input so same file can be re-selected
+    e.target.value = '';
+
+    const ext = file.name.split('.').pop().toLowerCase();
+    const textTypes = ['txt', 'md', 'csv'];
+
+    if (textTypes.includes(ext)) {
+      // Plain text — read directly in browser
+      setFileName(file.name);
+      const reader = new FileReader();
+      reader.onload = (ev) => setFileContext(ev.target.result);
+      reader.readAsText(file);
+      return;
+    }
+
+    // PDF / DOCX — send to backend for extraction
+    if (!['pdf', 'docx', 'doc'].includes(ext)) {
+      alert('Supported file types: .txt, .md, .pdf, .docx');
+      return;
+    }
+
+    setIsUploadingFile(true);
     setFileName(file.name);
-    const reader = new FileReader();
-    reader.onload = (ev) => setFileContext(ev.target.result);
-    reader.readAsText(file);
+
+    try {
+      const formData = new FormData();
+      // Re-use the notes upload endpoint just for text extraction
+      // We pass a dummy courseId; the backend extracts text and returns content
+      formData.append('file', file);
+      formData.append('courseId', '0');        // backend validates ownership but we only need the text
+      formData.append('title', file.name);
+      formData.append('extractOnly', 'true');  // hint to backend (won't break if ignored)
+
+      const response = await fetch(`${API_BASE}/api/chat/extract-file`, {
+        method: 'POST',
+        credentials: 'include',
+        body: formData,
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setFileContext(data.text || '');
+        if (!data.text) {
+          alert('Could not extract text from this file. Try copy-pasting the content instead.');
+          setFileName('');
+        }
+      } else {
+        // Fallback: guide user to use note dropdown instead
+        setFileName('');
+        setFileContext(null);
+        alert(`Could not process "${file.name}".\n\nTip: Upload this file as a note first, then select it from the note dropdown above to chat about it.`);
+      }
+    } catch (err) {
+      console.error('[ChatPage] file extract error:', err);
+      setFileName('');
+      setFileContext(null);
+      alert('Upload failed. Try uploading this file as a note, then select it from the note dropdown above.');
+    } finally {
+      setIsUploadingFile(false);
+    }
   };
 
   const handleSend = async () => {
@@ -402,9 +460,11 @@ function ChatPage() {
       <div className="chat-input-area">
         {fileName && (
           <div className="chat-file-chip">
-            <IoMdAttach size={14} />
-            <span>{fileName.length > 28 ? fileName.slice(0, 28) + '…' : fileName}</span>
-            <button className="chat-file-chip-remove" onClick={() => { setFileContext(null); setFileName(''); }}>✕</button>
+            {isUploadingFile ? <span className="chip-spinner" /> : <IoMdAttach size={14} />}
+            <span>{isUploadingFile ? 'Extracting text…' : (fileName.length > 32 ? fileName.slice(0, 32) + '…' : fileName)}</span>
+            {!isUploadingFile && (
+              <button className="chat-file-chip-remove" onClick={() => { setFileContext(null); setFileName(''); }}>✕</button>
+            )}
           </div>
         )}
 
