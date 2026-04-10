@@ -156,10 +156,20 @@ function ChatPage() {
       try {
         const history = await chatAPI.getHistory(40);
         if (history.length > 0) {
-          const reversed = [...history].reverse();
+          // Restore the most recent session so new messages continue it
+          const mostRecent = history[0]; // history is desc order
+          if (mostRecent?.sessionId) setCurrentSessionId(mostRecent.sessionId);
+
+          // Only show messages from the most recent session in the chat window
+          const recentSid = mostRecent?.sessionId;
+          const sessionHistory = recentSid
+            ? history.filter(h => h.sessionId === recentSid)
+            : history.slice(0, 10);
+
+          const reversed = [...sessionHistory].reverse();
           const histMsgs = [];
           reversed.forEach(h => {
-            histMsgs.push({ id: `hist-u-${h.chatID}`, role: 'user',  text: h.message,  timestamp: new Date(h.createdAt), fromHistory: true });
+            histMsgs.push({ id: `hist-u-${h.chatID}`, role: 'user', text: h.message, timestamp: new Date(h.createdAt), fromHistory: true });
             if (h.response) {
               histMsgs.push({ id: `hist-a-${h.chatID}`, role: 'ai', text: h.response, timestamp: new Date(h.createdAt), fromHistory: true });
             }
@@ -171,6 +181,9 @@ function ChatPage() {
       }
     })();
   }, []);
+
+  // Load conversations for sidebar on mount
+  useEffect(() => { loadConversations(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
