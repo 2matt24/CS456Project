@@ -5,7 +5,7 @@ import { MdCalendarToday, MdHome, MdChat, MdSettings, MdArrowBack, MdDeleteSweep
 import { RiRobot2Fill } from 'react-icons/ri';
 import { FaUserCircle } from 'react-icons/fa';
 import AddModal from '../components/AddModal';
-import { notesAPI, chatAPI } from '../services/api';
+import { chatAPI } from '../services/api';
 import '../styles/ChatPage.css';
 
 const API_BASE = 'https://cs456project.onrender.com';
@@ -60,7 +60,7 @@ function renderMarkdown(text) {
   return elements;
 }
 
-async function sendChatMessage(userMessage, history, noteContext, sessionId, conversationTitle) {
+async function sendChatMessage(userMessage, history, courseContext, sessionId, conversationTitle) {
   const response = await fetch(`${API_BASE}/api/chat`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -68,7 +68,7 @@ async function sendChatMessage(userMessage, history, noteContext, sessionId, con
     body: JSON.stringify({
       message:           userMessage,
       history:           history.filter(m => m.id !== 'welcome' && m.role !== 'system'),
-      noteContext:       noteContext ? { noteID: noteContext.noteID, title: noteContext.title, content: noteContext.content } : null,
+      courseContext:     courseContext || null,
       sessionId:         sessionId || null,
       conversationTitle: conversationTitle || null,
     }),
@@ -113,38 +113,29 @@ function ChatPage() {
   const [isTyping, setIsTyping]   = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
-  // Courses + notes for context selector
-  const [allCourses, setAllCourses]         = useState([]);
-  const [allNotes, setAllNotes]             = useState([]);
-  const [selectedCourseId, setSelectedCourseId] = useState('');
-  const [selectedNote, setSelectedNote]     = useState(null);
+  // Courses for context selector
+  const [allCourses, setAllCourses]     = useState([]);
+  const [selectedCourse, setSelectedCourse] = useState(null); // full course object or null
+
+  // Sidebar / conversation history
+  const [showSidebar, setShowSidebar]               = useState(false);
+  const [savedConversations, setSavedConversations] = useState([]);
+  const [currentSessionId, setCurrentSessionId]     = useState(null);
 
   const messagesEndRef = useRef(null);
   const textareaRef    = useRef(null);
 
-  // Notes filtered by selected course
-  const filteredNotes = selectedCourseId
-    ? allNotes.filter(n => String(n.courseID) === String(selectedCourseId))
-    : allNotes;
-
-  // Load courses + notes + history on mount
+  // Load courses + history on mount
   useEffect(() => {
     (async () => {
       try {
         const coursesResp = await fetch(`${API_BASE}/api/courses`, { credentials: 'include' });
         if (coursesResp.ok) {
           const coursesData = await coursesResp.json();
-          const courses = coursesData.courses || [];
-          setAllCourses(courses);
-          const noteArrays = await Promise.all(courses.map(c => notesAPI.getForCourse(c.courseID)));
-          const flat = [];
-          courses.forEach((course, ci) => {
-            (noteArrays[ci] || []).forEach(n => flat.push({ ...n, courseName: course.courseName }));
-          });
-          setAllNotes(flat);
+          setAllCourses(coursesData.courses || []);
         }
       } catch (e) {
-        console.warn('[ChatPage] data load failed:', e);
+        console.warn('[ChatPage] courses load failed:', e);
       }
 
       try {
@@ -183,11 +174,6 @@ function ChatPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isTyping]);
 
-  // Sidebar / conversation history
-  const [showSidebar, setShowSidebar]               = useState(false);
-  const [savedConversations, setSavedConversations] = useState([]);
-  const [currentSessionId, setCurrentSessionId]     = useState(null);
-
   const loadConversations = async () => {
     try {
       const resp = await fetch(`${API_BASE}/api/chat/conversations`, { credentials: 'include' });
@@ -219,7 +205,6 @@ function ChatPage() {
         setMessages([WELCOME_MESSAGE, ...msgs]);
         setCurrentSessionId(sid);
         setShowSidebar(false);
-        setSelectedNote(null);
       }
     } catch (e) {
       console.warn('[ChatPage] load conversation failed:', e);
@@ -241,6 +226,16 @@ function ChatPage() {
     }
   };
 
+  const handleContextChange = (e) => {
+    const courseId = e.target.value;
+    if (!courseId) {
+      setSelectedCourse(null);
+    } else {
+      const course = allCourses.find(c => String(c.courseID) === String(courseId));
+      setSelectedCourse(course || null);
+    }
+  };
+
   const handleSend = async () => {
     const text = inputText.trim();
     if (!text || isTyping) return;
@@ -252,13 +247,13 @@ function ChatPage() {
     if (textareaRef.current) textareaRef.current.style.height = 'auto';
 
     try {
-      const noteContext = selectedNote
-        ? { noteID: selectedNote.noteID, title: selectedNote.title, content: selectedNote.content }
+      const courseContext = selectedCourse
+        ? { courseName: selectedCourse.courseName, courseID: selectedCourse.courseID }
         : null;
       // First message in a new session → auto-title from text
       const convTitle = currentSessionId ? null : text.slice(0, 60) + (text.length > 60 ? '…' : '');
       const { text: aiText, sessionId: newSid } = await sendChatMessage(
-        text, messages, noteContext, currentSessionId, convTitle
+        text, messages, courseContext, currentSessionId, convTitle
       );
       if (!currentSessionId && newSid) setCurrentSessionId(newSid);
       setMessages(prev => [...prev, { id: Date.now() + 1, role: 'ai', text: aiText, timestamp: new Date() }]);
@@ -285,38 +280,20 @@ function ChatPage() {
   };
 
   const clearChat = () => {
-    const confirmed = window.confirm('Clear this conversation?\n\nYour chat history will be deleted and a new conversation will start.');
+    const confirmed = window.confirm('Clear this conversation?\n\nThis chat will be deleted and a new conversation will start.');
     if (!confirmed) return;
+    if (currentSessionId) {
+      fetch(`${API_BASE}/api/chat/conversations/${currentSessionId}`, { method: 'DELETE', credentials: 'include' })
+        .then(() => loadConversations())
+        .catch(() => {});
+    }
     setMessages([{ ...WELCOME_MESSAGE, timestamp: new Date() }]);
     setCurrentSessionId(null);
-    chatAPI.clearHistory();
   };
-
 
   const sendQuickPrompt = (promptText) => {
     setInputText(promptText);
     setTimeout(() => textareaRef.current?.focus(), 0);
-  };
-
-  const handleNoteSelect = (e) => {
-    const note = allNotes.find(n => n.noteID === parseInt(e.target.value));
-    setSelectedNote(note || null);
-    if (note) {
-      setMessages(prev => [...prev, {
-        id: Date.now(), role: 'system',
-        text: `📚 Now chatting about: "${note.title}"`,
-        timestamp: new Date(),
-      }]);
-    }
-  };
-
-  const clearNoteContext = () => {
-    setSelectedNote(null);
-    setMessages(prev => [...prev, {
-      id: Date.now(), role: 'system',
-      text: '💬 Switched to general chat',
-      timestamp: new Date(),
-    }]);
   };
 
   return (
@@ -339,7 +316,6 @@ function ChatPage() {
               onClick={() => {
                 setMessages([{ ...WELCOME_MESSAGE, timestamp: new Date() }]);
                 setCurrentSessionId(null);
-                setSelectedNote(null);
                 setShowSidebar(false);
               }}
             >
@@ -358,9 +334,6 @@ function ChatPage() {
                   >
                     <div className="conv-info">
                       <span className="conv-title">{conv.title}</span>
-                      {conv.noteTitle && (
-                        <span className="conv-note-tag">📝 {conv.noteTitle}</span>
-                      )}
                       <span className="conv-meta">
                         {conv.messageCount} msg{conv.messageCount !== 1 ? 's' : ''}
                         {conv.lastMessageAt ? ` · ${new Date(conv.lastMessageAt).toLocaleDateString()}` : ''}
@@ -409,49 +382,19 @@ function ChatPage() {
         </div>
       </div>
 
-      {/* ── Context Bar: Course → Note selectors ── */}
+      {/* ── Context Bar: single centered course dropdown ── */}
       <div className="chat-context-bar">
-        <div className="chat-context-selectors">
-          <select
-            className="chat-course-select"
-            value={selectedCourseId}
-            onChange={e => {
-              setSelectedCourseId(e.target.value);
-              setSelectedNote(null);
-            }}
-          >
-            <option value="">📚 All courses</option>
-            {allCourses.map(c => (
-              <option key={c.courseID} value={c.courseID}>{c.courseName}</option>
-            ))}
-          </select>
-
-          <select
-            className="chat-note-select"
-            value={selectedNote?.noteID || ''}
-            onChange={handleNoteSelect}
-          >
-            <option value="">💬 General chat</option>
-            {filteredNotes.map(n => (
-              <option key={n.noteID} value={n.noteID}>
-                📝 {n.title}{!selectedCourseId && n.courseName ? ` (${n.courseName})` : ''}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {selectedNote && (
-          <button className="chat-clear-context-btn" onClick={clearNoteContext} title="Clear note context">✕</button>
-        )}
+        <select
+          className="chat-context-select"
+          value={selectedCourse?.courseID || ''}
+          onChange={handleContextChange}
+        >
+          <option value="">💬 General chat</option>
+          {allCourses.map(c => (
+            <option key={c.courseID} value={c.courseID}>📚 {c.courseName}</option>
+          ))}
+        </select>
       </div>
-
-      {/* ── Active note context strip ── */}
-      {selectedNote && (
-        <div className="chat-active-context">
-          <span>📝</span>
-          <span className="chat-context-text">Chatting about: <strong>{selectedNote.title}</strong></span>
-        </div>
-      )}
 
       {/* ── Messages ── */}
       <div className="chat-messages">
@@ -538,7 +481,7 @@ function ChatPage() {
           <textarea
             ref={textareaRef}
             className="chat-textarea"
-            placeholder={selectedNote ? `Ask about "${selectedNote.title}"…` : 'Ask me anything about your studies…'}
+            placeholder={selectedCourse ? `Ask about ${selectedCourse.courseName}…` : 'Ask me anything…'}
             value={inputText}
             onChange={handleTextareaChange}
             onKeyDown={handleKeyDown}

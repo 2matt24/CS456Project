@@ -30,16 +30,14 @@ def _current_user_id():
     return session.get("user_id")
 
 
-def _build_system_prompt(note_context, file_context):
+def _build_system_prompt(course_context=None):
     parts = [_BASE_SYSTEM]
-    if note_context and note_context.get("title") and note_context.get("content"):
+    if course_context and course_context.get("courseName"):
         parts.append(
-            f'\n\nThe student is currently discussing a note titled '
-            f'"{note_context["title"]}". '
-            f'Note content:\n\n{note_context["content"][:3000]}'
+            f'\n\nThe student is currently studying the course: '
+            f'"{course_context["courseName"]}". '
+            f'Tailor your explanations, examples, and quiz questions to this subject area.'
         )
-    if file_context:
-        parts.append(f"\n\nThe student has shared the following file content:\n\n{file_context[:2000]}")
     return "".join(parts)
 
 
@@ -67,9 +65,7 @@ def chat_message():
     data               = request.get_json() or {}
     message            = (data.get("message") or "").strip()
     history            = data.get("history") or []
-    note_context       = data.get("noteContext")
-    file_context       = data.get("fileContext")
-    note_id            = data.get("noteId")
+    course_context     = data.get("courseContext")
     session_id         = data.get("sessionId") or str(uuid.uuid4())
     conversation_title = data.get("conversationTitle") or ""
 
@@ -85,7 +81,7 @@ def chat_message():
         ai_response = "AI is not configured on this server. Please set GEMINI_API_KEY."
     else:
         try:
-            system_prompt  = _build_system_prompt(note_context, file_context)
+            system_prompt  = _build_system_prompt(course_context)
             gemini_history = _build_gemini_history(history)
 
             model = genai.GenerativeModel(
@@ -104,7 +100,6 @@ def chat_message():
     try:
         entry = ChatHistory(
             UserID=user_id,
-            NoteID=int(note_id) if note_id else None,
             Message=message,
             Response=ai_response,
             SessionID=session_id,
