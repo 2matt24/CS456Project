@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { IoMdAdd, IoMdSend, IoMdAttach, IoMdBookmark, IoMdMenu, IoMdClose, IoMdTrash } from 'react-icons/io';
+import { IoMdAdd, IoMdSend, IoMdMenu, IoMdClose, IoMdTrash } from 'react-icons/io';
 import { MdCalendarToday, MdHome, MdChat, MdSettings, MdArrowBack, MdDeleteSweep } from 'react-icons/md';
 import { RiRobot2Fill } from 'react-icons/ri';
 import { FaUserCircle } from 'react-icons/fa';
@@ -60,7 +60,7 @@ function renderMarkdown(text) {
   return elements;
 }
 
-async function sendChatMessage(userMessage, history, noteContext, fileContext, sessionId, conversationTitle) {
+async function sendChatMessage(userMessage, history, noteContext, sessionId, conversationTitle) {
   const response = await fetch(`${API_BASE}/api/chat`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -69,7 +69,6 @@ async function sendChatMessage(userMessage, history, noteContext, fileContext, s
       message:           userMessage,
       history:           history.filter(m => m.id !== 'welcome' && m.role !== 'system'),
       noteContext:       noteContext ? { noteID: noteContext.noteID, title: noteContext.title, content: noteContext.content } : null,
-      fileContext:       fileContext || null,
       sessionId:         sessionId || null,
       conversationTitle: conversationTitle || null,
     }),
@@ -120,13 +119,8 @@ function ChatPage() {
   const [selectedCourseId, setSelectedCourseId] = useState('');
   const [selectedNote, setSelectedNote]     = useState(null);
 
-  // File context
-  const [fileContext, setFileContext] = useState(null);
-  const [fileName, setFileName]       = useState('');
-
   const messagesEndRef = useRef(null);
   const textareaRef    = useRef(null);
-  const fileInputRef   = useRef(null);
 
   // Notes filtered by selected course
   const filteredNotes = selectedCourseId
@@ -194,8 +188,6 @@ function ChatPage() {
   const [savedConversations, setSavedConversations] = useState([]);
   const [currentSessionId, setCurrentSessionId]     = useState(null);
 
-  const [isUploadingFile, setIsUploadingFile] = useState(false);
-
   const loadConversations = async () => {
     try {
       const resp = await fetch(`${API_BASE}/api/chat/conversations`, { credentials: 'include' });
@@ -228,8 +220,6 @@ function ChatPage() {
         setCurrentSessionId(sid);
         setShowSidebar(false);
         setSelectedNote(null);
-        setFileContext(null);
-        setFileName('');
       }
     } catch (e) {
       console.warn('[ChatPage] load conversation failed:', e);
@@ -251,71 +241,6 @@ function ChatPage() {
     }
   };
 
-  const handleFileUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    // Reset input so same file can be re-selected
-    e.target.value = '';
-
-    const ext = file.name.split('.').pop().toLowerCase();
-    const textTypes = ['txt', 'md', 'csv'];
-
-    if (textTypes.includes(ext)) {
-      // Plain text — read directly in browser
-      setFileName(file.name);
-      const reader = new FileReader();
-      reader.onload = (ev) => setFileContext(ev.target.result);
-      reader.readAsText(file);
-      return;
-    }
-
-    // PDF / DOCX — send to backend for extraction
-    if (!['pdf', 'docx', 'doc'].includes(ext)) {
-      alert('Supported file types: .txt, .md, .pdf, .docx');
-      return;
-    }
-
-    setIsUploadingFile(true);
-    setFileName(file.name);
-
-    try {
-      const formData = new FormData();
-      // Re-use the notes upload endpoint just for text extraction
-      // We pass a dummy courseId; the backend extracts text and returns content
-      formData.append('file', file);
-      formData.append('courseId', '0');        // backend validates ownership but we only need the text
-      formData.append('title', file.name);
-      formData.append('extractOnly', 'true');  // hint to backend (won't break if ignored)
-
-      const response = await fetch(`${API_BASE}/api/chat/extract-file`, {
-        method: 'POST',
-        credentials: 'include',
-        body: formData,
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setFileContext(data.text || '');
-        if (!data.text) {
-          alert('Could not extract text from this file. Try copy-pasting the content instead.');
-          setFileName('');
-        }
-      } else {
-        // Fallback: guide user to use note dropdown instead
-        setFileName('');
-        setFileContext(null);
-        alert(`Could not process "${file.name}".\n\nTip: Upload this file as a note first, then select it from the note dropdown above to chat about it.`);
-      }
-    } catch (err) {
-      console.error('[ChatPage] file extract error:', err);
-      setFileName('');
-      setFileContext(null);
-      alert('Upload failed. Try uploading this file as a note, then select it from the note dropdown above.');
-    } finally {
-      setIsUploadingFile(false);
-    }
-  };
-
   const handleSend = async () => {
     const text = inputText.trim();
     if (!text || isTyping) return;
@@ -333,7 +258,7 @@ function ChatPage() {
       // First message in a new session → auto-title from text
       const convTitle = currentSessionId ? null : text.slice(0, 60) + (text.length > 60 ? '…' : '');
       const { text: aiText, sessionId: newSid } = await sendChatMessage(
-        text, messages, noteContext, fileContext, currentSessionId, convTitle
+        text, messages, noteContext, currentSessionId, convTitle
       );
       if (!currentSessionId && newSid) setCurrentSessionId(newSid);
       setMessages(prev => [...prev, { id: Date.now() + 1, role: 'ai', text: aiText, timestamp: new Date() }]);
@@ -367,9 +292,6 @@ function ChatPage() {
     chatAPI.clearHistory();
   };
 
-  const saveChat = () => {
-    alert('✓ Your conversation is automatically saved.\n\nUse "Clear chat" to start a fresh conversation anytime.');
-  };
 
   const sendQuickPrompt = (promptText) => {
     setInputText(promptText);
@@ -418,8 +340,6 @@ function ChatPage() {
                 setMessages([{ ...WELCOME_MESSAGE, timestamp: new Date() }]);
                 setCurrentSessionId(null);
                 setSelectedNote(null);
-                setFileContext(null);
-                setFileName('');
                 setShowSidebar(false);
               }}
             >
@@ -600,16 +520,6 @@ function ChatPage() {
 
       {/* ── Input area ── */}
       <div className="chat-input-area">
-        {fileName && (
-          <div className="chat-file-chip">
-            {isUploadingFile ? <span className="chip-spinner" /> : <IoMdAttach size={14} />}
-            <span>{isUploadingFile ? 'Extracting text…' : (fileName.length > 32 ? fileName.slice(0, 32) + '…' : fileName)}</span>
-            {!isUploadingFile && (
-              <button className="chat-file-chip-remove" onClick={() => { setFileContext(null); setFileName(''); }}>✕</button>
-            )}
-          </div>
-        )}
-
         {/* Quick prompts — anchored above text input */}
         <div className="quick-prompts">
           {QUICK_PROMPTS.map(p => (
@@ -625,16 +535,6 @@ function ChatPage() {
         </div>
 
         <div className="chat-input-row">
-          <label className="chat-attach-btn" title="Attach a file for context">
-            <IoMdAttach size={20} />
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".txt,.md,.pdf,.docx"
-              style={{ display: 'none' }}
-              onChange={handleFileUpload}
-            />
-          </label>
           <textarea
             ref={textareaRef}
             className="chat-textarea"
