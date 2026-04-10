@@ -72,11 +72,7 @@ def chat_message():
     if not message:
         return {"error": "message is required"}, 400
 
-    # Auto-generate title from first message if none provided
-    if not conversation_title:
-        conversation_title = message[:60] + ("…" if len(message) > 60 else "")
-
-    # Preserve the existing title for this session (don't overwrite with each message)
+    # Use existing session title if available, otherwise generate from first message
     if not conversation_title:
         existing = db.session.query(ChatHistory.ConversationTitle).filter(
             ChatHistory.UserID == user_id,
