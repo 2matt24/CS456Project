@@ -76,6 +76,18 @@ def chat_message():
     if not conversation_title:
         conversation_title = message[:60] + ("…" if len(message) > 60 else "")
 
+    # Preserve the existing title for this session (don't overwrite with each message)
+    if not conversation_title:
+        existing = db.session.query(ChatHistory.ConversationTitle).filter(
+            ChatHistory.UserID == user_id,
+            ChatHistory.SessionID == session_id,
+            ChatHistory.ConversationTitle.isnot(None),
+        ).first()
+        if existing and existing[0]:
+            conversation_title = existing[0]
+        else:
+            conversation_title = message[:60] + ("…" if len(message) > 60 else "")
+
     ai_response = ""
     if not _GEMINI_KEY:
         ai_response = "AI is not configured on this server. Please set GEMINI_API_KEY."
@@ -149,8 +161,7 @@ def get_conversations():
         rows = (
             db.session.query(
                 ChatHistory.SessionID,
-                ChatHistory.ConversationTitle,
-                ChatHistory.NoteID,
+                func.min(ChatHistory.ConversationTitle).label("title"),
                 func.max(ChatHistory.CreatedAt).label("last_at"),
                 func.count(ChatHistory.ChatID).label("msg_count"),
             )
@@ -158,7 +169,7 @@ def get_conversations():
                 ChatHistory.UserID == user_id,
                 ChatHistory.SessionID.isnot(None),
             )
-            .group_by(ChatHistory.SessionID, ChatHistory.ConversationTitle, ChatHistory.NoteID)
+            .group_by(ChatHistory.SessionID)
             .order_by(desc("last_at"))
             .limit(50)
             .all()
@@ -169,21 +180,11 @@ def get_conversations():
 
     result = []
     for r in rows:
-        note_title = None
-        if r.NoteID:
-            try:
-                from aistudyassistant.models.note import Note
-                note = Note.query.get(r.NoteID)
-                note_title = note.Title if note else None
-            except Exception:
-                pass
-
         result.append({
-            "sessionId":    r.SessionID,
-            "title":        r.ConversationTitle or "Untitled Chat",
-            "noteTitle":    note_title,
+            "sessionId":     r.SessionID,
+            "title":         r.title or "Untitled Chat",
             "lastMessageAt": r.last_at.isoformat() if r.last_at else None,
-            "messageCount": r.msg_count,
+            "messageCount":  r.msg_count,
         })
 
     return {"conversations": result}, 200
