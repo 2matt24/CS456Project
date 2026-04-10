@@ -232,33 +232,6 @@ def delete_conversation(session_id):
         return {"error": str(exc)}, 500
 
 
-# ── POST /api/chat/extract-file ───────────────────────────────────────────────
-# Extracts plain text from an uploaded file (PDF, DOCX) for use as chat context.
-# Does NOT save a note — text is returned to the frontend only.
-@chat_bp.route("/api/chat/extract-file", methods=["POST"])
-def extract_file_for_chat():
-    user_id = _current_user_id()
-    if not user_id:
-        return {"error": "Authentication required"}, 401
-
-    file = request.files.get("file")
-    if not file or not file.filename:
-        return {"error": "No file provided"}, 400
-
-    filename = file.filename
-    ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else "txt"
-
-    try:
-        text = extract_text_from_file(file, ext)
-        if not text or not text.strip():
-            return {"error": "Could not extract text from file"}, 422
-        # Truncate to 8000 chars so we don't blow the Gemini context window
-        return {"text": text[:8000], "fileName": filename}, 200
-    except Exception as exc:
-        print(f"[chat/extract-file] error: {exc}")
-        return {"error": str(exc)}, 500
-
-
 # ── GET /api/chat/history ─────────────────────────────────────────────────────
 @chat_bp.route("/api/chat/history", methods=["GET"])
 def get_chat_history():
