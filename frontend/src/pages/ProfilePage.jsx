@@ -6,6 +6,7 @@ import {
 import {
   MdCalendarToday, MdHome, MdChat, MdSettings, MdArrowBack,
   MdEdit, MdPerson, MdEmail, MdPhone, MdNotes,
+  MdSchool, MdBook, MdAccessTime, MdPalette,
 } from 'react-icons/md';
 import { FaUserCircle } from 'react-icons/fa';
 import { authAPI } from '../services/api';
@@ -389,6 +390,42 @@ export default function ProfilePage() {
               <p className="profile-bio-text">
                 {user?.bio || <em className="info-empty">No bio added yet.</em>}
               </p>
+            </div>
+
+            <div className="profile-card">
+              <h4 className="profile-card-title"><MdSchool size={18} /> Student Profile</h4>
+              <InfoRow icon={<MdSchool size={17} color="#667eea" />} label="School"      value={user?.schoolName} />
+              <InfoRow icon={<MdSchool size={17} color="#667eea" />} label="Grade Level" value={user?.gradeLevel} />
+              <InfoRow icon={<MdBook   size={17} color="#667eea" />} label="Major / Field" value={user?.major} />
+              {user?.occupation && (
+                <InfoRow icon={<MdPerson size={17} color="#667eea" />} label="Occupation" value={user.occupation} />
+              )}
+            </div>
+
+            <div className="profile-card">
+              <h4 className="profile-card-title"><MdAccessTime size={18} /> Study Preferences</h4>
+              <InfoRow
+                icon={<MdAccessTime size={17} color="#667eea" />}
+                label="Weekly Goal"
+                value={user?.studyGoalHoursPerWeek ? `${user.studyGoalHoursPerWeek} hours / week` : null}
+              />
+              <InfoRow
+                icon={<MdCalendarToday size={17} color="#667eea" />}
+                label="Preferred Study Time"
+                value={user?.preferredStudyTime}
+              />
+              <div className="info-row">
+                <div className="info-row-icon"><MdPalette size={17} color="#667eea" /></div>
+                <div className="info-row-body">
+                  <span className="info-row-label">Accent Color</span>
+                  <span className="info-row-value">
+                    <span
+                      className="accent-color-preview"
+                      style={{ background: user?.accentColor || '#667eea' }}
+                    />
+                  </span>
+                </div>
+              </div>
             </div>
           </>
         )}

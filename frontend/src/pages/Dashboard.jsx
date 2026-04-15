@@ -6,6 +6,7 @@ import { MdEdit, MdDelete } from 'react-icons/md';
 import { FaUserCircle } from 'react-icons/fa';
 import CourseCard from '../components/CourseCard';
 import AddModal from '../components/AddModal';
+import OnboardingModal from '../components/OnboardingModal';
 import { coursesAPI, authAPI, notificationsAPI } from '../services/api';
 import '../styles/Dashboard.css';
 
@@ -43,6 +44,7 @@ function Dashboard() {
   const [logoutMessage, setLogoutMessage] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [firstName, setFirstName]       = useState('');
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const [unreadCount, setUnreadCount]   = useState(0);
   const [quote, setQuote]               = useState('Loading inspiration…');
   const [isRefreshingQuote, setIsRefreshingQuote] = useState(false);
@@ -97,10 +99,18 @@ function Dashboard() {
   const loadUser = async () => {
     try {
       const data = await authAPI.getMe();
-      setFirstName(data.user?.firstName || '');
+      const u = data.user || {};
+      setFirstName(u.firstName || '');
+      if (!u.onboardingCompleted) setShowOnboarding(true);
     } catch (err) {
       console.error('Load user error:', err);
     }
+  };
+
+  const handleOnboardingComplete = () => {
+    setShowOnboarding(false);
+    loadUser();
+    loadCourses();
   };
 
   const loadCourses = async () => {
@@ -273,6 +283,13 @@ function Dashboard() {
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
       />
+
+      {showOnboarding && (
+        <OnboardingModal
+          firstName={firstName}
+          onComplete={handleOnboardingComplete}
+        />
+      )}
     </>
   );
 }
