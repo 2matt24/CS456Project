@@ -116,7 +116,9 @@ export default function SettingsPage() {
       {/* ── Profile summary card ── */}
       <div className="settings-profile-card">
         <div className="settings-avatar">
-          {(user?.firstName || user?.lastName) ? (
+          {user?.profilePicture ? (
+            <img src={user.profilePicture} alt="Profile" className="settings-avatar-img" />
+          ) : (user?.firstName || user?.lastName) ? (
             <span className="settings-initials">
               {getInitials(user.firstName, user.lastName)}
             </span>

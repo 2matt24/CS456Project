@@ -47,6 +47,14 @@
   transform: scale(1.1);
 }
 
+.dash-avatar-img {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(255,255,255,0.7);
+}
+
 .dash-logout {
   opacity: 0.75;
 }
