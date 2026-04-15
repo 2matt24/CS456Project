@@ -125,14 +125,22 @@ def get_current_user():
 
     return {
         "user": {
-            "id":             user.UserID,
-            "email":          user.Email,
-            "firstName":      user.FirstName,
-            "lastName":       user.LastName,
-            "phone":          user.Phone,
-            "bio":            user.Bio,
-            "profilePicture": user.ProfilePicture,
-            "createdAt":      user.CreatedAt.isoformat() if user.CreatedAt else None,
+            "id":                    user.UserID,
+            "email":                 user.Email,
+            "firstName":             user.FirstName,
+            "lastName":              user.LastName,
+            "phone":                 user.Phone,
+            "bio":                   user.Bio,
+            "profilePicture":        user.ProfilePicture,
+            "createdAt":             user.CreatedAt.isoformat() if user.CreatedAt else None,
+            "onboardingCompleted":   bool(user.OnboardingCompleted),
+            "schoolName":            user.SchoolName,
+            "gradeLevel":            user.GradeLevel,
+            "major":                 user.Major,
+            "occupation":            user.Occupation,
+            "studyGoalHoursPerWeek": user.StudyGoalHoursPerWeek,
+            "preferredStudyTime":    user.PreferredStudyTime,
+            "accentColor":           user.AccentColor or "#667eea",
         }
     }, 200
 
@@ -291,3 +299,54 @@ def upload_profile_picture():
     db.session.commit()
 
     return {"profilePictureUrl": file_url}, 200
+
+
+#--------- ONBOARDING STATUS -----
+@auth_bp.route("/api/user/onboarding/status", methods=["GET"])
+def get_onboarding_status():
+    user_id = session.get("user_id")
+    if not user_id:
+        return {"error": "Not authenticated"}, 401
+
+    user = User.query.get(user_id)
+    if not user:
+        return {"error": "User not found"}, 404
+
+    return {
+        "onboardingCompleted": bool(user.OnboardingCompleted),
+        "firstName": user.FirstName,
+    }, 200
+
+
+#--------- COMPLETE ONBOARDING -----
+@auth_bp.route("/api/user/onboarding", methods=["POST"])
+def complete_onboarding():
+    user_id = session.get("user_id")
+    if not user_id:
+        return {"error": "Not authenticated"}, 401
+
+    user = User.query.get(user_id)
+    if not user:
+        return {"error": "User not found"}, 404
+
+    data = request.get_json() or {}
+
+    user.SchoolName            = data.get("schoolName")
+    user.GradeLevel            = data.get("gradeLevel")
+    user.Major                 = data.get("major")
+    user.Occupation            = data.get("occupation")
+    user.StudyGoalHoursPerWeek = data.get("studyGoalHoursPerWeek")
+    user.PreferredStudyTime    = data.get("preferredStudyTime")
+    user.AccentColor           = data.get("accentColor") or "#667eea"
+    user.OnboardingCompleted   = True
+    user.OnboardingCompletedAt = datetime.utcnow()
+
+    db.session.commit()
+
+    return {
+        "message": "Onboarding completed successfully",
+        "user": {
+            "firstName":           user.FirstName,
+            "onboardingCompleted": True,
+        },
+    }, 200

@@ -25,3 +25,13 @@ class User(db.Model):
     StudyRemindersEnabled = db.Column(db.Boolean, nullable=False, default=True,  server_default="1")
     NoteSummariesEnabled  = db.Column(db.Boolean, nullable=False, default=True,  server_default="1")
     WeeklyReportEnabled   = db.Column(db.Boolean, nullable=False, default=False, server_default="0")
+    # Onboarding
+    OnboardingCompleted   = db.Column(db.Boolean, nullable=False, default=False, server_default="0")
+    OnboardingCompletedAt = db.Column(db.DateTime, nullable=True)
+    SchoolName            = db.Column(db.String(255), nullable=True)
+    GradeLevel            = db.Column(db.String(50),  nullable=True)
+    Major                 = db.Column(db.String(255), nullable=True)
+    Occupation            = db.Column(db.String(255), nullable=True)
+    StudyGoalHoursPerWeek = db.Column(db.Integer,     nullable=True)
+    PreferredStudyTime    = db.Column(db.String(50),  nullable=True)
+    AccentColor           = db.Column(db.String(20),  nullable=True, default='#667eea')
