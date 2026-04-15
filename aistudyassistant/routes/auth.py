@@ -251,9 +251,7 @@ def upload_profile_picture():
         return {"error": "Storage service not configured"}, 503
 
     try:
-        from azure.storage.blob import (
-            BlobServiceClient, generate_blob_sas, BlobSasPermissions, ContentSettings
-        )
+        from azure.storage.blob import BlobServiceClient, generate_blob_sas, BlobSasPermissions
         safe_name   = secure_filename(file.filename)
         ext         = safe_name.rsplit('.', 1)[-1].lower() if '.' in safe_name else 'jpg'
         blob_name   = f"profiles/{user_id}/{uuid.uuid4()}.{ext}"
@@ -261,11 +259,7 @@ def upload_profile_picture():
 
         blob_svc    = BlobServiceClient.from_connection_string(conn_str)
         blob_client = blob_svc.get_blob_client(container=container, blob=blob_name)
-        blob_client.upload_blob(
-            io.BytesIO(file_bytes),
-            overwrite=True,
-            content_settings=ContentSettings(content_type=file.mimetype),
-        )
+        blob_client.upload_blob(io.BytesIO(file_bytes), overwrite=True)
 
         # Generate a SAS token (5-year expiry) so the image URL is publicly accessible
         conn_parts   = dict(chunk.split("=", 1) for chunk in conn_str.split(";") if "=" in chunk)
@@ -279,8 +273,8 @@ def upload_profile_picture():
         )
         file_url = f"{blob_client.url}?{sas_token}"
     except Exception as exc:
-        print(f"[profile-picture] Azure upload error: {exc}")
-        return {"error": "Failed to upload image. Please try again."}, 500
+        print(f"[profile-picture] Azure upload error: {exc}", flush=True)
+        return {"error": f"Upload error: {exc}"}, 500
 
     # Persist URL on the User record
     user = User.query.get(user_id)
