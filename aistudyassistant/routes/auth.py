@@ -9,10 +9,10 @@
 import io
 import os
 import uuid
+from datetime import datetime, timedelta
 
 from flask import Blueprint, request, jsonify, session
 from werkzeug.utils import secure_filename
-
 from werkzeug.security import generate_password_hash, check_password_hash
 
 from aistudyassistant.models.user import User
@@ -55,10 +55,11 @@ def register():
 
     #matching
     newUser = User(
-        Email= email,
-        PasswordHash = hashedPassword,
-        FirstName = first_name,
-        LastName = last_name
+        Email=email,
+        PasswordHash=hashedPassword,
+        FirstName=first_name,
+        LastName=last_name,
+        CreatedAt=datetime.utcnow(),
     )
 
     db.session.add(newUser)
@@ -250,13 +251,33 @@ def upload_profile_picture():
         return {"error": "Storage service not configured"}, 503
 
     try:
-        from azure.storage.blob import BlobServiceClient
-        safe_name  = secure_filename(file.filename)
-        blob_name  = f"profiles/{user_id}/{uuid.uuid4()}_{safe_name}"
-        blob_svc   = BlobServiceClient.from_connection_string(conn_str)
-        blob_client = blob_svc.get_blob_client(container="notes-files", blob=blob_name)
-        blob_client.upload_blob(io.BytesIO(file_bytes), overwrite=True)
-        file_url = blob_client.url
+        from azure.storage.blob import (
+            BlobServiceClient, generate_blob_sas, BlobSasPermissions, ContentSettings
+        )
+        safe_name   = secure_filename(file.filename)
+        ext         = safe_name.rsplit('.', 1)[-1].lower() if '.' in safe_name else 'jpg'
+        blob_name   = f"profiles/{user_id}/{uuid.uuid4()}.{ext}"
+        container   = "notes-files"
+
+        blob_svc    = BlobServiceClient.from_connection_string(conn_str)
+        blob_client = blob_svc.get_blob_client(container=container, blob=blob_name)
+        blob_client.upload_blob(
+            io.BytesIO(file_bytes),
+            overwrite=True,
+            content_settings=ContentSettings(content_type=file.mimetype),
+        )
+
+        # Generate a SAS token (5-year expiry) so the image URL is publicly accessible
+        conn_parts   = dict(chunk.split("=", 1) for chunk in conn_str.split(";") if "=" in chunk)
+        sas_token    = generate_blob_sas(
+            account_name=conn_parts.get("AccountName", ""),
+            container_name=container,
+            blob_name=blob_name,
+            account_key=conn_parts.get("AccountKey", ""),
+            permission=BlobSasPermissions(read=True),
+            expiry=datetime.utcnow() + timedelta(days=365 * 5),
+        )
+        file_url = f"{blob_client.url}?{sas_token}"
     except Exception as exc:
         print(f"[profile-picture] Azure upload error: {exc}")
         return {"error": "Failed to upload image. Please try again."}, 500
