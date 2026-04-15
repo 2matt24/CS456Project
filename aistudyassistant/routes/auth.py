@@ -251,27 +251,18 @@ def upload_profile_picture():
         return {"error": "Storage service not configured"}, 503
 
     try:
-        from azure.storage.blob import BlobServiceClient, generate_blob_sas, BlobSasPermissions
+        from azure.storage.blob import BlobServiceClient
         safe_name   = secure_filename(file.filename)
         ext         = safe_name.rsplit('.', 1)[-1].lower() if '.' in safe_name else 'jpg'
-        blob_name   = f"profiles/{user_id}/{uuid.uuid4()}.{ext}"
-        container   = "notes-files"
+        blob_name   = f"profile-pictures/{user_id}_{uuid.uuid4()}.{ext}"
+        container   = "studybuddy-files"
 
         blob_svc    = BlobServiceClient.from_connection_string(conn_str)
         blob_client = blob_svc.get_blob_client(container=container, blob=blob_name)
         blob_client.upload_blob(io.BytesIO(file_bytes), overwrite=True)
 
-        # Generate a SAS token (5-year expiry) so the image URL is publicly accessible
-        conn_parts   = dict(chunk.split("=", 1) for chunk in conn_str.split(";") if "=" in chunk)
-        sas_token    = generate_blob_sas(
-            account_name=conn_parts.get("AccountName", ""),
-            container_name=container,
-            blob_name=blob_name,
-            account_key=conn_parts.get("AccountKey", ""),
-            permission=BlobSasPermissions(read=True),
-            expiry=datetime.utcnow() + timedelta(days=365 * 5),
-        )
-        file_url = f"{blob_client.url}?{sas_token}"
+        # Container has public blob access — plain URL is publicly readable
+        file_url = blob_client.url
     except Exception as exc:
         print(f"[profile-picture] Azure upload error: {exc}", flush=True)
         return {"error": f"Upload error: {exc}"}, 500
