@@ -226,27 +226,33 @@
 }
 
 /* ── Slider ── */
-.ob-slider-row {
+.ob-slider-wrap {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 14px;
-  margin-bottom: 6px;
+  gap: 12px;
+  width: 100%;
 }
 
-.ob-slider-val {
-  font-size: 22px;
+.ob-slider-val-big {
+  font-size: 48px;
   font-weight: 800;
   color: #667eea;
-  min-width: 44px;
+  line-height: 1;
   text-align: center;
 }
 
+.ob-slider-val-big span {
+  font-size: 24px;
+  font-weight: 600;
+  opacity: 0.7;
+}
+
 .ob-slider {
-  flex: 1;
+  width: 100%;
   -webkit-appearance: none;
   height: 6px;
   border-radius: 99px;
-  background: linear-gradient(90deg, #667eea, #764ba2);
   outline: none;
   cursor: pointer;
 }
@@ -270,15 +276,17 @@
   margin-top: 2px;
 }
 
-/* ── Study time cards ── */
-.ob-time-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
+/* ── Study time list (single-column) ── */
+.ob-time-list {
+  display: flex;
+  flex-direction: column;
   gap: 8px;
+  width: 100%;
 }
 
-.ob-time-card {
-  padding: 12px;
+.ob-time-item {
+  width: 100%;
+  padding: 12px 16px;
   border: 1.5px solid #e4e8f0;
   border-radius: 12px;
   background: white;
@@ -286,11 +294,12 @@
   cursor: pointer;
   transition: all 0.18s;
   display: flex;
-  flex-direction: column;
-  gap: 3px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
 }
 
-.ob-time-card:hover {
+.ob-time-item:hover {
   border-color: #667eea;
   background: #f7f8ff;
 }
@@ -313,8 +322,8 @@
 
 /* ── Schedule options ── */
 .ob-schedule-options {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
+  flex-direction: column;
   gap: 12px;
   width: 100%;
   margin-bottom: 16px;
@@ -324,31 +333,76 @@
   border: 1.5px solid #e4e8f0;
   border-radius: 14px;
   padding: 16px;
-  text-align: center;
+  background: white;
+  text-align: left;
+}
+
+.ob-schedule-clickable {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: 14px;
+  cursor: pointer;
+  transition: all 0.18s;
+}
+
+.ob-schedule-clickable:hover:not(:disabled) {
+  border-color: #667eea;
+  background: #f7f8ff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+}
+
+.ob-schedule-clickable:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .ob-schedule-emoji {
   font-size: 28px;
+  flex-shrink: 0;
 }
 
-.ob-schedule-card strong {
-  font-size: 13px;
+.ob-schedule-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ob-schedule-text strong {
+  font-size: 14px;
   color: #1a1a2e;
 }
 
-.ob-schedule-card span {
+.ob-schedule-text span {
   font-size: 12px;
   color: #6b7280;
+}
+
+.ob-schedule-arrow {
+  color: #9aa0b4;
+  flex-shrink: 0;
 }
 
 .ob-schedule-note {
   font-size: 11px;
   color: #b0b8c8;
   margin: 0;
+}
+
+/* ── Photo status notes ── */
+.ob-pic-note {
+  font-size: 13px;
+  color: #667eea;
+  margin: 0;
+  font-weight: 500;
+}
+
+.ob-pic-error {
+  font-size: 13px;
+  color: #ef4444;
+  margin: 8px 0 0;
+  text-align: center;
 }
 
 .ob-skip-note {
@@ -576,10 +630,6 @@
   }
 
   .ob-schedule-options {
-    grid-template-columns: 1fr;
-  }
-
-  .ob-time-grid {
-    grid-template-columns: 1fr;
+    flex-direction: column;
   }
 }

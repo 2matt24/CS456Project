@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
-import { MdSchool, MdAccessTime, MdPalette, MdCheckCircle, MdCameraAlt, MdCalendarMonth } from 'react-icons/md';
+import { useNavigate } from 'react-router-dom';
+import { MdSchool, MdAccessTime, MdPalette, MdCheckCircle, MdCameraAlt, MdCalendarMonth, MdArrowForward } from 'react-icons/md';
 import { FaUserCircle } from 'react-icons/fa';
 import '../styles/OnboardingModal.css';
 
@@ -40,30 +41,25 @@ function ProgressBar({ step, total }) {
   );
 }
 
-function StepLabel({ step, total }) {
-  return (
-    <p className="ob-step-label">Step {step} of {total}</p>
-  );
-}
-
 /* ══════════════════════════════════════════════
    Main component
 ══════════════════════════════════════════════ */
 export default function OnboardingModal({ firstName, onComplete }) {
+  const navigate = useNavigate();
   const [step, setStep] = useState(1);
 
   // Form state
-  const [schoolName, setSchoolName]               = useState('');
-  const [gradeLevel, setGradeLevel]               = useState('');
-  const [major, setMajor]                         = useState('');
-  const [occupation, setOccupation]               = useState('');
-  const [studyGoalHours, setStudyGoalHours]       = useState(10);
+  const [schoolName, setSchoolName]                 = useState('');
+  const [gradeLevel, setGradeLevel]                 = useState('');
+  const [major, setMajor]                           = useState('');
+  const [occupation, setOccupation]                 = useState('');
+  const [studyGoalHours, setStudyGoalHours]         = useState(10);
   const [preferredStudyTime, setPreferredStudyTime] = useState('');
-  const [accentColor, setAccentColor]             = useState('#667eea');
-  const [profilePicPreview, setProfilePicPreview] = useState(null);
-  const [profilePicFile, setProfilePicFile]       = useState(null);
-  const [isUploadingPic, setIsUploadingPic]       = useState(false);
-  const [isSaving, setIsSaving]                   = useState(false);
+  const [accentColor, setAccentColor]               = useState('#667eea');
+  const [profilePicPreview, setProfilePicPreview]   = useState(null);
+  const [profilePicFile, setProfilePicFile]         = useState(null);
+  const [picStatus, setPicStatus]                   = useState(''); // '', 'uploading', 'done', 'error'
+  const [isSaving, setIsSaving]                     = useState(false);
 
   const picInputRef = useRef(null);
 
@@ -71,59 +67,78 @@ export default function OnboardingModal({ firstName, onComplete }) {
   const back = () => setStep(s => Math.max(s - 1, 1));
   const skipToEnd = () => setStep(TOTAL_STEPS);
 
-  /* ── profile picture ── */
+  /* ── profile picture local preview ── */
   const handlePicChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
     setProfilePicFile(file);
+    setPicStatus('');
     const reader = new FileReader();
     reader.onload = (ev) => setProfilePicPreview(ev.target.result);
     reader.readAsDataURL(file);
   };
 
-  /* ── finish ── */
-  const handleComplete = async () => {
-    setIsSaving(true);
-    try {
-      // Upload profile picture if chosen
-      if (profilePicFile) {
-        setIsUploadingPic(true);
+  /* ── save onboarding data ── */
+  const saveOnboarding = async () => {
+    // Upload profile picture first if chosen
+    if (profilePicFile) {
+      setPicStatus('uploading');
+      try {
         const formData = new FormData();
         formData.append('profilePicture', profilePicFile);
-        await fetch(`${API_BASE}/api/user/me/profile-picture`, {
+        const res = await fetch(`${API_BASE}/api/user/me/profile-picture`, {
           method: 'POST',
           credentials: 'include',
           body: formData,
-        }).catch(() => {});
-        setIsUploadingPic(false);
+        });
+        setPicStatus(res.ok ? 'done' : 'error');
+      } catch {
+        setPicStatus('error');
       }
-
-      // Save onboarding data
-      await fetch(`${API_BASE}/api/user/onboarding`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          schoolName:            schoolName || null,
-          gradeLevel:            gradeLevel || null,
-          major:                 major      || null,
-          occupation:            occupation || null,
-          studyGoalHoursPerWeek: studyGoalHours,
-          preferredStudyTime:    preferredStudyTime || null,
-          accentColor,
-        }),
-      });
-    } catch (err) {
-      console.error('[Onboarding] save failed:', err);
-    } finally {
-      setIsSaving(false);
-      onComplete();
     }
+
+    // Save onboarding fields
+    await fetch(`${API_BASE}/api/user/onboarding`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({
+        schoolName:            schoolName || null,
+        gradeLevel:            gradeLevel || null,
+        major:                 major      || null,
+        occupation:            occupation || null,
+        studyGoalHoursPerWeek: studyGoalHours,
+        preferredStudyTime:    preferredStudyTime || null,
+        accentColor,
+      }),
+    }).catch(() => {});
   };
+
+  /* ── finish and stay on dashboard ── */
+  const handleComplete = async () => {
+    setIsSaving(true);
+    try { await saveOnboarding(); } catch { /* continue anyway */ }
+    setIsSaving(false);
+    onComplete();
+  };
+
+  /* ── finish and navigate to a specific page ── */
+  const handleCompleteAndNavigate = async (path) => {
+    setIsSaving(true);
+    try { await saveOnboarding(); } catch { /* continue anyway */ }
+    setIsSaving(false);
+    onComplete();
+    navigate(path);
+  };
+
+  /* ── slider fill style ── */
+  const sliderPct = ((studyGoalHours - 1) / 39) * 100;
+  const sliderBg  = `linear-gradient(to right, #667eea 0%, #667eea ${sliderPct}%, #e4e8f0 ${sliderPct}%, #e4e8f0 100%)`;
 
   /* ── step renders ── */
   const renderStep = () => {
     switch (step) {
+
       /* ── Step 1: Welcome ── */
       case 1:
         return (
@@ -208,12 +223,12 @@ export default function OnboardingModal({ firstName, onComplete }) {
           <div className="ob-step">
             <div className="ob-step-icon"><MdAccessTime size={32} color="#667eea" /></div>
             <h2 className="ob-title">Study Goals</h2>
-            <p className="ob-subtitle">How much time do you want to dedicate to studying?</p>
+            <p className="ob-subtitle">How much time do you want to dedicate to studying each week?</p>
 
             <div className="ob-field">
-              <label>Target study hours per week</label>
-              <div className="ob-slider-row">
-                <span className="ob-slider-val">{studyGoalHours}h</span>
+              <label>Target hours per week</label>
+              <div className="ob-slider-wrap">
+                <div className="ob-slider-val-big">{studyGoalHours}<span>h</span></div>
                 <input
                   type="range"
                   min={1}
@@ -222,21 +237,22 @@ export default function OnboardingModal({ firstName, onComplete }) {
                   value={studyGoalHours}
                   onChange={e => setStudyGoalHours(Number(e.target.value))}
                   className="ob-slider"
+                  style={{ background: sliderBg }}
                 />
-              </div>
-              <div className="ob-slider-labels">
-                <span>1h</span><span>10h</span><span>20h</span><span>30h</span><span>40h</span>
+                <div className="ob-slider-labels">
+                  <span>1h</span><span>10h</span><span>20h</span><span>30h</span><span>40h</span>
+                </div>
               </div>
             </div>
 
             <div className="ob-field">
               <label>When do you prefer to study?</label>
-              <div className="ob-time-grid">
+              <div className="ob-time-list">
                 {STUDY_TIMES.map(t => (
                   <button
                     key={t.value}
                     type="button"
-                    className={`ob-time-card ${preferredStudyTime === t.value ? 'ob-time-active' : ''}`}
+                    className={`ob-time-item ${preferredStudyTime === t.value ? 'ob-time-active' : ''}`}
                     onClick={() => setPreferredStudyTime(t.value)}
                   >
                     <span className="ob-time-label">{t.label}</span>
@@ -255,26 +271,40 @@ export default function OnboardingModal({ firstName, onComplete }) {
             <div className="ob-step-icon"><MdCalendarMonth size={32} color="#667eea" /></div>
             <h2 className="ob-title">Set Up Your Schedule</h2>
             <p className="ob-subtitle">
-              Import your class schedule so StudyBuddy can organize your study
-              sessions and send smart reminders.
+              Import your class schedule or add events manually. You can do this now or come back later.
             </p>
+
             <div className="ob-schedule-options">
-              <div className="ob-schedule-card">
+              <button
+                className="ob-schedule-card ob-schedule-clickable"
+                type="button"
+                onClick={() => handleCompleteAndNavigate('/schedule/upload')}
+                disabled={isSaving}
+              >
                 <span className="ob-schedule-emoji">📅</span>
-                <strong>Upload a PDF / image</strong>
-                <span>Import your class schedule from a file</span>
-                <p className="ob-schedule-note">You can do this from the Schedule page anytime.</p>
-              </div>
-              <div className="ob-schedule-card">
+                <div className="ob-schedule-text">
+                  <strong>Upload a schedule</strong>
+                  <span>Import from a PDF or image</span>
+                </div>
+                <MdArrowForward size={20} className="ob-schedule-arrow" />
+              </button>
+
+              <button
+                className="ob-schedule-card ob-schedule-clickable"
+                type="button"
+                onClick={() => handleCompleteAndNavigate('/calendar')}
+                disabled={isSaving}
+              >
                 <span className="ob-schedule-emoji">✏️</span>
-                <strong>Add events manually</strong>
-                <span>Enter your classes and deadlines by hand</span>
-                <p className="ob-schedule-note">Available in the Calendar section.</p>
-              </div>
+                <div className="ob-schedule-text">
+                  <strong>Add events manually</strong>
+                  <span>Enter classes and deadlines by hand</span>
+                </div>
+                <MdArrowForward size={20} className="ob-schedule-arrow" />
+              </button>
             </div>
-            <p className="ob-skip-note">
-              You can set up your schedule anytime — let's keep going for now.
-            </p>
+
+            <p className="ob-skip-note">Or press Next to set this up later.</p>
           </div>
         );
 
@@ -296,10 +326,12 @@ export default function OnboardingModal({ firstName, onComplete }) {
                 className="ob-avatar-btn"
                 type="button"
                 onClick={() => picInputRef.current?.click()}
-                disabled={isUploadingPic}
               >
-                {isUploadingPic ? 'Uploading…' : profilePicPreview ? 'Change photo' : 'Choose photo'}
+                {profilePicPreview ? 'Change photo' : 'Choose photo'}
               </button>
+              {profilePicPreview && (
+                <p className="ob-pic-note">📸 Photo selected — will upload when you finish.</p>
+              )}
               <input
                 ref={picInputRef}
                 type="file"
@@ -373,7 +405,7 @@ export default function OnboardingModal({ firstName, onComplete }) {
               </div>
               {preferredStudyTime && (
                 <div className="ob-summary-row">
-                  <span className="ob-summary-label">Preferred time</span>
+                  <span className="ob-summary-label">Study time</span>
                   <span className="ob-summary-val">{preferredStudyTime}</span>
                 </div>
               )}
@@ -382,6 +414,10 @@ export default function OnboardingModal({ firstName, onComplete }) {
                 <span className="ob-summary-color" style={{ background: accentColor }} />
               </div>
             </div>
+
+            {picStatus === 'error' && (
+              <p className="ob-pic-error">⚠️ Profile photo couldn't be uploaded — you can try again from the Profile page.</p>
+            )}
           </div>
         );
 
@@ -396,7 +432,7 @@ export default function OnboardingModal({ firstName, onComplete }) {
 
         {/* Progress */}
         <div className="ob-header">
-          <StepLabel step={step} total={TOTAL_STEPS} />
+          <p className="ob-step-label">Step {step} of {TOTAL_STEPS}</p>
           <ProgressBar step={step} total={TOTAL_STEPS} />
         </div>
 
