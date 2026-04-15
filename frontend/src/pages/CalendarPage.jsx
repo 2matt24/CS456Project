@@ -4,7 +4,7 @@ import { IoMdAdd } from 'react-icons/io';
 import {
   MdArrowBack, MdCalendarToday, MdHome, MdChat, MdSettings,
   MdChevronLeft, MdChevronRight, MdLocationOn, MdAccessTime, MdClose,
-  MdRefresh, MdAttachFile,
+  MdRefresh, MdAttachFile, MdDelete,
 } from 'react-icons/md';
 import { scheduleAPI } from '../services/api';
 import '../styles/CalendarPage.css';
@@ -177,6 +177,25 @@ export default function CalendarPage() {
       setLoadError('Could not load events. Pull down to retry.');
     } finally {
       setIsLoading(false);
+    }
+  }
+
+  // ── Delete a single event ───────────────────────────────────────────────────
+  async function handleDeleteEvent(calEvent) {
+    if (!window.confirm(`Delete "${calEvent.title}"?\n\nThis removes only this event — your course stays intact.`)) return;
+    // Recurring events have composite IDs like "123-Monday"; extract the numeric part
+    const numericId = parseInt(calEvent.id.toString().split('-')[0], 10);
+    try {
+      const res = await fetch(
+        `https://cs456project.onrender.com/api/schedule/events/${numericId}`,
+        { method: 'DELETE', credentials: 'include' }
+      );
+      if (!res.ok) throw new Error('Delete failed');
+      setSelectedEvent(null);
+      loadEvents();
+    } catch (err) {
+      console.error('[CalendarPage] delete error:', err);
+      alert('Failed to delete event. Please try again.');
     }
   }
 
@@ -525,6 +544,12 @@ export default function CalendarPage() {
                   </a>
                 </div>
               )}
+              <button
+                className="cal-modal-delete-btn"
+                onClick={() => handleDeleteEvent(selectedEvent)}
+              >
+                <MdDelete size={18} /> Delete This Event
+              </button>
             </div>
           </div>
         </div>

@@ -43,6 +43,7 @@ function Dashboard() {
   const [logoutMessage, setLogoutMessage] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [firstName, setFirstName]       = useState('');
+  const [profilePicture, setProfilePicture] = useState(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [unreadCount, setUnreadCount]   = useState(0);
   const [quote, setQuote]               = useState('Loading inspiration…');
@@ -100,6 +101,7 @@ function Dashboard() {
       const data = await authAPI.getMe();
       const u = data.user || {};
       setFirstName(u.firstName || '');
+      setProfilePicture(u.profilePicture || null);
       if (!u.onboardingCompleted) setShowOnboarding(true);
     } catch (err) {
       console.error('Load user error:', err);
@@ -147,8 +149,12 @@ function Dashboard() {
                   <span className="notif-badge">{unreadCount > 9 ? '9+' : unreadCount}</span>
                 )}
               </span>
-              <span className="dash-icon" onClick={() => navigate('/profile')}>
-                <FaUserCircle size={26} />
+              <span className="dash-icon dash-avatar-icon" onClick={() => navigate('/profile')}>
+                {profilePicture ? (
+                  <img src={profilePicture} alt="Profile" className="dash-avatar-img" />
+                ) : (
+                  <FaUserCircle size={26} />
+                )}
               </span>
             </div>
             <span className="dash-icon dash-logout" onClick={handleLogout}>
