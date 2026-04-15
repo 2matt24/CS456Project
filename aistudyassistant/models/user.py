@@ -3,6 +3,8 @@
 
 #creaing the model based on user database 
 
+from datetime import datetime
+
 from aistudyassistant.extensions import db
 
 
@@ -17,7 +19,7 @@ class User(db.Model):
     Phone = db.Column(db.String(30))
     Bio = db.Column(db.String(500))
     ProfilePicture = db.Column(db.String(500), nullable=True)
-    CreatedAt = db.Column(db.DateTime)
+    CreatedAt = db.Column(db.DateTime, default=datetime.utcnow)
     LastLogin = db.Column(db.DateTime)
     # Notification preferences
     StudyRemindersEnabled = db.Column(db.Boolean, nullable=False, default=True,  server_default="1")
