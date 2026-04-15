@@ -240,7 +240,11 @@ export default function OnboardingModal({ firstName, onComplete }) {
                   style={{ background: sliderBg }}
                 />
                 <div className="ob-slider-labels">
-                  <span>1h</span><span>10h</span><span>20h</span><span>30h</span><span>40h</span>
+                  <span>1h</span>
+                  <span>10h</span>
+                  <span>20h</span>
+                  <span>30h</span>
+                  <span>40h</span>
                 </div>
               </div>
             </div>
@@ -278,8 +282,7 @@ export default function OnboardingModal({ firstName, onComplete }) {
               <button
                 className="ob-schedule-card ob-schedule-clickable"
                 type="button"
-                onClick={() => handleCompleteAndNavigate('/schedule/upload')}
-                disabled={isSaving}
+                onClick={() => navigate('/schedule/upload')}
               >
                 <span className="ob-schedule-emoji">📅</span>
                 <div className="ob-schedule-text">
@@ -292,8 +295,7 @@ export default function OnboardingModal({ firstName, onComplete }) {
               <button
                 className="ob-schedule-card ob-schedule-clickable"
                 type="button"
-                onClick={() => handleCompleteAndNavigate('/calendar')}
-                disabled={isSaving}
+                onClick={() => navigate('/calendar')}
               >
                 <span className="ob-schedule-emoji">✏️</span>
                 <div className="ob-schedule-text">
