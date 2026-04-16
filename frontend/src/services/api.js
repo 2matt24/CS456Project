@@ -514,7 +514,7 @@ export const notificationsAPI = {
       console.warn('[notificationsAPI] markAllRead failed:', err);
     }
   }
-};
+}; 
 // Schedule / Calendar events
 export const scheduleAPI = {
   getAll: async () => {
