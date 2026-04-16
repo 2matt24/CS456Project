@@ -17,7 +17,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 
 from aistudyassistant.models.user import User
 from aistudyassistant.extensions import db
-
+from aistudyassistant.services.auth_tokens import issue_auth_token, get_authenticated_user_id
 
 
 # blueprint instance(groups and organizes routes in modules)
@@ -65,7 +65,23 @@ def register():
     db.session.add(newUser)
     db.session.commit()
 
-    return {"message": "User has been registered successfully"}, 201
+    #return {"message": "User has been registered successfully"}, 201
+
+#codex temp testing 
+    session.permanent = True
+    session["user_id"] = newUser.UserID
+    token = issue_auth_token(newUser.UserID)
+
+    return {
+        "message": "User has been registered successfully",
+        "authToken": token,
+        "user": {
+            "id": newUser.UserID,
+            "email": newUser.Email,
+            "firstName": newUser.FirstName,
+            "lastName": newUser.LastName,
+        }
+    }, 201
 
 
 #login route
@@ -93,11 +109,15 @@ def login():
         return {"error": "Invalid credentials"}, 401
 
     # storing the user id
+    session.permanent = True
     session["user_id"] = user.UserID
+    token = issue_auth_token(user.UserID)
 
     return {
         "message": "Login successful",
+        "authToken": token,
         "user": {
+            "id": user.UserID,
             "email": user.Email,
             "firstName": user.FirstName,
             "lastName": user.LastName,
@@ -115,7 +135,8 @@ def logout():
 #--------- CURRENT USER -----
 @auth_bp.route("/api/user/me", methods=["GET"])
 def get_current_user():
-    user_id = session.get("user_id")
+    #user_id = session.get("user_id")
+    user_id = get_authenticated_user_id()
     if not user_id:
         return {"error": "Not authenticated"}, 401
 
@@ -148,7 +169,8 @@ def get_current_user():
 #--------- UPDATE PROFILE -----
 @auth_bp.route("/api/user/me", methods=["PUT"])
 def update_user():
-    user_id = session.get("user_id")
+    #user_id = session.get("user_id")
+    user_id = get_authenticated_user_id()
     if not user_id:
         return {"error": "Not authenticated"}, 401
 
@@ -205,7 +227,8 @@ def update_user():
 #--------- CHANGE PASSWORD -----
 @auth_bp.route("/api/user/me/password", methods=["PUT"])
 def change_password():
-    user_id = session.get("user_id")
+    #user_id = session.get("user_id")
+    user_id = get_authenticated_user_id()
     if not user_id:
         return {"error": "Not authenticated"}, 401
 
@@ -235,7 +258,8 @@ def change_password():
 #--------- UPLOAD PROFILE PICTURE -----
 @auth_bp.route("/api/user/me/profile-picture", methods=["POST"])
 def upload_profile_picture():
-    user_id = session.get("user_id")
+    #user_id = session.get("user_id")
+    user_id = get_authenticated_user_id()
     if not user_id:
         return {"error": "Not authenticated"}, 401
 
@@ -289,7 +313,8 @@ def upload_profile_picture():
 #--------- ONBOARDING STATUS -----
 @auth_bp.route("/api/user/onboarding/status", methods=["GET"])
 def get_onboarding_status():
-    user_id = session.get("user_id")
+    #user_id = session.get("user_id")
+    user_id = get_authenticated_user_id()
     if not user_id:
         return {"error": "Not authenticated"}, 401
 
@@ -306,7 +331,8 @@ def get_onboarding_status():
 #--------- COMPLETE ONBOARDING -----
 @auth_bp.route("/api/user/onboarding", methods=["POST"])
 def complete_onboarding():
-    user_id = session.get("user_id")
+    #user_id = session.get("user_id")
+    user_id = get_authenticated_user_id()
     if not user_id:
         return {"error": "Not authenticated"}, 401
 
@@ -334,4 +360,25 @@ def complete_onboarding():
             "firstName":           user.FirstName,
             "onboardingCompleted": True,
         },
+    }, 200
+#codex temp testing
+@auth_bp.route("/api/auth/session", methods=["GET"])
+def get_auth_session():
+    user_id = get_authenticated_user_id()
+    if not user_id:
+        return {"authenticated": False}, 200
+
+    user = User.query.get(user_id)
+    if not user:
+        return {"authenticated": False}, 200
+
+    return {
+        "authenticated": True,
+        "authToken": issue_auth_token(user.UserID),
+        "user": {
+            "id": user.UserID,
+            "email": user.Email,
+            "firstName": user.FirstName,
+            "lastName": user.LastName,
+        }
     }, 200

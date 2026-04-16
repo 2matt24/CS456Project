@@ -2,12 +2,15 @@ import os
 import uuid
 
 import google.generativeai as genai
-from flask import Blueprint, request, session
+#from flask import Blueprint, request, session
+#codex temp testing 
+from flask import Blueprint, request
 from sqlalchemy import func, desc
 
 from aistudyassistant.extensions import db
 from aistudyassistant.models.chat_history import ChatHistory
 from aistudyassistant.services.text_extractor import extract_text_from_file
+from aistudyassistant.services.auth_tokens import get_authenticated_user_id
 
 chat_bp = Blueprint("chat", __name__)
 
@@ -27,7 +30,8 @@ _BASE_SYSTEM = (
 
 
 def _current_user_id():
-    return session.get("user_id")
+    #return session.get("user_id")
+    return get_authenticated_user_id()
 
 
 def _build_system_prompt(course_context=None):

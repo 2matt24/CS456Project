@@ -5,11 +5,13 @@ import re
 from datetime import datetime, date as date_type, time as time_type, timezone
 
 import google.generativeai as genai
-from flask import Blueprint, request, session
+#from flask import Blueprint, request, session
+from flask import Blueprint, request
 
 from aistudyassistant.extensions import db
 from aistudyassistant.models.course import Course
 from aistudyassistant.models.schedule_event import ScheduleEvent
+from aistudyassistant.services.auth_tokens import get_authenticated_user_id
 
 
 schedule_bp = Blueprint("schedule", __name__)
@@ -30,7 +32,8 @@ COURSE_COLORS = [
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
 def _current_user_id():
-    return session.get("user_id")
+    #return session.get("user_id")
+    return get_authenticated_user_id()
 
 
 def _serialize_event(ev: ScheduleEvent):

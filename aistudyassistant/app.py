@@ -7,7 +7,8 @@ from flask import Flask
 from flask_cors import CORS 
 from flask_sqlalchemy import SQLAlchemy
 
-import os 
+import os
+from datetime import timedelta # codex temp testing  
 
 from aistudyassistant.routes.auth import auth_bp
 from aistudyassistant.routes.notes import notes_bp
@@ -40,6 +41,11 @@ app.secret_key = os.getenv("SECRET_KEY", "dev-secret-key")
 app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = os.getenv("SESSION_COOKIE_SAMESITE", "None")
 app.config["SESSION_COOKIE_SECURE"] = os.getenv("SESSION_COOKIE_SECURE", "true").lower() == "true"
+
+#codex temp testing 
+app.config["SESSION_PERMANENT"] = True
+app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=30)
+app.config["SESSION_REFRESH_EACH_REQUEST"] = True
 
 
 
@@ -115,10 +121,10 @@ def health():
     return {"status": "ok"}
 
 
-@app.after_request
-def debug_response(response):
-    print("SET-COOKIE HEADER:", response.headers.get("Set-Cookie"))
-    return response
+#@app.after_request
+#def debug_response(response):
+ #   print("SET-COOKIE HEADER:", response.headers.get("Set-Cookie"))
+  #  return response
 
 if __name__ == "__main__":
     app.run()

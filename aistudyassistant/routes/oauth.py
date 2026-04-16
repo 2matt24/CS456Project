@@ -3,6 +3,9 @@ from authlib.integrations.flask_client import OAuth
 from aistudyassistant.extensions import db
 from aistudyassistant.models.user import User
 import os
+from urllib.parse import urlencode
+
+from aistudyassistant.services.auth_tokens import issue_auth_token
 
 oauth_bp = Blueprint("oauth", __name__)
 oauth = OAuth()
@@ -41,10 +44,15 @@ def google_callback():
         db.session.add(user)
         db.session.commit()
     
+    session.permanent = True
     session['user_id'] = user.UserID
     
     # Redirect to frontend dashboard
-    return redirect('https://cs-456-project-huy8.vercel.app/dashboard')
+    #return redirect('https://cs-456-project-huy8.vercel.app/dashboard')
+    auth_token = issue_auth_token(user.UserID)
+
+    params = urlencode({"authToken": auth_token})
+    return redirect(f"https://cs-456-project-huy8.vercel.app/dashboard?{params}")
 
 @oauth_bp.route('/api/auth/apple')
 def apple_login():
@@ -68,7 +76,12 @@ def apple_callback():
         )
         db.session.add(user)
         db.session.commit()
-    
+
+    session.permanent = True
     session['user_id'] = user.UserID
     
-    return redirect('https://cs-456-project-huy8.vercel.app/dashboard')
+    #return redirect('https://cs-456-project-huy8.vercel.app/dashboard')
+    auth_token = issue_auth_token(user.UserID)
+
+    params = urlencode({"authToken": auth_token})
+    return redirect(f"https://cs-456-project-huy8.vercel.app/dashboard?{params}")

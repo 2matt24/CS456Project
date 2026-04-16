@@ -3,7 +3,9 @@ import random
 from datetime import datetime
 
 import google.generativeai as genai
-from flask import Blueprint, session
+#from flask import Blueprint, session
+from aistudyassistant.services.auth_tokens import get_authenticated_user_id
+from flask import Blueprint
 
 dashboard_bp = Blueprint("dashboard", __name__)
 
@@ -26,7 +28,8 @@ _FALLBACK_QUOTES = [
 @dashboard_bp.route("/api/dashboard/quote", methods=["GET"])
 def get_motivational_quote():
     """Generate a personalized, context-aware motivational quote via Gemini."""
-    user_id = session.get("user_id")
+    #user_id = session.get("user_id")
+    user_id = get_authenticated_user_id()
 
     # Gather lightweight user-activity context
     session_count = 0

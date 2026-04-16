@@ -1,13 +1,17 @@
-from flask import Blueprint, request, session
+#from flask import Blueprint, request, session
+from flask import Blueprint, request
 
 from aistudyassistant.extensions import db
 from aistudyassistant.models.notification import Notification
+from aistudyassistant.services.auth_tokens import get_authenticated_user_id
+
 
 notifications_bp = Blueprint("notifications", __name__)
 
 
 def _current_user_id():
-    return session.get("user_id")
+    #return session.get("user_id")
+    return get_authenticated_user_id()
 
 
 def _serialize(n: Notification):
