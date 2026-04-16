@@ -24,9 +24,11 @@ window.fetch = (input, init = {}) => {
     headers.set('Authorization', `Bearer ${token}`)
   }
 
+  const credentials = token ? 'omit' : (init.credentials || 'include')
+
   return originalFetch(input, {
     ...init,
-    credentials: init.credentials || 'include',
+    credentials,
     headers,
   })
 }

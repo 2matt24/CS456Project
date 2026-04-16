@@ -22,11 +22,15 @@ const apiFetch = (url, options = {}) => {
   }
 
   return fetch(url, {
-    credentials: 'include',
+    credentials,
     ...options,
     headers,
   });
 };
+
+// If we already have a bearer token, force token-only auth so the app
+// still works when cross-site/session cookies are blocked by the browser.
+  const credentials = token ? 'omit' : (options.credentials || 'include');
 
 
 
