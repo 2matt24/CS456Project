@@ -58,9 +58,20 @@ _REQUIRED_ORIGINS = [
 ]
 _extra = os.getenv("CORS_ORIGINS", "")
 _extra_list = [o.strip() for o in _extra.split(",") if o.strip()]
-allowed_origins = list(set(_REQUIRED_ORIGINS + _extra_list))
 
-CORS(app, supports_credentials=True, origins=allowed_origins)
+
+allowed_origins = list(set(_REQUIRED_ORIGINS + _extra_list + [
+    r"https://.*\.vercel\.app",
+]))
+
+CORS(
+    app,
+    supports_credentials=True,
+    origins=allowed_origins,
+    allow_headers=["Content-Type", "Authorization"],
+    expose_headers=["Content-Type"],
+    methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+)
 
 # the SQL connection string 
 
