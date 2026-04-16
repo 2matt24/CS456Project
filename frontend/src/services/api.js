@@ -17,6 +17,7 @@ export const authTokenStore = {
 const apiFetch = (url, options = {}) => {
   const headers = new Headers(options.headers || {});
   const token = authTokenStore.get();
+  const credentials = token ? 'omit' : (options.credentials || 'include');
   if (token) {
     headers.set('Authorization', `Bearer ${token}`);
   }
@@ -28,9 +29,7 @@ const apiFetch = (url, options = {}) => {
   });
 };
 
-// If we already have a bearer token, force token-only auth so the app
-// still works when cross-site/session cookies are blocked by the browser.
-  const credentials = token ? 'omit' : (options.credentials || 'include');
+
 
 
 
