@@ -19,16 +19,17 @@ window.fetch = (input, init = {}) => {
   }
 
   const headers = new Headers(init.headers || (input instanceof Request ? input.headers : undefined) || {})
-  const token = authTokenStore.get()
-  if (token) {
-    headers.set('Authorization', `Bearer ${token}`)
-  }
+  //const token = authTokenStore.get()
+  //if (token) {
+    //headers.set('Authorization', `Bearer ${token}`)
+  //}
 
-  const credentials = token ? 'omit' : (init.credentials || 'include')
+//  const credentials = token ? 'omit' : (init.credentials || 'include')
 
   return originalFetch(input, {
     ...init,
-    credentials,
+    //credentials,
+    credentials: 'include',
     headers,
   })
 }
