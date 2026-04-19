@@ -17,10 +17,12 @@ export const authTokenStore = {
 const apiFetch = (url, options = {}) => {
   const headers = new Headers(options.headers || {});
   const token = authTokenStore.get();
-  const credentials = token ? 'omit' : (options.credentials || 'include');
+  //const credentials = token ? 'omit' : (options.credentials || 'include');
   if (token) {
     headers.set('Authorization', `Bearer ${token}`);
   }
+
+  const credentials = token ? 'omit' : (options.credentials || 'include');
 
   return fetch(url, {
     credentials,
