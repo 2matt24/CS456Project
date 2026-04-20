@@ -22,7 +22,7 @@ const apiFetch = (url, options = {}) => {
     headers.set('Authorization', `Bearer ${token}`);
   }
 
-  headers.set('X-StudyBuddy-Session', 'required');
+  const credentials = token ? 'omit' : (options.credentials || 'include');
 
   return fetch(url, {
     //credentials,

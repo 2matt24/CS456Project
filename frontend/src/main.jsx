@@ -23,7 +23,7 @@ window.fetch = (input, init = {}) => {
   if (token) {
     headers.set('Authorization', `Bearer ${token}`)
   }
-  headers.set('X-StudyBuddy-Session', 'required')
+  
 
 
   return originalFetch(input, {
