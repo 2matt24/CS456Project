@@ -19,12 +19,12 @@ window.fetch = (input, init = {}) => {
   }
 
   const headers = new Headers(init.headers || (input instanceof Request ? input.headers : undefined) || {})
-  //const token = authTokenStore.get()
-  //if (token) {
-    //headers.set('Authorization', `Bearer ${token}`)
-  //}
+  const token = authTokenStore.get()
+  if (token) {
+    headers.set('Authorization', `Bearer ${token}`)
+  }
+  headers.set('X-StudyBuddy-Session', 'required')
 
-//  const credentials = token ? 'omit' : (init.credentials || 'include')
 
   return originalFetch(input, {
     ...init,

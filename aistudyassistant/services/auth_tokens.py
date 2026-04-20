@@ -25,6 +25,7 @@ def _read_bearer_token() -> Optional[str]:
 
 
 def get_authenticated_user_id(max_age_seconds: int = 60 * 60 * 24 * 30) -> Optional[int]:
+    session_required = request.headers.get("X-StudyBuddy-Session") == "required"
     session_user_id = session.get("user_id")
     if session_user_id:
         return session_user_id

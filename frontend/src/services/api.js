@@ -18,11 +18,11 @@ const apiFetch = (url, options = {}) => {
   const headers = new Headers(options.headers || {});
   const token = authTokenStore.get();
   
-  //if (token) {
-    //headers.set('Authorization', `Bearer ${token}`);
-  //}
+  if (token) {
+    headers.set('Authorization', `Bearer ${token}`);
+  }
 
-//  const credentials = token ? 'omit' : (options.credentials || 'include');
+  headers.set('X-StudyBuddy-Session', 'required');
 
   return fetch(url, {
     //credentials,
