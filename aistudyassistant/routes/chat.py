@@ -34,7 +34,8 @@ def _current_user_id():
     return get_authenticated_user_id()
 
 
-def _build_system_prompt(course_context=None):
+#def _build_system_prompt(course_context=None):
+def _build_system_prompt(course_context=None, note_context=None):
     parts = [_BASE_SYSTEM]
     if course_context and course_context.get("courseName"):
         parts.append(
@@ -42,6 +43,22 @@ def _build_system_prompt(course_context=None):
             f'"{course_context["courseName"]}". '
             f'Tailor your explanations, examples, and quiz questions to this subject area.'
         )
+
+    if note_context and (note_context.get("title") or note_context.get("content")):
+        note_title = (note_context.get("title") or "Untitled note").strip()
+        note_content = (note_context.get("content") or "").strip()
+    if note_content:
+            note_content = note_content[:12000]
+            parts.append(
+                f'\n\nThe student asked about this note: "{note_title}". '
+                f"Treat this note content as the primary study source for this conversation:\n\n"
+                f"{note_content}"
+            )
+    else:
+            parts.append(
+                f'\n\nThe student asked about this note: "{note_title}". '
+                "Use this note title as context when answering."
+            )
     return "".join(parts)
 
 
@@ -70,6 +87,12 @@ def chat_message():
     message            = (data.get("message") or "").strip()
     history            = data.get("history") or []
     course_context     = data.get("courseContext")
+    note_context       = data.get("noteContext")
+    note_id            = data.get("noteId")
+    try:
+        note_id = int(note_id) if note_id is not None else None
+    except (TypeError, ValueError):
+        note_id = None
     session_id         = data.get("sessionId") or str(uuid.uuid4())
     conversation_title = data.get("conversationTitle") or ""
 
@@ -93,7 +116,8 @@ def chat_message():
         ai_response = "AI is not configured on this server. Please set GEMINI_API_KEY."
     else:
         try:
-            system_prompt  = _build_system_prompt(course_context)
+            #system_prompt  = _build_system_prompt(course_context)
+            system_prompt  = _build_system_prompt(course_context, note_context)
             gemini_history = _build_gemini_history(history)
 
             model = genai.GenerativeModel(
@@ -114,6 +138,7 @@ def chat_message():
             UserID=user_id,
             Message=message,
             Response=ai_response,
+            NoteID=note_id,
             SessionID=session_id,
             ConversationTitle=conversation_title,
         )
