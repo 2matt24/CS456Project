@@ -171,10 +171,10 @@ def search_notes():
         
         # Format results
         formatted_results = [{
-            "noteId": match.id,
+            "noteID": match.id,
             "score": match.score,
             "title": match.metadata.get("title", "Untitled"),
-            "courseId": match.metadata.get("course_id")
+            "courseID": match.metadata.get("course_id")
         } for match in results]
         
         return {"results": formatted_results}, 200
