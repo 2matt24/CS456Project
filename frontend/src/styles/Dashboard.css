@@ -251,16 +251,17 @@
   box-sizing: border-box;
 }
 
+/* ── Course card action buttons ── */
 .dash-course-wrap {
   position: relative;
 }
 
 .dash-course-actions {
   position: absolute;
-  right: 10px;
   top: 10px;
+  right: 10px;
   display: flex;
-  gap: 6px;
+  gap: 5px;
   z-index: 5;
 }
 
@@ -274,11 +275,24 @@
   justify-content: center;
   cursor: pointer;
   color: white;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.22);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.dash-course-action-btn:hover {
+  transform: scale(1.15);
 }
 
 .dash-course-action-btn.edit {
   background: rgba(102, 126, 234, 0.95);
+}
+
+.dash-course-action-btn.study {
+  background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+}
+
+.dash-course-action-btn.study:hover {
+  box-shadow: 0 4px 10px rgba(67, 233, 123, 0.45);
 }
 
 .dash-course-action-btn.delete {
