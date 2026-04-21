@@ -65,7 +65,7 @@ function CoursePage() {
     try {
       await notesAPI.delete(noteId);
       setNotes(prev => prev.filter(n => n.noteID !== noteId));
-      setSearchResults(prev => prev.filter(r => r.noteId !== String(noteId)));
+      setSearchResults(prev => prev.filter(r => r.noteID !== String(noteId)));
     } catch (err) {
       alert('Failed to delete note. Please try again.');
     }
@@ -180,12 +180,12 @@ function CoursePage() {
 
         {/* Search results */}
         {searchResults.length > 0 && searchResults.map(result => {
-          const note = notes.find(n => n.noteID === parseInt(result.noteId));
+          const note = notes.find(n => n.noteID === parseInt(result.noteID));
           return note ? (
             <div
-              key={result.noteId}
+              key={result.noteID}
               className="note-item search-result"
-              onClick={() => navigate(`/course/${courseId}/note/${result.noteId}`)}
+              onClick={() => navigate(`/course/${courseId}/note/${result.noteID}`)}
             >
               <div className="note-icon">
                 <IoDocumentTextOutline size={28} color="#667eea" />
