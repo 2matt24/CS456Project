@@ -4,8 +4,8 @@ import os
 import re
 from datetime import datetime, date as date_type, time as time_type, timezone
 
-import google.generativeai as genai
-#from flask import Blueprint, request, session
+from google import genai
+from google.genai import types as genai_types
 from flask import Blueprint, request
 
 from aistudyassistant.extensions import db
@@ -19,9 +19,8 @@ schedule_bp = Blueprint("schedule", __name__)
 VALID_TYPES   = {"school", "work", "personal"}
 VALID_REPEATS = {"once", "daily", "weekly", "monthly"}
 
-_GEMINI_KEY = os.getenv("GEMINI_API_KEY")
-if _GEMINI_KEY:
-    genai.configure(api_key=_GEMINI_KEY)
+_GEMINI_KEY    = os.getenv("GEMINI_API_KEY")
+_gemini_client = genai.Client(api_key=_GEMINI_KEY) if _GEMINI_KEY else None
 
 COURSE_COLORS = [
     "#667eea", "#f093fb", "#4facfe", "#43e97b",
@@ -125,7 +124,7 @@ def extract_multiple_courses_with_ai(names_and_dates: list) -> dict:
     if not to_fetch:
         return result_map  # 100% cache hit — zero API calls
 
-    if not _GEMINI_KEY:
+    if not _gemini_client:
         for name, _ in to_fetch:
             info = _fallback_course_info(name)
             result_map[name] = info
@@ -160,8 +159,10 @@ Examples:
 """
 
     try:
-        model = genai.GenerativeModel("gemini-2.0-flash-exp")
-        response = model.generate_content(prompt)
+        response = _gemini_client.models.generate_content(
+            model="gemini-2.0-flash",
+            contents=prompt,
+        )
         raw = response.text.strip()
         raw = re.sub(r"^```(?:json)?\s*", "", raw)
         raw = re.sub(r"\s*```$", "", raw)
@@ -213,7 +214,7 @@ def _infer_semester(start_date_str: str):
 
 def _gemini_parse_schedule(text: str, schedule_type: str) -> list:
     """Call Gemini to parse raw schedule text into structured events."""
-    if not _GEMINI_KEY:
+    if not _gemini_client:
         return []
 
     today = datetime.now().strftime("%Y-%m-%d")
@@ -250,8 +251,10 @@ Schedule text:
 {text}"""
 
     try:
-        model = genai.GenerativeModel("gemini-2.5-flash")
-        response = model.generate_content(prompt)
+        response = _gemini_client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=prompt,
+        )
         raw = response.text.strip()
 
         # Strip markdown code fences if present
@@ -605,7 +608,7 @@ def extract_schedule_from_file():
 
     # ── Images: use Gemini vision ────────────────────────────────────────────
     elif filename.endswith((".png", ".jpg", ".jpeg", ".webp")):
-        if not _GEMINI_KEY:
+        if not _gemini_client:
             return {"error": "AI service not configured"}, 503
         try:
             ext = filename.rsplit(".", 1)[-1]
@@ -618,11 +621,13 @@ def extract_schedule_from_file():
                 f"endDate (null if unknown), location, repeat (once/weekly/daily/monthly), "
                 f"color (#667eea). No markdown, no explanation."
             )
-            model = genai.GenerativeModel("gemini-2.5-flash")
-            response = model.generate_content([
-                {"mime_type": mime, "data": file_bytes},
-                prompt,
-            ])
+            response = _gemini_client.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=[
+                    genai_types.Part.from_bytes(data=file_bytes, mime_type=mime),
+                    genai_types.Part.from_text(prompt),
+                ],
+            )
             raw = re.sub(r"^```(?:json)?\s*", "", response.text.strip())
             raw = re.sub(r"\s*```$", "", raw)
             events = json.loads(raw)
@@ -637,7 +642,7 @@ def extract_schedule_from_file():
     if not extracted_text or not extracted_text.strip():
         return {"error": "Could not read text from the file."}, 422
 
-    if not _GEMINI_KEY:
+    if not _gemini_client:
         return {"error": "AI service not configured"}, 503
 
     events = _gemini_parse_schedule(extracted_text, schedule_type)
@@ -652,7 +657,7 @@ def parse_schedule_text():
     if not user_id:
         return {"error": "Authentication required"}, 401
 
-    if not _GEMINI_KEY:
+    if not _gemini_client:
         return {"error": "AI service not configured"}, 503
 
     data          = request.get_json() or {}

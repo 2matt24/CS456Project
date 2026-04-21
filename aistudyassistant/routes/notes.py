@@ -4,13 +4,11 @@ import json
 import os
 import re
 
-import google.generativeai as genai
-#from flask import Blueprint, request, session
+from google import genai
 from flask import Blueprint, request
 
-_GEMINI_KEY = os.getenv("GEMINI_API_KEY", "")
-if _GEMINI_KEY:
-    genai.configure(api_key=_GEMINI_KEY)
+_GEMINI_KEY    = os.getenv("GEMINI_API_KEY", "")
+_gemini_client = genai.Client(api_key=_GEMINI_KEY) if _GEMINI_KEY else None
 
 from aistudyassistant.extensions import db
 from aistudyassistant.models.note import Note
@@ -332,7 +330,7 @@ def generate_quiz():
     if not user_id:
         return {"error": "Authentication required"}, 401
 
-    if not _GEMINI_KEY:
+    if not _gemini_client:
         return {"error": "AI service not configured"}, 503
 
     data           = request.get_json() or {}
@@ -370,8 +368,10 @@ Return ONLY a JSON array with this EXACT structure (no markdown, no explanation 
 ]"""
 
     try:
-        model    = genai.GenerativeModel("gemini-2.5-flash")
-        response = model.generate_content(prompt)
+        response = _gemini_client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=prompt,
+        )
         raw      = response.text.strip()
 
         # Strip markdown fences if present

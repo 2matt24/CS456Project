@@ -1,9 +1,8 @@
 import os
 import uuid
 
-import google.generativeai as genai
-#from flask import Blueprint, request, session
-#codex temp testing 
+from google import genai
+from google.genai import types as genai_types
 from flask import Blueprint, request
 from sqlalchemy import func, desc
 
@@ -14,9 +13,8 @@ from aistudyassistant.services.auth_tokens import get_authenticated_user_id
 
 chat_bp = Blueprint("chat", __name__)
 
-_GEMINI_KEY = os.getenv("GEMINI_API_KEY", "")
-if _GEMINI_KEY:
-    genai.configure(api_key=_GEMINI_KEY)
+_GEMINI_KEY    = os.getenv("GEMINI_API_KEY", "")
+_gemini_client = genai.Client(api_key=_GEMINI_KEY) if _GEMINI_KEY else None
 
 _MODEL_NAME = "gemini-2.5-flash"
 
@@ -62,8 +60,12 @@ def _build_system_prompt(course_context=None, note_context=None):
     return "".join(parts)
 
 
-def _build_gemini_history(history):
-    result = []
+def _build_gemini_contents(history, new_message):
+    """
+    Convert the frontend message list + new message into the Contents list
+    expected by the google-genai SDK.  The welcome message is skipped.
+    """
+    contents = []
     for msg in history:
         if msg.get("id") == "welcome":
             continue
@@ -72,8 +74,20 @@ def _build_gemini_history(history):
         role = "user" if msg.get("role") == "user" else "model"
         text = (msg.get("text") or "").strip()
         if text:
-            result.append({"role": role, "parts": [{"text": text}]})
-    return result
+            contents.append(
+                genai_types.Content(
+                    role=role,
+                    parts=[genai_types.Part.from_text(text)],
+                )
+            )
+    # Append the new user message
+    contents.append(
+        genai_types.Content(
+            role="user",
+            parts=[genai_types.Part.from_text(new_message)],
+        )
+    )
+    return contents
 
 
 # ── POST /api/chat ────────────────────────────────────────────────────────────
@@ -112,23 +126,23 @@ def chat_message():
             conversation_title = message[:60] + ("…" if len(message) > 60 else "")
 
     ai_response = ""
-    if not _GEMINI_KEY:
+    if not _gemini_client:
         ai_response = "AI is not configured on this server. Please set GEMINI_API_KEY."
     else:
         try:
-            #system_prompt  = _build_system_prompt(course_context)
-            system_prompt  = _build_system_prompt(course_context, note_context)
-            gemini_history = _build_gemini_history(history)
+            system_prompt = _build_system_prompt(course_context, note_context)
+            contents      = _build_gemini_contents(history, message)
 
-            model = genai.GenerativeModel(
-                model_name=_MODEL_NAME,
-                system_instruction=system_prompt,
-                generation_config=genai.GenerationConfig(temperature=0.7, max_output_tokens=600),
+            result = _gemini_client.models.generate_content(
+                model=_MODEL_NAME,
+                contents=contents,
+                config=genai_types.GenerateContentConfig(
+                    system_instruction=system_prompt,
+                    temperature=0.7,
+                    max_output_tokens=600,
+                ),
             )
-
-            chat_session = model.start_chat(history=gemini_history)
-            result       = chat_session.send_message(message)
-            ai_response  = result.text or ""
+            ai_response = result.text or ""
         except Exception as exc:
             print(f"[chat] Gemini error: {exc}")
             return {"error": "AI service unavailable. Please try again shortly."}, 503
