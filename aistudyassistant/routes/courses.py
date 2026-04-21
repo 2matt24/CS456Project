@@ -1,17 +1,20 @@
 from datetime import date as date_type
 
-from flask import Blueprint, request, session
+#from flask import Blueprint, request, session
+from flask import Blueprint, request
 
 from aistudyassistant.extensions import db
 from aistudyassistant.models.course import Course
 from aistudyassistant.models.schedule_event import ScheduleEvent
+from aistudyassistant.services.auth_tokens import get_authenticated_user_id
 
 
 courses_bp = Blueprint("courses", __name__)
 
 
 def _current_user_id():
-    return session.get("user_id")
+    #return session.get("user_id")
+    return get_authenticated_user_id()
 
 
 def _serialize_course(course: Course):

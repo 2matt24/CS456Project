@@ -5,7 +5,8 @@ import os
 import re
 
 import google.generativeai as genai
-from flask import Blueprint, request, session
+#from flask import Blueprint, request, session
+from flask import Blueprint, request
 
 _GEMINI_KEY = os.getenv("GEMINI_API_KEY", "")
 if _GEMINI_KEY:
@@ -18,6 +19,7 @@ from aistudyassistant.services.neightnclient import summarize_text
 from aistudyassistant.services.azure_storage import AzureStorageService
 from aistudyassistant.services.pinecone_service import PineconeService
 from aistudyassistant.services.text_extractor import extract_text_from_file
+from aistudyassistant.services.auth_tokens import get_authenticated_user_id
 
 # blueprint for notes route
 notes_bp = Blueprint("notes", __name__)
@@ -34,7 +36,8 @@ def get_pinecone_service():
 
 
 def _current_user_id():
-    return session.get("user_id")
+    #return session.get("user_id")
+    return get_authenticated_user_id()
 
 
 def _serialize_note(note: Note):

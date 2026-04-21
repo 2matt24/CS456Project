@@ -1,32 +1,89 @@
-# CS456Project
-AI Enhancement for academic work project
+# StudyBuddyAI (CS456Project)
 
-Project Overview: StudyBuddyAI is a secure AI-enhanced digital assistant designed to help students manage notes and study schedules. This repository contains the Flask backend API deployed via Render and connected to Azure SQL Database
+StudyBuddyAI is a full-stack academic assistant that helps students manage courses, notes, schedules, and study workflows with AI-enhanced features.
+
+# Project Structure
+
+aistudyassistant/` — Flask backend API, routes, models, and services.
+- `frontend/` — React + Vite frontend application.
+- `requirements.txt` — Python dependencies for backend.
+- `dockerfile` — Backend containerization for deployment.
+
+# Backend
+- Python + Flask
+- Flask-SQLAlchemy + SQLAlchemy
+- Azure SQL (via `pyodbc`)
+- Authlib (OAuth)
+- Gunicorn (production server)
+
+# Frontend
+- React
+- Vite
+- React Router
+
+# Deployment
+- Render (backend)
+- Vercel (frontend)
+
+# Key Features
+
+- User registration and login
+- Session and token-based auth support
+- Course and note management
+- Study session tracking
+- Schedule/calendar endpoints
+- Notifications support
+- AI chat and text extraction integrations
+
+# Live Deployment
+
+- Backend URL: `https://cs456project.onrender.com`
 
 
-Tech Stack
-Python (Flask)
-SQLAlchemy (For flask connection to DB)
-Azure SQL Database
-Docker(For render DB access)
-Gunicorn
-Render (deployment)
-React/node.js (frontend)
+# Local Development
 
+## 1) Clone and setup backend
 
-Features Implemented (Milestone 2):
-User Registration (secure password hashing)
-User Login with session-based authentication
-Azure SQL database integration
-Demo Production deployment via Docker on Render
+```bash
+git clone <your-repo-url>
+cd CS456Project
+python -m venv .venv
+source .venv/bin/activate  # Windows: .venv\\Scripts\\activate
+pip install -r requirements.txt
+```
 
-Live render url: https://cs456project.onrender.com
+Create a `.env` file in the repository root and set the required variables used by `aistudyassistant/app.py` and service modules (for example DB credentials, secret key, and provider keys).
 
-setup instructions: 
-Clone repository
-Create virtual environment (venv in terminal)
-Install dependencies: pip install -r requirements.txt
-Run the app in terminal: python -m aistudyassistant.app
+Run backend:
 
-Backend is deployed using Docker on Render.
-Azure SQL firewall rules configured for external access.
+```bash
+python -m aistudyassistant.app
+```
+
+Backend health check:
+
+- `GET /api/health`
+
+## 2) Setup and run frontend
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Frontend dev server (default): `http://localhost:5173`
+
+## Frontend Scripts
+
+From `frontend/`:
+
+- `npm run dev` — Start development server
+- `npm run build` — Build production bundle
+- `npm run preview` — Preview production build locally
+- `npm run lint` — Run ESLint
+
+## Notes
+
+- CORS is configured to allow localhost and Vercel origins, with optional additional origins from environment configuration.
+- The frontend currently uses a hardcoded API base URL in `frontend/src/services/api.js`.

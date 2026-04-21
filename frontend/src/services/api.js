@@ -1,13 +1,47 @@
-﻿const API_BASE_URL = 'https://cs456project.onrender.com';
-
+﻿//const API_BASE_URL = 'https://cs456project.onrender.com';
+const API_BASE_URL = 'https://cs456project.onrender.com';
+const AUTH_TOKEN_KEY = 'studybuddy_auth_token';
 
 const buildUrl = (path) => `${API_BASE_URL}${path}`;
+
+export const authTokenStore = {
+  get: () => localStorage.getItem(AUTH_TOKEN_KEY),
+  set: (token) => {
+    if (token) {
+      localStorage.setItem(AUTH_TOKEN_KEY, token);
+    }
+  },
+  clear: () => localStorage.removeItem(AUTH_TOKEN_KEY),
+};
+
+const apiFetch = (url, options = {}) => {
+  const headers = new Headers(options.headers || {});
+  const token = authTokenStore.get();
+  
+  if (token) {
+    headers.set('Authorization', `Bearer ${token}`);
+  }
+
+  const credentials = token ? 'omit' : (options.credentials || 'include');
+
+  return fetch(url, {
+    //credentials,
+    credentials: 'include',
+    ...options,
+    headers,
+  });
+};
+
+
+
+
 
 // Auth endpoints
 export const authAPI = {
   register: async (email, password, firstName, lastName) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/register`, {
+      //const response = await fetch(`${API_BASE_URL}/api/register`, {
+      const response = await apiFetch(`${API_BASE_URL}/api/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -18,7 +52,10 @@ export const authAPI = {
         const error = await response.json();
         throw new Error(error.error || 'Registration failed');
       }
-      return await response.json();
+      //return await response.json();
+      const data = await response.json();
+      authTokenStore.set(data.authToken);
+      return data;
     } catch (error) {
       console.error('Register error:', error);
       throw error;
@@ -27,7 +64,8 @@ export const authAPI = {
 
   login: async (email, password) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/login`, {
+      //const response = await fetch(`${API_BASE_URL}/api/login`, {
+      const response = await apiFetch(`${API_BASE_URL}/api/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -38,7 +76,10 @@ export const authAPI = {
         const error = await response.json();
         throw new Error(error.error || 'Login failed');
       }
-      return await response.json();
+      //return await response.json();
+      const data = await response.json();
+      authTokenStore.set(data.authToken);
+      return data;
     } catch (error) {
       console.error('Login error:', error);
       throw error;
@@ -47,11 +88,13 @@ export const authAPI = {
 
   logout: async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/logout`, {
+      //const response = await fetch(`${API_BASE_URL}/api/logout`, {
+      const response = await apiFetch(`${API_BASE_URL}/api/logout`, {
         method: 'POST',
         credentials: 'include'
       });
 
+      authTokenStore.clear();
       return await response.json();
     } catch (error) {
       console.error('Logout error:', error);
@@ -61,7 +104,8 @@ export const authAPI = {
 
   getMe: async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/user/me`, {
+      //const response = await fetch(`${API_BASE_URL}/api/user/me`, {
+      const response = await apiFetch(`${API_BASE_URL}/api/user/me`, {
         credentials: 'include'
       });
 
@@ -75,9 +119,23 @@ export const authAPI = {
     }
   },
 
+  getSession: async () => {
+    try {
+      const response = await apiFetch(`${API_BASE_URL}/api/auth/session`);
+      if (!response.ok) return { authenticated: false };
+      const data = await response.json();
+      authTokenStore.set(data.authToken);
+      return data;
+    } catch (error) {
+      console.error('Get session error:', error);
+      return { authenticated: false };
+    }
+  },
+
   updateProfile: async (userData) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/user/me`, {
+      //const response = await fetch(`${API_BASE_URL}/api/user/me`, {
+      const response = await apiFetch(`${API_BASE_URL}/api/user/me`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -97,7 +155,8 @@ export const authAPI = {
 
   changePassword: async (currentPassword, newPassword) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/user/me/password`, {
+      //const response = await fetch(`${API_BASE_URL}/api/user/me/password`, {
+      const response = await apiFetch(`${API_BASE_URL}/api/user/me/password`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -120,7 +179,8 @@ export const authAPI = {
 export const coursesAPI = {
   getAll: async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/courses`, {
+      //const response = await fetch(`${API_BASE_URL}/api/courses`, {
+      const response = await apiFetch(`${API_BASE_URL}/api/courses`, {
         credentials: 'include'
       });
       
@@ -138,7 +198,8 @@ export const coursesAPI = {
 
   create: async (courseName, courseCode, semester, color, icon, startDate, endDate) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/courses`, {
+      //const response = await fetch(`${API_BASE_URL}/api/courses`, {
+      const response = await apiFetch(`${API_BASE_URL}/api/courses`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -164,7 +225,8 @@ export const coursesAPI = {
 
  update: async (courseId, updates) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/courses/${courseId}`, {
+      //const response = await fetch(`${API_BASE_URL}/api/courses/${courseId}`, {
+      const response = await apiFetch(`${API_BASE_URL}/api/courses/${courseId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -185,7 +247,8 @@ export const coursesAPI = {
 
   delete: async (courseId) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/courses/${courseId}`, {
+      //const response = await fetch(`${API_BASE_URL}/api/courses/${courseId}`, {
+      const response = await apiFetch(`${API_BASE_URL}/api/courses/${courseId}`, {
         method: 'DELETE',
         credentials: 'include'
       });
@@ -209,7 +272,8 @@ export const coursesAPI = {
 export const notesAPI = {
   getForCourse: async (courseId) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/notes?courseId=${courseId}`, {
+      //const response = await fetch(`${API_BASE_URL}/api/notes?courseId=${courseId}`, {
+      const response = await apiFetch(`${API_BASE_URL}/api/notes?courseId=${courseId}`, {
         credentials: 'include'
       });
       
@@ -225,7 +289,8 @@ export const notesAPI = {
 
   create: async (courseId, title, content) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/notes`, {
+      //const response = await fetch(`${API_BASE_URL}/api/notes`, {
+      const response = await apiFetch(`${API_BASE_URL}/api/notes`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -251,7 +316,8 @@ export const notesAPI = {
 
   update: async (noteId, title, content) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/notes/${noteId}`, {
+      //const response = await fetch(`${API_BASE_URL}/api/notes/${noteId}`, {
+      const response = await apiFetch(`${API_BASE_URL}/api/notes/${noteId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -270,7 +336,8 @@ export const notesAPI = {
 
   delete: async (noteId) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/notes/${noteId}`, {
+      //const response = await fetch(`${API_BASE_URL}/api/notes/${noteId}`, {
+      const response = await apiFetch(`${API_BASE_URL}/api/notes/${noteId}`, {
         method: 'DELETE',
         credentials: 'include',
       });
@@ -287,7 +354,8 @@ export const notesAPI = {
 
   summarize: async (content) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/notes/summarize`, {
+      //const response = await fetch(`${API_BASE_URL}/api/notes/summarize`, {
+      const response = await apiFetch(`${API_BASE_URL}/api/notes/summarize`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -311,7 +379,8 @@ export const notesAPI = {
 export const studySessionsAPI = {
   create: async (courseId, sessionType, durationMinutes) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/study-sessions`, {
+      //const response = await fetch(`${API_BASE_URL}/api/study-sessions`, {
+      const response = await apiFetch(`${API_BASE_URL}/api/study-sessions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -341,7 +410,8 @@ export const studySessionsAPI = {
             ? `${API_BASE_URL}/api/study-sessions/weekly-stats?courseId=${courseId}`
             : `${API_BASE_URL}/api/study-sessions/weekly-stats`;
       
-      const response = await fetch(url, {
+      //const response = await fetch(url, {
+      const response = await apiFetch(url, {
         credentials: 'include'
       });
       
@@ -359,7 +429,8 @@ export const studySessionsAPI = {
 export const chatAPI = {
   saveExchange: async (message, response, noteId) => {
     try {
-      await fetch(`${API_BASE_URL}/api/chat`, {
+      //await fetch(`${API_BASE_URL}/api/chat`, {
+      await apiFetch(`${API_BASE_URL}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -374,7 +445,8 @@ export const chatAPI = {
     try {
       const params = new URLSearchParams({ limit });
       if (noteId) params.set('noteId', noteId);
-      const res = await fetch(`${API_BASE_URL}/api/chat/history?${params}`, {
+      //const res = await fetch(`${API_BASE_URL}/api/chat/history?${params}`, {
+      const res = await apiFetch(`${API_BASE_URL}/api/chat/history?${params}`, {
         credentials: 'include'
       });
       if (!res.ok) return [];
@@ -388,7 +460,8 @@ export const chatAPI = {
 
   clearHistory: async () => {
     try {
-      await fetch(`${API_BASE_URL}/api/chat/history`, {
+      //await fetch(`${API_BASE_URL}/api/chat/history`, {
+      await apiFetch(`${API_BASE_URL}/api/chat/history`, {
         method: 'DELETE',
         credentials: 'include'
       });
@@ -402,7 +475,8 @@ export const chatAPI = {
 export const notificationsAPI = {
   getAll: async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/notifications`, { credentials: 'include' });
+      //const res = await fetch(`${API_BASE_URL}/api/notifications`, { credentials: 'include' });
+      const res = await apiFetch(`${API_BASE_URL}/api/notifications`, { credentials: 'include' });
       if (!res.ok) return { notifications: [], unreadCount: 0 };
       return await res.json();
     } catch (err) {
@@ -413,7 +487,8 @@ export const notificationsAPI = {
 
   getUnreadCount: async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/notifications/unread-count`, { credentials: 'include' });
+      //const res = await fetch(`${API_BASE_URL}/api/notifications/unread-count`, { credentials: 'include' });
+      const res = await apiFetch(`${API_BASE_URL}/api/notifications/unread-count`, { credentials: 'include' });
       if (!res.ok) return 0;
       const data = await res.json();
       return data.unreadCount || 0;
@@ -424,7 +499,8 @@ export const notificationsAPI = {
 
   markRead: async (notificationId) => {
     try {
-      await fetch(`${API_BASE_URL}/api/notifications/${notificationId}/read`, {
+      //await fetch(`${API_BASE_URL}/api/notifications/${notificationId}/read`, {
+      await apiFetch(`${API_BASE_URL}/api/notifications/${notificationId}/read`, {
         method: 'PUT',
         credentials: 'include'
       });
@@ -435,7 +511,8 @@ export const notificationsAPI = {
 
   markAllRead: async () => {
     try {
-      await fetch(`${API_BASE_URL}/api/notifications/read-all`, {
+      await apiFetch(`${API_BASE_URL}/api/notifications/read-all`, {
+      //await fetch(`${API_BASE_URL}/api/notifications/read-all`, {
         method: 'PUT',
         credentials: 'include'
       });
@@ -443,12 +520,13 @@ export const notificationsAPI = {
       console.warn('[notificationsAPI] markAllRead failed:', err);
     }
   }
-};
+}; 
 // Schedule / Calendar events
 export const scheduleAPI = {
   getAll: async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/schedule/events`, {
+      //const res = await fetch(`${API_BASE_URL}/api/schedule/events`, {
+      const res = await apiFetch(`${API_BASE_URL}/api/schedule/events`, {
         credentials: 'include'
       });
       if (!res.ok) throw new Error('Failed to fetch events');
@@ -462,7 +540,8 @@ export const scheduleAPI = {
 
   create: async (event) => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/schedule/events`, {
+      //const res = await fetch(`${API_BASE_URL}/api/schedule/events`, {
+      const res = await apiFetch(`${API_BASE_URL}/api/schedule/events`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -481,7 +560,8 @@ export const scheduleAPI = {
 
   update: async (eventId, updates) => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/schedule/events/${eventId}`, {
+      //const res = await fetch(`${API_BASE_URL}/api/schedule/events/${eventId}`, {
+      const res = await apiFetch(`${API_BASE_URL}/api/schedule/events/${eventId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -500,7 +580,8 @@ export const scheduleAPI = {
 
   delete: async (eventId) => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/schedule/events/${eventId}`, {
+      //const res = await fetch(`${API_BASE_URL}/api/schedule/events/${eventId}`, {
+      const res = await apiFetch(`${API_BASE_URL}/api/schedule/events/${eventId}`, {
         method: 'DELETE',
         credentials: 'include'
       });
@@ -520,7 +601,8 @@ export const scheduleAPI = {
 export const settingsAPI = {
   getNotificationSettings: async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/settings/notifications`, {
+      //const res = await fetch(`${API_BASE_URL}/api/settings/notifications`, {
+      const res = await apiFetch(`${API_BASE_URL}/api/settings/notifications`, {
         credentials: 'include'
       });
       if (!res.ok) {
@@ -536,7 +618,8 @@ export const settingsAPI = {
 
   updateNotificationSettings: async (notifications) => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/settings/notifications`, {
+      //const res = await fetch(`${API_BASE_URL}/api/settings/notifications`, {
+      const res = await apiFetch(`${API_BASE_URL}/api/settings/notifications`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -555,7 +638,8 @@ export const settingsAPI = {
 
   getAbout: async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/settings/about`, {
+      //const res = await fetch(`${API_BASE_URL}/api/settings/about`, {
+      const res = await apiFetch(`${API_BASE_URL}/api/settings/about`, {
         credentials: 'include'
       });
       if (!res.ok) {

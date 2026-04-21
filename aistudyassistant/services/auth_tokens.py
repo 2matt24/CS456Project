@@ -29,6 +29,14 @@ def get_authenticated_user_id(max_age_seconds: int = 60 * 60 * 24 * 30) -> Optio
     if session_user_id:
         return session_user_id
 
+
+    # If the browser sent a Flask session cookie but it doesn't decode to an
+    # authenticated user, treat that as unauthenticated instead of silently
+    # falling back to bearer auth. This prevents a tampered/expired session
+    # cookie from appearing valid after a page reload.
+    if request.cookies.get("session"):
+        return None
+
     token = _read_bearer_token()
     if not token:
         return None
