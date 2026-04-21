@@ -2,14 +2,13 @@ import os
 import random
 from datetime import datetime
 
-import google.generativeai as genai
+from google import genai
 from flask import Blueprint, session
 
 dashboard_bp = Blueprint("dashboard", __name__)
 
-_GEMINI_KEY = os.getenv("GEMINI_API_KEY")
-if _GEMINI_KEY:
-    genai.configure(api_key=_GEMINI_KEY)
+_GEMINI_KEY    = os.getenv("GEMINI_API_KEY")
+_gemini_client = genai.Client(api_key=_GEMINI_KEY) if _GEMINI_KEY else None
 
 _FALLBACK_QUOTES = [
     "Every expert was once a beginner.",
@@ -59,11 +58,10 @@ def get_motivational_quote():
     else:
         activity_context = "The student is ready to begin their learning journey."
 
-    if not _GEMINI_KEY:
+    if not _gemini_client:
         return {"quote": random.choice(_FALLBACK_QUOTES)}, 200
 
     try:
-        model = genai.GenerativeModel("gemini-2.0-flash-exp")
         prompt = f"""Generate ONE short, inspiring quote for a student.
 
 Context:
@@ -84,7 +82,10 @@ Small daily improvements over time lead to stunning results.
 Every expert was once a beginner who refused to give up.
 Morning minds are sharp minds — make today count."""
 
-        response = model.generate_content(prompt)
+        response = _gemini_client.models.generate_content(
+            model="gemini-2.0-flash",
+            contents=prompt,
+        )
         quote = response.text.strip().strip('"').strip("'").strip("—").strip()
 
         if not quote or len(quote) > 200:

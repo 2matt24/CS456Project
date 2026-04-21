@@ -1,5 +1,5 @@
 import os
-import google.generativeai as genai
+from google import genai
 from pinecone import Pinecone
 
 
@@ -14,21 +14,19 @@ class PineconeService:
         if not gemini_api_key:
             raise ValueError("GEMINI_API_KEY not set")
 
-        genai.configure(api_key=gemini_api_key)
-
-        self.pc         = Pinecone(api_key=pinecone_api_key)
-        self.index_name = "studybuddy-notes"
-        self.index      = self.pc.Index(self.index_name)
+        self.gemini_client = genai.Client(api_key=gemini_api_key)
+        self.pc            = Pinecone(api_key=pinecone_api_key)
+        self.index_name    = "studybuddy-notes"
+        self.index         = self.pc.Index(self.index_name)
 
     def _get_embedding(self, text: str):
         """Generate embedding using Gemini text-embedding-004 (768 dims)."""
         try:
-            result = genai.embed_content(
-                model="models/text-embedding-004",
-                content=text,
-                task_type="retrieval_document",
+            result = self.gemini_client.models.embed_content(
+                model="text-embedding-004",
+                contents=text,
             )
-            return result["embedding"]
+            return result.embeddings[0].values
         except Exception as e:
             print(f"Gemini embedding error: {e}")
             return None
