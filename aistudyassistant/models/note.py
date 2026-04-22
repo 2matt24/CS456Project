@@ -10,8 +10,12 @@ class Note(db.Model):
     Title     = db.Column("Title",     db.Unicode(255), nullable=False)
     Content   = db.Column("Content",   db.UnicodeText)
 
-    # AI-generated summary — persisted so it survives navigation
-    Summary   = db.Column("Summary",   db.UnicodeText,  nullable=True)
+    # AI-generated summary — only populated when user clicks "Generate Summary".
+    # server_default=db.text("NULL") tells SQLAlchemy to OMIT this column from
+    # INSERT statements entirely and let the DB apply the NULL default.
+    # This prevents "Invalid column name 'Summary'" / NOT NULL constraint
+    # errors when creating notes before the summary is generated.
+    Summary   = db.Column("Summary",   db.UnicodeText,  nullable=True, server_default=db.text("NULL"))
 
     FileName  = db.Column("FileName",  db.String(255))
     FileType  = db.Column("FileType",  db.String(50))
