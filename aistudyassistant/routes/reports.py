@@ -303,6 +303,31 @@ def _generate_report(user_id: int, week_start: date, week_end: date) -> WeeklyRe
     return report
 
 
+# ── GET /api/reports/test ────────────────────────────────────────────────────
+
+@reports_bp.route("/api/reports/test", methods=["GET"])
+def test_weekly_reports_table():
+    """
+    Smoke-test endpoint — verifies the WeeklyReports table is reachable
+    and returns a count of existing rows.  No authentication required so
+    it can be hit with a plain curl during deploy verification.
+    """
+    try:
+        count = WeeklyReport.query.count()
+        return {
+            "status":       "success",
+            "message":      "WeeklyReports table is accessible",
+            "reportCount":  count,
+            "tableExists":  True,
+        }, 200
+    except Exception as exc:
+        return {
+            "status":      "error",
+            "message":     str(exc),
+            "tableExists": False,
+        }, 500
+
+
 # ── Date helpers ──────────────────────────────────────────────────────────────
 
 def _last_completed_week() -> tuple[date, date]:
