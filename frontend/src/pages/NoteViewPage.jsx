@@ -69,6 +69,8 @@ export default function NoteViewPage() {
       const found = notes.find((n) => n.noteID === parseInt(noteId));
       if (found) {
         setNote(found);
+        // Restore any previously saved summary immediately (no need to regenerate)
+        setSummary(found.summary || '');
         setMessages([{
           id: 'welcome',
           role: 'ai',
@@ -85,37 +87,24 @@ export default function NoteViewPage() {
 
   /* ── AI Summarize ── */
   const handleSummarize = async () => {
-    if (!note?.content) return;
+    if (!note?.content || isSummarizing) return;
     setIsSummarizing(true);
     setSummaryError('');
-    setSummary('');
 
     try {
-      // Try backend first (n8n workflow)
-      const resp = await fetch('https://cs456project.onrender.com/api/notes/summarize', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ content: note.content }),
-      });
-      if (resp.ok) {
-        const data = await resp.json();
-        setSummary(data.summary || '');
-        return;
-      }
-    } catch (e) {
-      console.warn('[NoteViewPage] backend summarize failed, falling back to Gemini:', e);
-    }
-
-    // Fallback: backend AI chat endpoint
-    try {
-      const result = await sendChatMessage(
-        'Please provide a comprehensive summary of these notes in bullet points.',
-        [],
-        note,
+      // Call the per-note endpoint — generates with improved prompt AND saves to DB
+      const resp = await fetch(
+        `${API_BASE}/api/notes/${note.noteID}/summarize`,
+        { method: 'POST', credentials: 'include' }
       );
-      setSummary(result);
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}));
+        throw new Error(err.error || 'Failed to generate summary');
+      }
+      const data = await resp.json();
+      setSummary(data.summary || '');
     } catch (err) {
+      console.error('[NoteViewPage] summarize error:', err);
       setSummaryError('Could not generate summary. Please try again.');
     } finally {
       setIsSummarizing(false);
@@ -224,18 +213,6 @@ export default function NoteViewPage() {
           {note.fileName && <p className="note-view-filename">📎 {note.fileName}</p>}
         </div>
 
-        {/* ── AI Summary ── */}
-        {(summary || summaryError) && (
-          <div className="nv-summary-card">
-            <div className="nv-summary-header">
-              <MdAutoAwesome size={16} color="#667eea" />
-              <span>AI Summary</span>
-            </div>
-            {summary && <div className="nv-summary-text">{summary}</div>}
-            {summaryError && <p className="nv-summary-error">{summaryError}</p>}
-          </div>
-        )}
-
         {/* ── Note Content ── */}
         {note.content ? (
           <div className="note-view-body">
@@ -247,6 +224,26 @@ export default function NoteViewPage() {
         ) : (
           <div className="note-view-empty">
             <p>No text content for this note.</p>
+          </div>
+        )}
+
+        {/* ── AI Summary — shown below content ── */}
+        {(summary || summaryError) && (
+          <div className="nv-summary-card">
+            <div className="nv-summary-header">
+              <MdAutoAwesome size={16} color="#667eea" />
+              <span>AI Summary</span>
+              <button
+                className="nv-summary-regen-btn"
+                onClick={handleSummarize}
+                disabled={isSummarizing}
+                title="Regenerate summary"
+              >
+                {isSummarizing ? <span className="nv-spin nv-spin-sm" /> : '🔄 Regenerate'}
+              </button>
+            </div>
+            {summary && <div className="nv-summary-text">{summary}</div>}
+            {summaryError && <p className="nv-summary-error">{summaryError}</p>}
           </div>
         )}
 
