@@ -99,17 +99,6 @@
   max-width: 130px;
 }
 
-.qs-sessions-badge {
-  background: rgba(255, 255, 255, 0.2);
-  border: 1.5px solid rgba(255, 255, 255, 0.4);
-  color: white;
-  font-size: 13px;
-  font-weight: 700;
-  padding: 5px 10px;
-  border-radius: 20px;
-  white-space: nowrap;
-}
-
 /* ── Note selector ── */
 .qs-note-selector {
   padding: 16px 18px 0;

@@ -296,12 +296,6 @@
   transform: translateX(20px);
 }
 
-.settings-coming-soon-note {
-  font-size: 11px;
-  color: #b0b8c4;
-  margin: 12px 0 0;
-  font-style: italic;
-}
 
 /* ── Section subtitle ── */
 .settings-section-sub {
@@ -386,7 +380,6 @@
 html[data-theme="dark"] .accent-swatch.selected { border-color: white; }
 html[data-theme="dark"] .appearance-option { background: #1e2133; border-color: #2d3348; color: #8b92a5; }
 html[data-theme="dark"] .appearance-option:hover { background: #252838; color: #667eea; border-color: #667eea; }
-html[data-theme="dark"] .settings-coming-soon-note { color: #4a5168; }
 html[data-theme="dark"] .settings-section-sub { color: #4a5168; }
 
 /* ── About rows ── */

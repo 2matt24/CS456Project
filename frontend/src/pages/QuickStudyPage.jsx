@@ -263,7 +263,6 @@ export default function QuickStudyPage() {
             {course && <p className="qs-nav-sub">{course.courseName}</p>}
           </div>
         </div>
-        <div className="qs-sessions-badge">{sessions} 🍅</div>
       </div>
 
       {/* ── Note selector ── */}
