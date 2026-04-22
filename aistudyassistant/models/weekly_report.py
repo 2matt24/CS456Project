@@ -12,15 +12,17 @@ class WeeklyReport(db.Model):
     WeekEndDate          = db.Column(db.Date,        nullable=False)
 
     # Study metrics
-    TotalStudyMinutes    = db.Column(db.Integer,     default=0, nullable=False)
-    StudySessionsCount   = db.Column(db.Integer,     default=0, nullable=False)
-    CoursesStudied       = db.Column(db.Integer,     default=0, nullable=False)
+    TotalStudyMinutes    = db.Column(db.Integer,     nullable=True, default=0)
+    StudySessionsCount   = db.Column(db.Integer,     nullable=True, default=0)
+    CoursesStudied       = db.Column(db.Integer,     nullable=True, default=0)
 
     # Content metrics
-    NotesCreated         = db.Column(db.Integer,     default=0, nullable=False)
+    NotesCreated         = db.Column(db.Integer,     nullable=True, default=0)
+    NotesViewed          = db.Column(db.Integer,     nullable=True, default=0)
+    QuizzesGenerated     = db.Column(db.Integer,     nullable=True, default=0)
 
     # Progress metrics
-    GoalCompletionPercent= db.Column(db.Integer,     default=0, nullable=False)
+    GoalCompletionPercent= db.Column(db.Integer,     nullable=True, default=0)
     WeeklyGoalMinutes    = db.Column(db.Integer,     nullable=True)
 
     # Comparison to previous week
@@ -30,4 +32,5 @@ class WeeklyReport(db.Model):
     # Detailed breakdown as JSON
     ReportData           = db.Column(db.UnicodeText, nullable=True)
 
-    CreatedAt            = db.Column(db.DateTime,   default=lambda: datetime.now(timezone.utc))
+    CreatedAt            = db.Column(db.DateTime,    nullable=True, default=lambda: datetime.now(timezone.utc))
+    SentAt               = db.Column(db.DateTime,    nullable=True)

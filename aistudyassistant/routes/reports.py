@@ -116,17 +116,19 @@ def _serialize_report(r: WeeklyReport, is_new: bool = False) -> dict:
         report_data = {}
 
     return {
-        "reportID":       r.ReportID,
-        "weekStart":      r.WeekStartDate.isoformat(),
-        "weekEnd":        r.WeekEndDate.isoformat(),
-        "totalHours":     round((r.TotalStudyMinutes or 0) / 60, 1),
-        "totalMinutes":   r.TotalStudyMinutes or 0,
-        "sessionCount":   r.StudySessionsCount or 0,
-        "coursesStudied": r.CoursesStudied or 0,
-        "notesCreated":   r.NotesCreated or 0,
-        "goalCompletion": r.GoalCompletionPercent or 0,
+        "reportID":          r.ReportID,
+        "weekStart":         r.WeekStartDate.isoformat(),
+        "weekEnd":           r.WeekEndDate.isoformat(),
+        "totalHours":        round((r.TotalStudyMinutes or 0) / 60, 1),
+        "totalMinutes":      r.TotalStudyMinutes or 0,
+        "sessionCount":      r.StudySessionsCount or 0,
+        "coursesStudied":    r.CoursesStudied or 0,
+        "notesCreated":      r.NotesCreated or 0,
+        "notesViewed":       r.NotesViewed or 0,
+        "quizzesGenerated":  r.QuizzesGenerated or 0,
+        "goalCompletion":    r.GoalCompletionPercent or 0,
         "weeklyGoalMinutes": r.WeeklyGoalMinutes,
-        "weeklyGoalHours": round((r.WeeklyGoalMinutes or 600) / 60, 1),
+        "weeklyGoalHours":   round((r.WeeklyGoalMinutes or 600) / 60, 1),
         "comparison": {
             "minutesDelta":  r.MinutesDelta or 0,
             "hoursDelta":    round((r.MinutesDelta or 0) / 60, 1),
@@ -134,6 +136,7 @@ def _serialize_report(r: WeeklyReport, is_new: bool = False) -> dict:
         },
         "reportData": report_data,
         "createdAt":  r.CreatedAt.isoformat() if r.CreatedAt else None,
+        "sentAt":     r.SentAt.isoformat()    if r.SentAt    else None,
         "isNew":      is_new,
     }
 
@@ -176,6 +179,26 @@ def _generate_report(user_id: int, week_start: date, week_end: date) -> WeeklyRe
         )
         .count()
     )
+
+    # ── Notes viewed this week ────────────────────────────────────────────────
+    # Proxy: count notes updated (LastModified) during the week but created
+    # before the week started — a reasonable signal for "revisited" notes.
+    # Replace with a dedicated NoteViews table when view-tracking is added.
+    notes_viewed = (
+        db.session.query(Note)
+        .join(Course, Note.CourseID == Course.CourseID)
+        .filter(
+            Course.UserID         == user_id,
+            Note.UpdatedAt        >= start_dt,
+            Note.UpdatedAt        <= end_dt,
+            Note.CreatedAt        < start_dt,   # was created before this week
+        )
+        .count()
+    ) if hasattr(Note, "UpdatedAt") else 0
+
+    # ── Quizzes / AI chat turns generated this week ───────────────────────────
+    # We don't yet have a dedicated Quizzes table; default to 0 until added.
+    quizzes_generated = 0
 
     # ── User goal ─────────────────────────────────────────────────────────────
     user = User.query.get(user_id)
@@ -249,6 +272,8 @@ def _generate_report(user_id: int, week_start: date, week_end: date) -> WeeklyRe
         StudySessionsCount   = session_count,
         CoursesStudied       = courses_studied,
         NotesCreated         = notes_created,
+        NotesViewed          = notes_viewed,
+        QuizzesGenerated     = quizzes_generated,
         GoalCompletionPercent= goal_percent,
         WeeklyGoalMinutes    = goal_minutes,
         MinutesDelta         = minutes_delta,
@@ -393,6 +418,9 @@ def generate_weekly_report():
     try:
         report_data = json.loads(report.ReportData) if report.ReportData else {}
         email_preview = _mock_send_email(user_id, report, report_data)
+        # Stamp SentAt so the DB records when the (mock) email went out
+        report.SentAt = datetime.now(timezone.utc)
+        db.session.commit()
     except Exception as exc:
         print(f"[reports] mock email error (non-fatal): {exc}")
         email_preview = None
