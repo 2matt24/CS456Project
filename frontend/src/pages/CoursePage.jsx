@@ -44,7 +44,7 @@ function CoursePage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ query: searchQuery }),
+        body: JSON.stringify({ query: searchQuery, courseId: parseInt(courseId) }),
       });
       if (response.ok) {
         const data = await response.json();
