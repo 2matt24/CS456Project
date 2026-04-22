@@ -6,7 +6,8 @@ import { FaUserCircle } from 'react-icons/fa';
 import CourseCard from '../components/CourseCard';
 import AddModal from '../components/AddModal';
 import OnboardingModal from '../components/OnboardingModal';
-import { coursesAPI, authAPI, notificationsAPI } from '../services/api';
+import WeeklyReportModal from '../components/WeeklyReportModal';
+import { coursesAPI, authAPI, notificationsAPI, reportsAPI } from '../services/api';
 import '../styles/Dashboard.css';
 
 /* ── Helpers ── */
@@ -48,11 +49,15 @@ function Dashboard() {
   const [unreadCount, setUnreadCount]   = useState(0);
   const [quote, setQuote]               = useState('Loading inspiration…');
   const [isRefreshingQuote, setIsRefreshingQuote] = useState(false);
+  const [weeklyReport, setWeeklyReport] = useState(null);
+  const [reportIsNew, setReportIsNew]   = useState(false);
+  const [showReport, setShowReport]     = useState(false);
 
   useEffect(() => {
     loadCourses();
     loadUser();
     notificationsAPI.getUnreadCount().then(setUnreadCount).catch(() => {});
+    loadWeeklyReport();
 
     // Load quote — serve from 1-hour localStorage cache, refresh via AI otherwise
     const cachedQuote = localStorage.getItem(QUOTE_CACHE_KEY);
@@ -71,6 +76,19 @@ function Dashboard() {
         .catch(() => setQuote('Every expert was once a beginner.'));
     }
   }, []);
+
+  const loadWeeklyReport = async () => {
+    try {
+      const data = await reportsAPI.getLatest();
+      if (data.report) {
+        setWeeklyReport(data.report);
+        setReportIsNew(data.isNew || false);
+        if (data.isNew) setShowReport(true);   // auto-open when a new report is ready
+      }
+    } catch {
+      // non-fatal — report widget is optional
+    }
+  };
 
   const refreshQuote = async () => {
     setIsRefreshingQuote(true);
@@ -193,18 +211,33 @@ function Dashboard() {
               <span className="dash-stat-num">{activeCourses.length}</span>
               <span className="dash-stat-lbl">Active</span>
             </div>
-            <div className="dash-stat-pill dash-stat-pill-wide">
-              <MdMenuBook size={14} style={{ opacity: 0.8 }} />
-              <span className="dash-stat-quote">{quote}</span>
-              <button
-                className="quote-refresh-btn"
-                onClick={refreshQuote}
-                disabled={isRefreshingQuote}
-                title="Get a new quote"
+            {weeklyReport ? (
+              <div
+                className="dash-stat-pill dash-stat-pill-wide dash-report-pill"
+                onClick={() => setShowReport(true)}
+                title="View weekly report"
+                style={{ cursor: 'pointer' }}
               >
-                {isRefreshingQuote ? '⏳' : '🔄'}
-              </button>
-            </div>
+                <span style={{ fontSize: 14 }}>📊</span>
+                <span className="dash-stat-quote">
+                  {weeklyReport.totalHours}h this week
+                  {reportIsNew && <span className="dash-report-new-dot" />}
+                </span>
+              </div>
+            ) : (
+              <div className="dash-stat-pill dash-stat-pill-wide">
+                <MdMenuBook size={14} style={{ opacity: 0.8 }} />
+                <span className="dash-stat-quote">{quote}</span>
+                <button
+                  className="quote-refresh-btn"
+                  onClick={refreshQuote}
+                  disabled={isRefreshingQuote}
+                  title="Get a new quote"
+                >
+                  {isRefreshingQuote ? '⏳' : '🔄'}
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -300,6 +333,14 @@ function Dashboard() {
         <OnboardingModal
           firstName={firstName}
           onComplete={handleOnboardingComplete}
+        />
+      )}
+
+      {showReport && weeklyReport && (
+        <WeeklyReportModal
+          report={weeklyReport}
+          isNew={reportIsNew}
+          onClose={() => { setShowReport(false); setReportIsNew(false); }}
         />
       )}
     </>

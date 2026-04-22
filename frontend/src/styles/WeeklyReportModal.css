@@ -1,0 +1,417 @@
+/* ─────────────────────────────────────────────
+   WeeklyReportModal.css
+   ───────────────────────────────────────────── */
+
+/* ── Overlay ── */
+.wr-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 20, 40, 0.65);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 1100;
+  display: flex;
+  align-items: flex-end;      /* sheet from bottom on mobile */
+  justify-content: center;
+  padding: 0;
+  animation: wr-fade-in 0.2s ease;
+}
+
+@media (min-width: 600px) {
+  .wr-overlay {
+    align-items: center;
+    padding: 16px;
+  }
+}
+
+@keyframes wr-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ── Modal card ── */
+.wr-modal {
+  background: #ffffff;
+  border-radius: 24px 24px 0 0;
+  width: 100%;
+  max-width: 540px;
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.18);
+  overflow: hidden;
+  animation: wr-slide-up 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (min-width: 600px) {
+  .wr-modal {
+    border-radius: 24px;
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.22);
+    animation: wr-pop-in 0.28s ease;
+  }
+}
+
+@keyframes wr-slide-up {
+  from { opacity: 0; transform: translateY(60px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes wr-pop-in {
+  from { opacity: 0; transform: scale(0.96) translateY(12px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* ── Header ── */
+.wr-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 20px 20px 12px;
+  border-bottom: 1px solid #f0f0f8;
+  flex-shrink: 0;
+}
+
+.wr-new-badge {
+  display: inline-block;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 20px;
+  margin-bottom: 6px;
+}
+
+.wr-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1a1a2e;
+  margin: 0 0 2px;
+}
+
+.wr-date-range {
+  font-size: 13px;
+  color: #9aa0b4;
+  margin: 0;
+}
+
+.wr-close-btn {
+  background: #f5f5fa;
+  border: none;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #666;
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s;
+}
+
+.wr-close-btn:hover {
+  background: #eeeef8;
+  color: #333;
+}
+
+/* ── Body ── */
+.wr-body {
+  overflow-y: auto;
+  flex: 1;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ── Hero (ring + text) ── */
+.wr-hero {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.wr-ring-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.wr-ring-svg {
+  display: block;
+}
+
+.wr-ring-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.wr-ring-hours {
+  font-size: 22px;
+  font-weight: 800;
+  color: #1a1a2e;
+  line-height: 1;
+}
+
+.wr-ring-goal {
+  font-size: 10px;
+  color: #9aa0b4;
+  margin-top: 2px;
+}
+
+.wr-hero-right {
+  flex: 1;
+  min-width: 0;
+}
+
+.wr-pct {
+  font-size: 28px;
+  font-weight: 800;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0 0 4px;
+  line-height: 1.1;
+}
+
+.wr-delta {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  margin: 0 0 8px;
+}
+
+.wr-delta.up   { color: #22c55e; }
+.wr-delta.down { color: #ef4444; }
+.wr-delta.neutral { color: #9aa0b4; }
+
+.wr-delta-pct {
+  font-weight: 400;
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.wr-motivation {
+  font-size: 13px;
+  color: #555;
+  margin: 0;
+  line-height: 1.4;
+  background: #f7f7fd;
+  border-radius: 10px;
+  padding: 8px 10px;
+}
+
+/* ── Stats grid ── */
+.wr-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.wr-stat-card {
+  background: #f7f7fd;
+  border-radius: 14px;
+  padding: 14px 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.wr-stat-icon {
+  font-size: 20px;
+}
+
+.wr-stat-val {
+  font-size: 22px;
+  font-weight: 800;
+  color: #1a1a2e;
+  line-height: 1;
+}
+
+.wr-stat-lbl {
+  font-size: 11px;
+  color: #9aa0b4;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+/* ── Sections ── */
+.wr-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.wr-section-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #9aa0b4;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 0;
+}
+
+/* ── Daily bar chart ── */
+.wr-daily-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  height: 80px;
+}
+
+.wr-day-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  height: 100%;
+}
+
+.wr-day-bar-track {
+  flex: 1;
+  width: 100%;
+  background: #f0f0f8;
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  overflow: hidden;
+}
+
+.wr-day-bar-fill {
+  width: 100%;
+  background: linear-gradient(to top, #667eea, #764ba2);
+  border-radius: 6px;
+  transition: height 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  min-height: 3px;
+}
+
+.wr-day-label {
+  font-size: 10px;
+  color: #9aa0b4;
+  font-weight: 600;
+}
+
+/* ── Top courses ── */
+.wr-courses-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.wr-course-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.wr-course-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.wr-course-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.wr-course-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1a1a2e;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.wr-course-bar-track {
+  height: 5px;
+  background: #f0f0f8;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.wr-course-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.wr-course-hours {
+  font-size: 13px;
+  font-weight: 700;
+  color: #555;
+  flex-shrink: 0;
+  min-width: 30px;
+  text-align: right;
+}
+
+/* ── Achievements ── */
+.wr-achievements {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.wr-achievement-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(135deg, #667eea15, #764ba215);
+  border: 1px solid #667eea30;
+  border-radius: 20px;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #4a3f8e;
+}
+
+/* ── Footer ── */
+.wr-footer {
+  padding: 14px 20px;
+  border-top: 1px solid #f0f0f8;
+  flex-shrink: 0;
+}
+
+.wr-close-footer-btn {
+  width: 100%;
+  padding: 13px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 14px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
+}
+
+.wr-close-footer-btn:hover {
+  opacity: 0.92;
+}
+
+.wr-close-footer-btn:active {
+  transform: scale(0.98);
+}

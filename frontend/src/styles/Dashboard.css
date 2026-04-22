@@ -194,6 +194,33 @@
   opacity: 0.25;
 }
 
+/* Report pill hover + new-dot indicator */
+.dash-report-pill {
+  transition: background 0.2s, transform 0.15s;
+  position: relative;
+}
+
+.dash-report-pill:hover {
+  background: rgba(255, 255, 255, 0.26);
+  transform: scale(1.02);
+}
+
+.dash-report-new-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  background: #ff6b6b;
+  border-radius: 50%;
+  margin-left: 5px;
+  vertical-align: middle;
+  animation: wr-dot-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes wr-dot-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.6; transform: scale(1.3); }
+}
+
 /* ══════════════════════════════════════
    Section
 ══════════════════════════════════════ */

@@ -652,3 +652,57 @@ export const settingsAPI = {
     }
   }
 };
+
+// Weekly Reports endpoints
+export const reportsAPI = {
+  getLatest: async () => {
+    try {
+      const res = await apiFetch(`${API_BASE_URL}/api/reports/weekly/latest`, {
+        credentials: 'include'
+      });
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({}));
+        throw new Error(error.error || 'Failed to load weekly report');
+      }
+      return await res.json();
+    } catch (err) {
+      console.warn('[reportsAPI] getLatest failed:', err);
+      throw err;
+    }
+  },
+
+  getAll: async (limit = 12) => {
+    try {
+      const res = await apiFetch(`${API_BASE_URL}/api/reports/weekly?limit=${limit}`, {
+        credentials: 'include'
+      });
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({}));
+        throw new Error(error.error || 'Failed to load reports');
+      }
+      return await res.json();
+    } catch (err) {
+      console.warn('[reportsAPI] getAll failed:', err);
+      throw err;
+    }
+  },
+
+  generate: async (weekOffset = 1) => {
+    try {
+      const res = await apiFetch(`${API_BASE_URL}/api/reports/weekly/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ weekOffset })
+      });
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({}));
+        throw new Error(error.error || 'Failed to generate report');
+      }
+      return await res.json();
+    } catch (err) {
+      console.warn('[reportsAPI] generate failed:', err);
+      throw err;
+    }
+  }
+};
