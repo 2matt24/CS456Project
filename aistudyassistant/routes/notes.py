@@ -4,20 +4,20 @@ import json
 import os
 import re
 
-from google import genai
+from google import genai as _genai_sdk
 from flask import Blueprint, request
 
 _GEMINI_KEY    = os.getenv("GEMINI_API_KEY", "")
-_gemini_client = genai.Client(api_key=_GEMINI_KEY) if _GEMINI_KEY else None
+_gemini_client = _genai_sdk.Client(api_key=_GEMINI_KEY) if _GEMINI_KEY else None
 
 from aistudyassistant.extensions import db
 from aistudyassistant.models.note import Note
 from aistudyassistant.models.course import Course
+from aistudyassistant.services.auth_tokens import get_authenticated_user_id
 from aistudyassistant.services.neightnclient import summarize_text
 from aistudyassistant.services.azure_storage import AzureStorageService
 from aistudyassistant.services.pinecone_service import PineconeService
 from aistudyassistant.services.text_extractor import extract_text_from_file
-from aistudyassistant.services.auth_tokens import get_authenticated_user_id
 
 # blueprint for notes route
 notes_bp = Blueprint("notes", __name__)
@@ -34,18 +34,18 @@ def get_pinecone_service():
 
 
 def _current_user_id():
-    #return session.get("user_id")
     return get_authenticated_user_id()
 
 
 def _serialize_note(note: Note):
     return {
-        "noteID": note.NoteID,
-        "courseID": note.CourseID,
-        "title": note.Title,
-        "content": note.Content,
-        "fileName": note.FileName,
-        "fileType": note.FileType,
+        "noteID":    note.NoteID,
+        "courseID":  note.CourseID,
+        "title":     note.Title,
+        "content":   note.Content,
+        "summary":   note.Summary,          # persisted AI summary (may be None)
+        "fileName":  note.FileName,
+        "fileType":  note.FileType,
         "createdAt": note.CreatedAt.isoformat() if note.CreatedAt else None,
         "updatedAt": note.UpdatedAt.isoformat() if note.UpdatedAt else None,
     }
@@ -323,6 +323,76 @@ def summarize_note_content():
     return {"summary": summary}, 200
 
 
+@notes_bp.route("/api/notes/<int:note_id>/summarize", methods=["POST"])
+def generate_note_summary(note_id):
+    """
+    Generate a comprehensive AI summary for a specific note and persist it
+    to the Summary column so it survives navigation.
+    """
+    user_id = _current_user_id()
+    if not user_id:
+        return {"error": "Authentication required"}, 401
+
+    if not _gemini_client:
+        return {"error": "AI service not configured"}, 503
+
+    # Verify ownership via Course join (Note has no direct UserID)
+    note = (
+        db.session.query(Note)
+        .join(Course, Note.CourseID == Course.CourseID)
+        .filter(Note.NoteID == note_id, Course.UserID == user_id)
+        .first()
+    )
+    if not note:
+        return {"error": "Note not found"}, 404
+
+    content = (note.Content or "").strip()
+    if len(content) < 50:
+        return {"error": "Note content is too short to summarize (minimum 50 characters)"}, 400
+
+    prompt = f"""You are an expert academic tutor. Create a comprehensive, well-structured summary of these study notes.
+
+Title: {note.Title}
+
+Content:
+{content[:5000]}
+
+Your summary MUST include all four sections:
+
+## Main Topics
+A brief overview of what the notes cover (2–4 sentences).
+
+## Key Concepts & Definitions
+Bullet-point list of the most important terms, ideas, and definitions.
+
+## Important Details
+Specific facts, examples, formulas, dates, or figures worth remembering.
+
+## Key Takeaways
+2–3 sentences summarising the most critical points a student should remember before an exam.
+
+Format strictly in markdown with the headings above. Be thorough but concise (250–400 words). Write clearly for a student reviewing before an exam."""
+
+    try:
+        response = _gemini_client.models.generate_content(
+            model="gemini-2.0-flash",
+            contents=prompt,
+        )
+        summary_text = (response.text or "").strip()
+        if not summary_text:
+            return {"error": "AI returned an empty summary. Please try again."}, 500
+
+        # Persist to database so the summary survives navigation
+        note.Summary = summary_text
+        db.session.commit()
+
+        return {"summary": summary_text, "noteID": note_id}, 200
+
+    except Exception as exc:
+        print(f"[notes] summary generation error: {exc}")
+        return {"error": "Failed to generate summary. Please try again."}, 500
+
+
 @notes_bp.route("/api/notes/generate-quiz", methods=["POST"])
 def generate_quiz():
     """Generate practice multiple-choice questions from note content using Gemini."""
@@ -369,10 +439,10 @@ Return ONLY a JSON array with this EXACT structure (no markdown, no explanation 
 
     try:
         response = _gemini_client.models.generate_content(
-            model="gemini-2.5-flash",
+            model="gemini-2.0-flash",
             contents=prompt,
         )
-        raw      = response.text.strip()
+        raw = response.text.strip()
 
         # Strip markdown fences if present
         raw = re.sub(r"^```(?:json)?\s*", "", raw)
