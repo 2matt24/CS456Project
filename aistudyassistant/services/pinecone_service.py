@@ -49,17 +49,21 @@ class PineconeService:
             print(f"Pinecone add error: {e}")
             return False
 
-    def search_notes(self, query, user_id, top_k=5):
-        """Search notes semantically."""
+    def search_notes(self, query, user_id, top_k=5, course_id=None):
+        """Search notes semantically, optionally filtered by course."""
         try:
             query_embedding = self._get_embedding(query)
             if query_embedding is None:
                 return []
 
+            pinecone_filter = {"user_id": str(user_id)}
+            if course_id is not None:
+                pinecone_filter["course_id"] = str(course_id)
+
             results = self.index.query(
                 vector=query_embedding,
                 top_k=top_k,
-                filter={"user_id": str(user_id)},
+                filter=pinecone_filter,
                 include_metadata=True,
             )
             print(f"Pinecone search returned {len(results.matches)} results")

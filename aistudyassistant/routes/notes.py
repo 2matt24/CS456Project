@@ -155,29 +155,57 @@ def search_notes():
     user_id = _current_user_id()
     if not user_id:
         return {"error": "Authentication required"}, 401
-    
-    data = request.get_json() or {}
-    query = data.get("query", "").strip()
-    
+
+    data      = request.get_json() or {}
+    query     = data.get("query", "").strip()
+    course_id = data.get("courseId")          # optional course filter
+
     if not query:
         return {"error": "query is required"}, 400
-    
+
+    # ── 1. Semantic search via Pinecone (preferred) ───────────────────────────
     try:
-        # Search Pinecone
-        #results = pinecone_service.search_notes(query, user_id, top_k=5)
-        results = get_pinecone_service().search_notes(query, user_id, top_k=5)
-        
-        # Format results
-        formatted_results = [{
-            "noteID": match.id,
-            "score": match.score,
-            "title": match.metadata.get("title", "Untitled"),
-            "courseID": match.metadata.get("course_id")
-        } for match in results]
-        
-        return {"results": formatted_results}, 200
+        matches = get_pinecone_service().search_notes(
+            query, user_id, top_k=10, course_id=course_id
+        )
+        if matches:
+            formatted = [{
+                "noteID":   match.id,
+                "score":    match.score,
+                "title":    match.metadata.get("title", "Untitled"),
+                "courseID": match.metadata.get("course_id"),
+            } for match in matches]
+            return {"results": formatted, "source": "semantic"}, 200
+        # Pinecone returned 0 results — fall through to SQL
     except Exception as e:
-        print(f"Search error: {e}")
+        print(f"[search] Pinecone unavailable, falling back to SQL: {e}")
+
+    # ── 2. SQL text-search fallback ───────────────────────────────────────────
+    try:
+        q = (
+            db.session.query(Note)
+            .join(Course, Note.CourseID == Course.CourseID)
+            .filter(
+                Course.UserID == user_id,
+                db.or_(
+                    Note.Title.ilike(f"%{query}%"),
+                    Note.Content.ilike(f"%{query}%"),
+                ),
+            )
+        )
+        if course_id is not None:
+            q = q.filter(Note.CourseID == int(course_id))
+
+        notes_found = q.order_by(Note.CreatedAt.desc()).limit(10).all()
+        formatted = [{
+            "noteID":   str(n.NoteID),
+            "score":    1.0,
+            "title":    n.Title,
+            "courseID": str(n.CourseID),
+        } for n in notes_found]
+        return {"results": formatted, "source": "text"}, 200
+    except Exception as e2:
+        print(f"[search] SQL fallback also failed: {e2}")
         return {"error": "Search failed"}, 500
 
 # 
