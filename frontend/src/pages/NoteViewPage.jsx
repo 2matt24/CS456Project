@@ -53,6 +53,11 @@ export default function NoteViewPage() {
   const [isSummarizing, setIsSummarizing] = useState(false);
   const [summaryError, setSummaryError]   = useState('');
 
+  /* AI quiz */
+  const [quizQuestions, setQuizQuestions]       = useState([]);
+  const [isGeneratingQuiz, setIsGeneratingQuiz] = useState(false);
+  const [showAnswers, setShowAnswers]           = useState({});
+
   /* AI chat */
   const [messages, setMessages]   = useState([]);
   const [inputText, setInputText] = useState('');
@@ -69,6 +74,8 @@ export default function NoteViewPage() {
       const found = notes.find((n) => n.noteID === parseInt(noteId));
       if (found) {
         setNote(found);
+        // Restore any previously saved summary immediately (no need to regenerate)
+        setSummary(found.summary || '');
         setMessages([{
           id: 'welcome',
           role: 'ai',
@@ -85,41 +92,57 @@ export default function NoteViewPage() {
 
   /* ── AI Summarize ── */
   const handleSummarize = async () => {
-    if (!note?.content) return;
+    if (!note?.content || isSummarizing) return;
     setIsSummarizing(true);
     setSummaryError('');
-    setSummary('');
 
     try {
-      // Try backend first (n8n workflow)
-      const resp = await fetch('https://cs456project.onrender.com/api/notes/summarize', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ content: note.content }),
-      });
-      if (resp.ok) {
-        const data = await resp.json();
-        setSummary(data.summary || '');
-        return;
-      }
-    } catch (e) {
-      console.warn('[NoteViewPage] backend summarize failed, falling back to Gemini:', e);
-    }
-
-    // Fallback: backend AI chat endpoint
-    try {
-      const result = await sendChatMessage(
-        'Please provide a comprehensive summary of these notes in bullet points.',
-        [],
-        note,
+      // Call the per-note endpoint — generates with improved prompt AND saves to DB
+      const resp = await fetch(
+        `${API_BASE}/api/notes/${note.noteID}/summarize`,
+        { method: 'POST', credentials: 'include' }
       );
-      setSummary(result);
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}));
+        throw new Error(err.error || 'Failed to generate summary');
+      }
+      const data = await resp.json();
+      setSummary(data.summary || '');
     } catch (err) {
+      console.error('[NoteViewPage] summarize error:', err);
       setSummaryError('Could not generate summary. Please try again.');
     } finally {
       setIsSummarizing(false);
     }
+  };
+
+  /* ── AI Quiz ── */
+  const handleGenerateQuiz = async () => {
+    if (!note?.content || isGeneratingQuiz) return;
+    setIsGeneratingQuiz(true);
+    try {
+      const resp = await fetch(`${API_BASE}/api/notes/generate-quiz`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ content: note.content, questionCount: 5, difficulty: 'medium' }),
+      });
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}));
+        throw new Error(err.error || 'Quiz generation failed');
+      }
+      const data = await resp.json();
+      setQuizQuestions(data.questions || []);
+      setShowAnswers({});
+    } catch (err) {
+      console.error('[NoteViewPage] quiz error:', err);
+    } finally {
+      setIsGeneratingQuiz(false);
+    }
+  };
+
+  const toggleAnswer = (index) => {
+    setShowAnswers((prev) => ({ ...prev, [index]: !prev[index] }));
   };
 
   /* ── Chat send ── */
@@ -224,15 +247,27 @@ export default function NoteViewPage() {
           {note.fileName && <p className="note-view-filename">📎 {note.fileName}</p>}
         </div>
 
-        {/* ── AI Summary ── */}
-        {(summary || summaryError) && (
-          <div className="nv-summary-card">
-            <div className="nv-summary-header">
-              <MdAutoAwesome size={16} color="#667eea" />
-              <span>AI Summary</span>
-            </div>
-            {summary && <div className="nv-summary-text">{summary}</div>}
-            {summaryError && <p className="nv-summary-error">{summaryError}</p>}
+        {/* ── AI Actions ── */}
+        {note.content && (
+          <div className="nv-ai-actions">
+            <button
+              className={`nv-ai-action-btn ${isSummarizing ? 'loading' : ''}`}
+              onClick={handleSummarize}
+              disabled={isSummarizing}
+            >
+              {isSummarizing
+                ? <><span className="nv-spin nv-spin-sm" /> Generating…</>
+                : <>✨ Generate Summary</>}
+            </button>
+            <button
+              className={`nv-ai-action-btn ${isGeneratingQuiz ? 'loading' : ''}`}
+              onClick={handleGenerateQuiz}
+              disabled={isGeneratingQuiz}
+            >
+              {isGeneratingQuiz
+                ? <><span className="nv-spin nv-spin-sm" /> Creating Quiz…</>
+                : <>🧠 Generate Quiz</>}
+            </button>
           </div>
         )}
 
@@ -247,6 +282,84 @@ export default function NoteViewPage() {
         ) : (
           <div className="note-view-empty">
             <p>No text content for this note.</p>
+          </div>
+        )}
+
+        {/* ── AI Summary — shown below content ── */}
+        {(summary || summaryError) && (
+          <div className="nv-summary-card">
+            <div className="nv-summary-header">
+              <MdAutoAwesome size={16} color="#667eea" />
+              <span>AI Summary</span>
+              <button
+                className="nv-summary-regen-btn"
+                onClick={handleSummarize}
+                disabled={isSummarizing}
+                title="Regenerate summary"
+              >
+                {isSummarizing ? <span className="nv-spin nv-spin-sm" /> : '🔄 Regenerate'}
+              </button>
+            </div>
+            {summary && <div className="nv-summary-text">{summary}</div>}
+            {summaryError && <p className="nv-summary-error">{summaryError}</p>}
+          </div>
+        )}
+
+        {/* ── Quiz Section ── */}
+        {quizQuestions.length > 0 && (
+          <div className="nv-quiz-section">
+            <div className="nv-quiz-header">
+              <span className="nv-quiz-title">🧠 Practice Quiz</span>
+              <span className="nv-quiz-count">{quizQuestions.length} questions</span>
+            </div>
+
+            {quizQuestions.map((q, idx) => (
+              <div key={idx} className="nv-quiz-question">
+                <p className="nv-quiz-q-num">Question {idx + 1}</p>
+                <p className="nv-quiz-q-text">{q.question}</p>
+
+                <div className="nv-quiz-options">
+                  {q.options.map((opt, i) => {
+                    const letter = String.fromCharCode(65 + i);
+                    const isCorrect = letter === q.correctAnswer;
+                    const revealed = showAnswers[idx];
+                    return (
+                      <div
+                        key={i}
+                        className={`nv-quiz-option${revealed ? (isCorrect ? ' correct' : ' wrong') : ''}`}
+                      >
+                        <span className="nv-quiz-letter">{letter}</span>
+                        <span className="nv-quiz-opt-text">{opt}</span>
+                        {revealed && isCorrect && <span className="nv-quiz-check">✓</span>}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <button className="nv-quiz-reveal-btn" onClick={() => toggleAnswer(idx)}>
+                  {showAnswers[idx] ? '👁 Hide Answer' : '👁 Show Answer'}
+                </button>
+
+                {showAnswers[idx] && (
+                  <div className="nv-quiz-answer-box">
+                    <p className="nv-quiz-answer-label">
+                      Correct Answer: <strong>{q.correctAnswer}</strong>
+                    </p>
+                    <p className="nv-quiz-explanation">{q.explanation}</p>
+                  </div>
+                )}
+              </div>
+            ))}
+
+            <button
+              className="nv-quiz-regen-btn"
+              onClick={handleGenerateQuiz}
+              disabled={isGeneratingQuiz}
+            >
+              {isGeneratingQuiz
+                ? <><span className="nv-spin nv-spin-sm" /> Regenerating…</>
+                : '🔄 Generate New Quiz'}
+            </button>
           </div>
         )}
 

@@ -407,3 +407,297 @@ html[data-fontsize="large"] .course-code {
   border-color: var(--accent-from) !important;
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-from) 15%, transparent) !important;
 }
+
+/* ─────────────────────────────────────────────
+   CalendarPage  (previously missing entirely)
+───────────────────────────────────────────── */
+html[data-theme="dark"] .cal-container { background: var(--bg); }
+
+html[data-theme="dark"] .cal-view-bar {
+  background: var(--bg-card);
+  border-bottom-color: var(--border);
+}
+
+html[data-theme="dark"] .cal-view-tabs { background: #252838; }
+
+html[data-theme="dark"] .cal-view-tab { color: var(--text-muted); }
+
+html[data-theme="dark"] .cal-view-tab.active {
+  background: #1e2133;
+  color: var(--accent-from);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}
+
+html[data-theme="dark"] .cal-week-container,
+html[data-theme="dark"] .cal-month-container { background: var(--bg-card); }
+
+html[data-theme="dark"] .cal-week-header {
+  background: var(--bg-card);
+  border-bottom-color: var(--border);
+}
+
+html[data-theme="dark"] .cal-day-name  { color: var(--text-muted); }
+html[data-theme="dark"] .cal-day-num   { color: var(--text-primary); }
+html[data-theme="dark"] .cal-month-dow { color: var(--text-muted); }
+html[data-theme="dark"] .cal-time-label { color: var(--text-muted); }
+
+html[data-theme="dark"] .cal-hour-row { border-bottom-color: var(--border-light); }
+html[data-theme="dark"] .cal-cell     { border-left-color: var(--border-light); }
+
+html[data-theme="dark"] .cal-month-cell { background: var(--bg-card); }
+
+html[data-theme="dark"] .cal-month-cell:hover {
+  background: #252838;
+  border-color: var(--accent-from);
+}
+
+html[data-theme="dark"] .cal-month-cell.today {
+  background: #1a2042;
+  border-color: var(--accent-from);
+}
+
+html[data-theme="dark"] .cal-month-date     { color: var(--text-primary); }
+html[data-theme="dark"] .cal-day-events-title { color: var(--text-primary); }
+html[data-theme="dark"] .cal-day-events      { border-top-color: var(--border); }
+
+html[data-theme="dark"] .cal-agenda-container { background: var(--bg); }
+
+html[data-theme="dark"] .cal-agenda-date-header { border-bottom-color: var(--border); }
+
+html[data-theme="dark"] .cal-agenda-weekday  { color: var(--text-primary); }
+
+html[data-theme="dark"] .cal-agenda-datenum,
+html[data-theme="dark"] .cal-agenda-event-time,
+html[data-theme="dark"] .cal-agenda-event-loc,
+html[data-theme="dark"] .cal-agenda-free     { color: var(--text-muted); }
+
+html[data-theme="dark"] .cal-agenda-event {
+  background: var(--bg-card);
+  box-shadow: var(--shadow-card);
+}
+
+html[data-theme="dark"] .cal-agenda-event-title { color: var(--text-primary); }
+
+html[data-theme="dark"] .cal-modal {
+  background: var(--bg-card);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+}
+
+html[data-theme="dark"] .cal-modal-overlay { background: rgba(0, 0, 0, 0.65); }
+html[data-theme="dark"] .cal-modal-row     { color: var(--text-primary); }
+
+html[data-theme="dark"] .cal-modal-file {
+  background: var(--bg-input);
+  border-color: var(--border);
+}
+
+html[data-theme="dark"] .cal-modal-delete-btn {
+  background: #2e0d0d;
+  border-color: #7f1d1d;
+  color: #fca5a5;
+}
+
+html[data-theme="dark"] .cal-modal-delete-btn:hover {
+  background: #3d1515;
+  border-color: #ef4444;
+  color: #fecaca;
+}
+
+/* ─────────────────────────────────────────────
+   NoteViewPage — AI actions & quiz (new elements)
+───────────────────────────────────────────── */
+html[data-theme="dark"] .nv-ai-action-btn {
+  background: var(--bg-input-alt);
+  border-color: var(--border);
+  color: var(--accent-from);
+}
+
+html[data-theme="dark"] .nv-quiz-section {
+  background: var(--bg-card);
+  box-shadow: var(--shadow-card);
+}
+
+html[data-theme="dark"] .nv-quiz-hdr-title,
+html[data-theme="dark"] .nv-quiz-q-text,
+html[data-theme="dark"] .nv-quiz-answer-label { color: var(--text-primary); }
+
+html[data-theme="dark"] .nv-quiz-question { border-bottom-color: var(--border-light); }
+
+html[data-theme="dark"] .nv-quiz-option {
+  background: var(--bg-input);
+  border-color: var(--border);
+}
+
+html[data-theme="dark"] .nv-quiz-option.correct {
+  background: #0d2e20;
+  border-color: #10b981;
+}
+
+html[data-theme="dark"] .nv-quiz-opt-text { color: var(--text-primary); }
+
+html[data-theme="dark"] .nv-quiz-answer-box {
+  background: var(--bg-input-alt);
+  border-color: var(--border);
+}
+
+html[data-theme="dark"] .nv-quiz-explanation { color: var(--text-muted); }
+
+/* ─────────────────────────────────────────────
+   QuickStudyPage — chips, AI result cards, quiz
+───────────────────────────────────────────── */
+html[data-theme="dark"] .qs-chip {
+  background: var(--bg-card);
+  border-color: var(--border);
+  color: var(--text-muted);
+}
+
+html[data-theme="dark"] .qs-chip:hover:not(:disabled) {
+  background: #252838;
+  border-color: var(--accent-from);
+  color: var(--accent-from);
+}
+
+html[data-theme="dark"] .qs-bubble-ai {
+  background: #252838;
+  border-color: var(--border);
+}
+
+html[data-theme="dark"] .qs-bubble-ai .qs-bubble-text { color: var(--text-primary); }
+
+html[data-theme="dark"] .qs-input-row {
+  background: var(--bg-input-alt);
+  border-color: var(--border);
+}
+
+html[data-theme="dark"] .qs-textarea { color: var(--text-primary); }
+html[data-theme="dark"] .qs-textarea::placeholder { color: var(--text-muted); }
+
+html[data-theme="dark"] .qs-summary-section {
+  background: var(--bg-input-alt);
+  border-color: var(--border);
+}
+
+html[data-theme="dark"] .qs-summary-text { color: var(--text-primary); }
+
+html[data-theme="dark"] .qs-quiz-section {
+  background: var(--bg-card);
+  box-shadow: var(--shadow-card);
+}
+
+html[data-theme="dark"] .qs-quiz-hdr-title,
+html[data-theme="dark"] .qs-quiz-q-text { color: var(--text-primary); }
+
+html[data-theme="dark"] .qs-quiz-question { border-bottom-color: var(--border-light); }
+
+html[data-theme="dark"] .qs-quiz-option {
+  background: var(--bg-input);
+  border-color: var(--border);
+}
+
+html[data-theme="dark"] .qs-quiz-option:hover:not(:disabled) {
+  background: #252838;
+  border-color: var(--accent-from);
+}
+
+html[data-theme="dark"] .qs-quiz-option.correct {
+  background: #0d2e20;
+  border-color: #10b981;
+}
+
+html[data-theme="dark"] .qs-quiz-option.incorrect {
+  background: #2e0d0d;
+  border-color: #ef4444;
+}
+
+html[data-theme="dark"] .qs-quiz-opt-text { color: var(--text-primary); }
+
+html[data-theme="dark"] .qs-quiz-explanation {
+  background: #1e2c3d;
+  color: #93c5fd;
+}
+
+html[data-theme="dark"] .qs-modal {
+  background: var(--bg-card);
+}
+
+html[data-theme="dark"] .qs-modal h3 { color: var(--text-primary); }
+
+html[data-theme="dark"] .qs-modal p,
+html[data-theme="dark"] .qs-modal-count { color: var(--text-muted); }
+
+html[data-theme="dark"] .qs-modal-btn.secondary {
+  background: var(--bg-input);
+  color: var(--accent-from);
+  border-color: var(--border);
+}
+
+/* ─────────────────────────────────────────────
+   NotesPage — message states & upload section
+───────────────────────────────────────────── */
+html[data-theme="dark"] .message.success {
+  background: #0d2e20;
+  color: #6ee7b7;
+  border-color: #2d6a4f;
+}
+
+html[data-theme="dark"] .message.error {
+  background: #2e0d0d;
+  color: #fca5a5;
+  border-color: #7f1d1d;
+}
+
+html[data-theme="dark"] .message.info {
+  background: #1e2133;
+  color: #93c5fd;
+  border-color: var(--border);
+}
+
+html[data-theme="dark"] .upload-btn {
+  background: var(--bg-card);
+  border-color: var(--border);
+  color: var(--text-muted);
+}
+
+html[data-theme="dark"] .uploaded-file-info {
+  background: var(--bg-input);
+  border-color: var(--border);
+  color: var(--text-muted);
+}
+
+/* ─────────────────────────────────────────────
+   AddCoursePage — icon & color pickers
+───────────────────────────────────────────── */
+html[data-theme="dark"] .icon-option {
+  background: var(--bg-input);
+  border-color: var(--border);
+}
+
+html[data-theme="dark"] .icon-option:hover { border-color: var(--accent-from); }
+
+html[data-theme="dark"] .icon-option.selected {
+  background: #1e2340;
+  border-color: var(--accent-from);
+  box-shadow: 0 3px 10px rgba(102, 126, 234, 0.25);
+}
+
+html[data-theme="dark"] .color-option.selected { border-color: white; }
+
+html[data-theme="dark"] .error-message {
+  background: #2e0d0d;
+  color: #fca5a5;
+  border-color: #7f1d1d;
+}
+
+/* ─────────────────────────────────────────────
+   CoursePage — hover & action button gaps
+───────────────────────────────────────────── */
+html[data-theme="dark"] .note-item:hover { background: #252838; }
+
+html[data-theme="dark"] .note-action-btn {
+  background: #252838;
+  border-color: var(--border);
+  color: var(--text-muted);
+}
+
+html[data-theme="dark"] .note-action-btn.edit:hover   { color: var(--accent-from); }
+html[data-theme="dark"] .note-action-btn.delete:hover { color: #ef4444; }

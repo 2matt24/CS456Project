@@ -46,11 +46,9 @@ function formatTime(date) {
   return new Date(date).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 }
 
-const QUICK_PROMPTS = [
-  { label: '📋 Summarize this note',    text: 'Summarize the key points of this note in bullet points.' },
-  { label: '🧠 Quiz me',                text: 'Quiz me on this material. Ask me 3 questions one at a time.' },
-  { label: '🔍 Explain key concepts',   text: 'Explain the most important concepts from these notes in simple terms.' },
-  { label: '📝 Practice questions',     text: 'Create 5 practice exam questions based on these notes.' },
+const CHAT_PROMPTS = [
+  { label: '🔍 Explain key concepts', text: 'Explain the most important concepts from these notes in simple terms.' },
+  { label: '📝 Practice questions',   text: 'Create 5 practice exam questions based on these notes.' },
 ];
 
 /* ════════════════════════════════════
@@ -88,6 +86,13 @@ export default function QuickStudyPage() {
 
   /* ── Completion modal ── */
   const [showModal, setShowModal] = useState(false);
+
+  /* ── AI Summary / Quiz ── */
+  const [summary, setSummary]                     = useState('');
+  const [quizQuestions, setQuizQuestions]         = useState([]);
+  const [selectedAnswers, setSelectedAnswers]     = useState({});
+  const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
+  const [isGeneratingQuiz, setIsGeneratingQuiz]   = useState(false);
 
   /* ─── Load course + notes ─── */
   useEffect(() => {
@@ -225,6 +230,59 @@ export default function QuickStudyPage() {
     setTimeout(() => textareaRef.current?.focus(), 0);
   };
 
+  /* ── AI Summary ── */
+  const handleSummarizeNote = async () => {
+    if (!selectedNote?.noteID || isGeneratingSummary) return;
+    setIsGeneratingSummary(true);
+    setSummary('');
+    try {
+      const resp = await fetch(`${API_BASE}/api/notes/${selectedNote.noteID}/summarize`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}));
+        throw new Error(err.error || 'Failed to generate summary');
+      }
+      const data = await resp.json();
+      setSummary(data.summary || '');
+    } catch (err) {
+      console.error('[QuickStudy] summarize error:', err);
+    } finally {
+      setIsGeneratingSummary(false);
+    }
+  };
+
+  /* ── AI Quiz ── */
+  const handleQuizMe = async () => {
+    if (!selectedNote?.content || isGeneratingQuiz) return;
+    setIsGeneratingQuiz(true);
+    setQuizQuestions([]);
+    setSelectedAnswers({});
+    try {
+      const resp = await fetch(`${API_BASE}/api/notes/generate-quiz`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ content: selectedNote.content, questionCount: 5, difficulty: 'medium' }),
+      });
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}));
+        throw new Error(err.error || 'Quiz generation failed');
+      }
+      const data = await resp.json();
+      setQuizQuestions(data.questions || []);
+    } catch (err) {
+      console.error('[QuickStudy] quiz error:', err);
+    } finally {
+      setIsGeneratingQuiz(false);
+    }
+  };
+
+  const handleAnswerSelect = (questionIndex, letter) => {
+    setSelectedAnswers((prev) => ({ ...prev, [questionIndex]: letter }));
+  };
+
   /* ─── Derived ─── */
   const mins = String(Math.floor(secondsLeft / 60)).padStart(2, '0');
   const secs = String(secondsLeft % 60).padStart(2, '0');
@@ -263,7 +321,6 @@ export default function QuickStudyPage() {
             {course && <p className="qs-nav-sub">{course.courseName}</p>}
           </div>
         </div>
-        <div className="qs-sessions-badge">{sessions} 🍅</div>
       </div>
 
       {/* ── Note selector ── */}
@@ -275,6 +332,10 @@ export default function QuickStudyPage() {
           onChange={(e) => {
             const note = notes.find((n) => n.noteID === parseInt(e.target.value));
             setSelectedNote(note || null);
+            // Clear previous AI results when switching notes
+            setSummary('');
+            setQuizQuestions([]);
+            setSelectedAnswers({});
           }}
         >
           <option value="">— Select a note —</option>
@@ -332,7 +393,23 @@ export default function QuickStudyPage() {
 
       {/* ── Quick-prompt chips ── */}
       <div className="qs-quick-prompts">
-        {QUICK_PROMPTS.map((p) => (
+        {/* Real API buttons */}
+        <button
+          className={`qs-chip qs-chip-ai ${isGeneratingSummary ? 'loading' : ''}`}
+          onClick={handleSummarizeNote}
+          disabled={!selectedNote || isGeneratingSummary}
+        >
+          {isGeneratingSummary ? '⏳ Generating…' : '📋 Summarize this note'}
+        </button>
+        <button
+          className={`qs-chip qs-chip-ai ${isGeneratingQuiz ? 'loading' : ''}`}
+          onClick={handleQuizMe}
+          disabled={!selectedNote || isGeneratingQuiz}
+        >
+          {isGeneratingQuiz ? '⏳ Creating Quiz…' : '🧠 Quiz me'}
+        </button>
+        {/* Chat pre-fill chips */}
+        {CHAT_PROMPTS.map((p) => (
           <button
             key={p.label}
             className="qs-chip"
@@ -343,6 +420,82 @@ export default function QuickStudyPage() {
           </button>
         ))}
       </div>
+
+      {/* ── Summary result ── */}
+      {summary && (
+        <div className="qs-summary-section">
+          <div className="qs-summary-hdr">
+            <span>✨ AI Summary</span>
+            <button
+              className="qs-summary-regen"
+              onClick={handleSummarizeNote}
+              disabled={isGeneratingSummary}
+              title="Regenerate"
+            >
+              🔄
+            </button>
+          </div>
+          <div className="qs-summary-text">{summary}</div>
+        </div>
+      )}
+
+      {/* ── Quiz result ── */}
+      {quizQuestions.length > 0 && (
+        <div className="qs-quiz-section">
+          <div className="qs-quiz-hdr">
+            <span className="qs-quiz-hdr-title">🧠 Practice Quiz</span>
+            <span className="qs-quiz-hdr-count">{quizQuestions.length} questions</span>
+          </div>
+
+          {quizQuestions.map((q, idx) => {
+            const selected = selectedAnswers[idx];
+            return (
+              <div key={idx} className="qs-quiz-question">
+                <p className="qs-quiz-q-num">Question {idx + 1}</p>
+                <p className="qs-quiz-q-text">{q.question}</p>
+
+                <div className="qs-quiz-options">
+                  {q.options.map((opt, i) => {
+                    const letter     = String.fromCharCode(65 + i);
+                    const isCorrect  = letter === q.correctAnswer;
+                    const isSelected = selected === letter;
+                    return (
+                      <button
+                        key={i}
+                        className={`qs-quiz-option${isSelected ? (isCorrect ? ' correct' : ' incorrect') : ''}`}
+                        onClick={() => !selected && handleAnswerSelect(idx, letter)}
+                        disabled={!!selected}
+                      >
+                        <span className="qs-quiz-opt-letter">{letter}</span>
+                        <span className="qs-quiz-opt-text">{opt}</span>
+                        {isSelected && (
+                          <span className="qs-quiz-indicator">
+                            {isCorrect ? '✓' : '✗'}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {selected && (
+                  <div className="qs-quiz-explanation">
+                    <strong>Explanation:</strong> {q.explanation}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
+          <button
+            className="qs-quiz-regen"
+            onClick={handleQuizMe}
+            disabled={isGeneratingQuiz}
+          >
+            {isGeneratingQuiz ? '⏳ Regenerating…' : '🔄 Generate New Quiz'}
+          </button>
+        </div>
+      )}
 
       {/* ── AI Chat ── */}
       <div className="qs-chat-section">

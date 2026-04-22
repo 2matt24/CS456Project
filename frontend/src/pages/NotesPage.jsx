@@ -19,11 +19,6 @@ function NotesPage() {
     // If a file upload already created the note in the DB, store its ID here
     // so "Save Note" does an update rather than a duplicate create.
     const [uploadedNoteId, setUploadedNoteId] = useState(null);
-    const [summary, setSummary]               = useState('');
-    const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
-    const [quizQuestions, setQuizQuestions]   = useState([]);
-    const [isGeneratingQuiz, setIsGeneratingQuiz] = useState(false);
-    const [showAnswers, setShowAnswers]       = useState({});
     const [isSaving, setIsSaving]             = useState(false);
     const [message, setMessage]               = useState('');
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -123,61 +118,6 @@ function NotesPage() {
         }
     };
 
-    // ── AI quiz ──────────────────────────────────────────────────────────────
-    const handleGenerateQuiz = async () => {
-        if (!noteContent.trim()) {
-            setMessage('❌ Please add note content before generating a quiz.');
-            return;
-        }
-
-        setIsGeneratingQuiz(true);
-        setMessage('');
-
-        try {
-            const response = await fetch('https://cs456project.onrender.com/api/notes/generate-quiz', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({ content: noteContent, questionCount: 5, difficulty: 'medium' }),
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.error || 'Quiz generation failed');
-            }
-
-            const data = await response.json();
-            setQuizQuestions(data.questions || []);
-            setShowAnswers({});
-            setMessage('🧠 Quiz ready! Scroll down to practice.');
-        } catch (error) {
-            setMessage(`❌ ${error.message}`);
-            console.error('Quiz generation error:', error);
-        } finally {
-            setIsGeneratingQuiz(false);
-        }
-    };
-
-    const toggleAnswer = (index) => {
-        setShowAnswers(prev => ({ ...prev, [index]: !prev[index] }));
-    };
-
-    // ── AI summary ───────────────────────────────────────────────────────────
-    const handleGenerateSummary = async () => {
-        setIsGeneratingSummary(true);
-        setMessage('');
-
-        try {
-            const result = await notesAPI.summarize(noteContent);
-            setSummary(result.summary);
-        } catch (error) {
-            setMessage('Failed to generate summary. Please try again.');
-            console.error('Summary error:', error);
-        } finally {
-            setIsGeneratingSummary(false);
-        }
-    };
-
     return (
         <div className="notes-page-container">
             {/* Top navigation */}
@@ -267,87 +207,7 @@ function NotesPage() {
                             <><IoMdCheckmark size={20} /> Save Note</>
                         )}
                     </button>
-
-                    <button
-                        className="btn-summarize"
-                        onClick={handleGenerateSummary}
-                        disabled={!noteContent || isGeneratingSummary}
-                    >
-                        {isGeneratingSummary ? '⏳ Generating...' : '✨ Generate Summary'}
-                    </button>
-
-                    <button
-                        className="btn-quiz"
-                        onClick={handleGenerateQuiz}
-                        disabled={!noteContent || isGeneratingQuiz}
-                    >
-                        {isGeneratingQuiz ? '⏳ Creating Quiz...' : '🧠 Generate Quiz'}
-                    </button>
                 </div>
-
-                {/* Summary display */}
-                {summary && (
-                    <div className="summary-section">
-                        <h4>✨ AI Summary</h4>
-                        <div className="summary-content">{summary}</div>
-                    </div>
-                )}
-
-                {/* Quiz display */}
-                {quizQuestions.length > 0 && (
-                    <div className="quiz-section">
-                        <h4>🧠 Practice Quiz ({quizQuestions.length} Questions)</h4>
-                        <p className="quiz-instructions">
-                            Test your knowledge! Click "Show Answer" to reveal the correct answer and explanation.
-                        </p>
-
-                        {quizQuestions.map((q, idx) => (
-                            <div key={idx} className="quiz-question">
-                                <p className="quiz-q-number">Question {idx + 1}</p>
-                                <p className="quiz-q-text">{q.question}</p>
-
-                                <div className="quiz-options">
-                                    {q.options.map((opt, i) => {
-                                        const letter = String.fromCharCode(65 + i);
-                                        const isCorrect = letter === q.correctAnswer;
-                                        const revealed = showAnswers[idx];
-                                        return (
-                                            <div
-                                                key={i}
-                                                className={`quiz-option${revealed ? (isCorrect ? ' correct' : ' incorrect') : ''}`}
-                                            >
-                                                <span className="option-letter">{letter}.</span>
-                                                <span className="option-text">{opt}</span>
-                                                {revealed && isCorrect && <span className="correct-badge">✓</span>}
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-
-                                <button className="quiz-reveal-btn" onClick={() => toggleAnswer(idx)}>
-                                    {showAnswers[idx] ? '👁️ Hide Answer' : '👁️ Show Answer'}
-                                </button>
-
-                                {showAnswers[idx] && (
-                                    <div className="quiz-answer-box">
-                                        <p className="quiz-answer-label">
-                                            <strong>Correct Answer: {q.correctAnswer}</strong>
-                                        </p>
-                                        <p className="quiz-explanation">{q.explanation}</p>
-                                    </div>
-                                )}
-                            </div>
-                        ))}
-
-                        <button
-                            className="quiz-regenerate-btn"
-                            onClick={handleGenerateQuiz}
-                            disabled={isGeneratingQuiz}
-                        >
-                            {isGeneratingQuiz ? '⏳ Regenerating...' : '🔄 Generate New Quiz'}
-                        </button>
-                    </div>
-                )}
             </div>
 
             {/* Bottom navigation */}

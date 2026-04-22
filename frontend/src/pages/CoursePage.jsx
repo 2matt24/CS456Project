@@ -44,7 +44,7 @@ function CoursePage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ query: searchQuery }),
+        body: JSON.stringify({ query: searchQuery, courseId: parseInt(courseId) }),
       });
       if (response.ok) {
         const data = await response.json();
@@ -126,6 +126,13 @@ function CoursePage() {
         <h2 className="course-title">{course.courseName}</h2>
         {course.courseCode && <p className="course-code">{course.courseCode}</p>}
         {course.semester    && <p className="course-info">{course.semester}</p>}
+        <button
+          className="course-edit-btn"
+          onClick={() => navigate(`/courses/${courseId}/edit`)}
+          title="Edit course"
+        >
+          <MdEdit size={20} />
+        </button>
       </div>
 
       {/* ── Action buttons ── */}

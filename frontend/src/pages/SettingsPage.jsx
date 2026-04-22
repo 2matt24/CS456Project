@@ -221,9 +221,6 @@ export default function SettingsPage() {
             />
           </div>
 
-          <p className="settings-coming-soon-note">
-            * Notification delivery coming in the next release
-          </p>
         </div>
 
         {/* ════ APPEARANCE ════ */}
