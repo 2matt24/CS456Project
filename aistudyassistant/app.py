@@ -135,6 +135,24 @@ def health():
     return {"status": "ok"}
 
 
+@app.route("/api/test-gemini")
+def test_gemini():
+    import os
+    from google import genai as _genai
+    key = (os.getenv("GEMINI_API_KEY") or "").strip()
+    if not key:
+        return {"status": "error", "detail": "GEMINI_API_KEY not set"}, 503
+    try:
+        client = _genai.Client(api_key=key)
+        resp = client.models.generate_content(
+            model="gemini-2.0-flash",
+            contents="Say 'OK' in one word.",
+        )
+        return {"status": "ok", "response": resp.text.strip()}, 200
+    except Exception as exc:
+        return {"status": "error", "detail": str(exc)}, 500
+
+
 #@app.after_request
 #def debug_response(response):
  #   print("SET-COOKIE HEADER:", response.headers.get("Set-Cookie"))

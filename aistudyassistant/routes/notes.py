@@ -7,7 +7,7 @@ import re
 from google import genai as _genai_sdk
 from flask import Blueprint, request
 
-_GEMINI_KEY    = os.getenv("GEMINI_API_KEY", "")
+_GEMINI_KEY    = (os.getenv("GEMINI_API_KEY") or "").strip()
 _gemini_client = _genai_sdk.Client(api_key=_GEMINI_KEY) if _GEMINI_KEY else None
 
 from sqlalchemy import text as _sql_text

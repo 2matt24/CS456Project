@@ -13,7 +13,7 @@ from aistudyassistant.services.auth_tokens import get_authenticated_user_id
 
 chat_bp = Blueprint("chat", __name__)
 
-_GEMINI_KEY    = os.getenv("GEMINI_API_KEY", "")
+_GEMINI_KEY    = (os.getenv("GEMINI_API_KEY") or "").strip()
 _gemini_client = genai.Client(api_key=_GEMINI_KEY) if _GEMINI_KEY else None
 
 _MODEL_NAME = "gemini-2.0-flash"

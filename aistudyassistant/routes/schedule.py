@@ -19,7 +19,7 @@ schedule_bp = Blueprint("schedule", __name__)
 VALID_TYPES   = {"school", "work", "personal"}
 VALID_REPEATS = {"once", "daily", "weekly", "monthly"}
 
-_GEMINI_KEY    = os.getenv("GEMINI_API_KEY")
+_GEMINI_KEY    = (os.getenv("GEMINI_API_KEY") or "").strip()
 _gemini_client = genai.Client(api_key=_GEMINI_KEY) if _GEMINI_KEY else None
 
 COURSE_COLORS = [
@@ -252,7 +252,7 @@ Schedule text:
 
     try:
         response = _gemini_client.models.generate_content(
-            model="gemini-2.5-flash",
+            model="gemini-2.0-flash",
             contents=prompt,
         )
         raw = response.text.strip()
@@ -608,7 +608,7 @@ def extract_schedule_from_file():
                     f"No markdown, no explanation."
                 )
                 vision_response = _gemini_client.models.generate_content(
-                    model="gemini-2.5-flash",
+                    model="gemini-2.0-flash",
                     contents=[
                         genai_types.Part.from_bytes(data=file_bytes, mime_type="application/pdf"),
                         genai_types.Part.from_text(vision_prompt),
@@ -648,7 +648,7 @@ def extract_schedule_from_file():
                 f"color (#667eea). No markdown, no explanation."
             )
             response = _gemini_client.models.generate_content(
-                model="gemini-2.5-flash",
+                model="gemini-2.0-flash",
                 contents=[
                     genai_types.Part.from_bytes(data=file_bytes, mime_type=mime),
                     genai_types.Part.from_text(prompt),
