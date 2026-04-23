@@ -2,9 +2,12 @@ from datetime import date as date_type
 
 #from flask import Blueprint, request, session
 from flask import Blueprint, request
+from sqlalchemy import func
 
 from aistudyassistant.extensions import db
 from aistudyassistant.models.course import Course
+from aistudyassistant.models.note import Note
+from aistudyassistant.models.study_session import StudySession
 from aistudyassistant.models.schedule_event import ScheduleEvent
 from aistudyassistant.services.auth_tokens import get_authenticated_user_id
 
@@ -43,7 +46,38 @@ def get_courses():
         .order_by(Course.CourseName.asc())
         .all()
     )
-    return {"courses": [_serialize_course(course) for course in courses]}, 200
+
+    result = []
+    for course in courses:
+        notes_count = Note.query.filter_by(CourseID=course.CourseID).count()
+
+        total_minutes = (
+            db.session.query(func.sum(StudySession.DurationMinutes))
+            .filter(
+                StudySession.CourseID == course.CourseID,
+                StudySession.UserID   == user_id,
+            )
+            .scalar() or 0
+        )
+
+        # 60% weight: notes toward a goal of 10; 40% weight: study time toward 10 hours
+        notes_progress = min(100.0, (notes_count / 10) * 100)
+        time_progress  = min(100.0, (total_minutes / 600) * 100)
+        progress       = int(notes_progress * 0.6 + time_progress * 0.4)
+
+        days_left = None
+        if course.EndDate:
+            delta     = course.EndDate - date_type.today()
+            days_left = max(0, delta.days)
+
+        data = _serialize_course(course)
+        data["progress"]          = progress
+        data["notesCount"]        = notes_count
+        data["totalStudyMinutes"] = int(total_minutes)
+        data["daysLeft"]          = days_left
+        result.append(data)
+
+    return {"courses": result}, 200
 
 
 @courses_bp.route("/api/courses", methods=["POST"])
