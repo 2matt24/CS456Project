@@ -2,7 +2,6 @@ import os
 import uuid
 
 from google import genai
-from google.genai import types as genai_types
 from flask import Blueprint, request
 from sqlalchemy import func, desc
 
@@ -60,34 +59,18 @@ def _build_system_prompt(course_context=None, note_context=None):
     return "".join(parts)
 
 
-def _build_gemini_contents(history, new_message):
-    """
-    Convert the frontend message list + new message into the Contents list
-    expected by the google-genai SDK.  The welcome message is skipped.
-    """
-    contents = []
+def _build_prompt(system_prompt, history, new_message):
+    """Build a single text prompt including system instruction and conversation history."""
+    parts = [system_prompt, "\n\n"]
     for msg in history:
-        if msg.get("id") == "welcome":
+        if msg.get("id") == "welcome" or msg.get("role") == "system":
             continue
-        if msg.get("role") == "system":
-            continue
-        role = "user" if msg.get("role") == "user" else "model"
+        role = "User" if msg.get("role") == "user" else "Assistant"
         text = (msg.get("text") or "").strip()
         if text:
-            contents.append(
-                genai_types.Content(
-                    role=role,
-                    parts=[genai_types.Part.from_text(text)],
-                )
-            )
-    # Append the new user message
-    contents.append(
-        genai_types.Content(
-            role="user",
-            parts=[genai_types.Part.from_text(new_message)],
-        )
-    )
-    return contents
+            parts.append(f"{role}: {text}\n")
+    parts.append(f"User: {new_message}\nAssistant:")
+    return "".join(parts)
 
 
 # ── POST /api/chat ────────────────────────────────────────────────────────────
@@ -135,16 +118,11 @@ def chat_message():
     else:
         try:
             system_prompt = _build_system_prompt(course_context, note_context)
-            contents      = _build_gemini_contents(history, message)
+            prompt        = _build_prompt(system_prompt, history, message)
 
             result = _gemini_client.models.generate_content(
                 model=_MODEL_NAME,
-                contents=contents,
-                config=genai_types.GenerateContentConfig(
-                    system_instruction=system_prompt,
-                    temperature=0.7,
-                    max_output_tokens=600,
-                ),
+                contents=prompt,
             )
             ai_response = result.text or ""
         except Exception as exc:
