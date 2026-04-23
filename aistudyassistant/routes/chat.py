@@ -16,7 +16,7 @@ chat_bp = Blueprint("chat", __name__)
 _GEMINI_KEY    = os.getenv("GEMINI_API_KEY", "")
 _gemini_client = genai.Client(api_key=_GEMINI_KEY) if _GEMINI_KEY else None
 
-_MODEL_NAME = "gemini-2.5-flash"
+_MODEL_NAME = "gemini-2.0-flash"
 
 _BASE_SYSTEM = (
     "You are a helpful AI Study Assistant for a student productivity app. "
@@ -45,14 +45,14 @@ def _build_system_prompt(course_context=None, note_context=None):
     if note_context and (note_context.get("title") or note_context.get("content")):
         note_title = (note_context.get("title") or "Untitled note").strip()
         note_content = (note_context.get("content") or "").strip()
-    if note_content:
+        if note_content:
             note_content = note_content[:12000]
             parts.append(
                 f'\n\nThe student asked about this note: "{note_title}". '
                 f"Treat this note content as the primary study source for this conversation:\n\n"
                 f"{note_content}"
             )
-    else:
+        else:
             parts.append(
                 f'\n\nThe student asked about this note: "{note_title}". '
                 "Use this note title as context when answering."
@@ -115,14 +115,18 @@ def chat_message():
 
     # Use existing session title if available, otherwise generate from first message
     if not conversation_title:
-        existing = db.session.query(ChatHistory.ConversationTitle).filter(
-            ChatHistory.UserID == user_id,
-            ChatHistory.SessionID == session_id,
-            ChatHistory.ConversationTitle.isnot(None),
-        ).first()
-        if existing and existing[0]:
-            conversation_title = existing[0]
-        else:
+        try:
+            existing = db.session.query(ChatHistory.ConversationTitle).filter(
+                ChatHistory.UserID == user_id,
+                ChatHistory.SessionID == session_id,
+                ChatHistory.ConversationTitle.isnot(None),
+            ).first()
+            if existing and existing[0]:
+                conversation_title = existing[0]
+            else:
+                conversation_title = message[:60] + ("…" if len(message) > 60 else "")
+        except Exception:
+            # ConversationTitle / SessionID columns may not exist in DB yet
             conversation_title = message[:60] + ("…" if len(message) > 60 else "")
 
     ai_response = ""

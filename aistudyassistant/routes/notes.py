@@ -10,6 +10,9 @@ from flask import Blueprint, request
 _GEMINI_KEY    = os.getenv("GEMINI_API_KEY", "")
 _gemini_client = _genai_sdk.Client(api_key=_GEMINI_KEY) if _GEMINI_KEY else None
 
+from sqlalchemy import text as _sql_text
+from sqlalchemy.orm import defer as _defer
+
 from aistudyassistant.extensions import db
 from aistudyassistant.models.note import Note
 from aistudyassistant.models.course import Course
@@ -38,12 +41,20 @@ def _current_user_id():
 
 
 def _serialize_note(note: Note):
+    # Guard against Summary column not yet existing in the DB: access it only
+    # if the attribute is already loaded (not expired/deferred).  If accessing
+    # it would trigger a lazy SELECT that fails, default to None gracefully.
+    try:
+        summary = note.Summary
+    except Exception:
+        summary = None
+
     return {
         "noteID":    note.NoteID,
         "courseID":  note.CourseID,
         "title":     note.Title,
         "content":   note.Content,
-        "summary":   note.Summary,          # persisted AI summary (may be None)
+        "summary":   summary,
         "fileName":  note.FileName,
         "fileType":  note.FileType,
         "createdAt": note.CreatedAt.isoformat() if note.CreatedAt else None,
@@ -356,6 +367,11 @@ def generate_note_summary(note_id):
     """
     Generate a comprehensive AI summary for a specific note and persist it
     to the Summary column so it survives navigation.
+
+    Uses defer(Note.Summary) so SQLAlchemy omits the Summary column from the
+    SELECT — this prevents "Invalid column name 'Summary'" errors if the DB
+    column hasn't been added yet.  The UPDATE is also wrapped in a try/except
+    so the endpoint still returns the generated summary even if persistence fails.
     """
     user_id = _current_user_id()
     if not user_id:
@@ -364,9 +380,10 @@ def generate_note_summary(note_id):
     if not _gemini_client:
         return {"error": "AI service not configured"}, 503
 
-    # Verify ownership via Course join (Note has no direct UserID)
+    # Verify ownership — defer Summary so it's excluded from the SELECT query
     note = (
         db.session.query(Note)
+        .options(_defer(Note.Summary))
         .join(Course, Note.CourseID == Course.CourseID)
         .filter(Note.NoteID == note_id, Course.UserID == user_id)
         .first()
@@ -409,16 +426,24 @@ Format strictly in markdown with the headings above. Be thorough but concise (25
         summary_text = (response.text or "").strip()
         if not summary_text:
             return {"error": "AI returned an empty summary. Please try again."}, 500
-
-        # Persist to database so the summary survives navigation
-        note.Summary = summary_text
-        db.session.commit()
-
-        return {"summary": summary_text, "noteID": note_id}, 200
-
     except Exception as exc:
-        print(f"[notes] summary generation error: {exc}")
+        print(f"[notes] Gemini summary error: {exc}")
         return {"error": "Failed to generate summary. Please try again."}, 500
+
+    # Persist via raw SQL UPDATE so we don't re-SELECT the Note (which would
+    # include Summary and fail if the DB column doesn't exist yet).
+    try:
+        db.session.execute(
+            _sql_text("UPDATE Notes SET Summary = :s WHERE NoteID = :id"),
+            {"s": summary_text, "id": note_id},
+        )
+        db.session.commit()
+    except Exception as db_exc:
+        db.session.rollback()
+        print(f"[notes] summary persist failed (DB column may not exist yet): {db_exc}")
+        # Still return the summary even if we couldn't persist it
+
+    return {"summary": summary_text, "noteID": note_id}, 200
 
 
 @notes_bp.route("/api/notes/generate-quiz", methods=["POST"])
