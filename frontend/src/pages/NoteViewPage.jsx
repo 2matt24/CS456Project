@@ -57,6 +57,7 @@ export default function NoteViewPage() {
   const [quizQuestions, setQuizQuestions]       = useState([]);
   const [isGeneratingQuiz, setIsGeneratingQuiz] = useState(false);
   const [showAnswers, setShowAnswers]           = useState({});
+  const [quizError, setQuizError]               = useState('');
 
   /* AI chat */
   const [messages, setMessages]   = useState([]);
@@ -120,6 +121,7 @@ export default function NoteViewPage() {
   const handleGenerateQuiz = async () => {
     if (!note?.content || isGeneratingQuiz) return;
     setIsGeneratingQuiz(true);
+    setQuizError('');
     try {
       const resp = await fetch(`${API_BASE}/api/notes/generate-quiz`, {
         method: 'POST',
@@ -136,6 +138,7 @@ export default function NoteViewPage() {
       setShowAnswers({});
     } catch (err) {
       console.error('[NoteViewPage] quiz error:', err);
+      setQuizError('Could not generate quiz. Please try again.');
     } finally {
       setIsGeneratingQuiz(false);
     }
@@ -283,6 +286,11 @@ export default function NoteViewPage() {
           <div className="note-view-empty">
             <p>No text content for this note.</p>
           </div>
+        )}
+
+        {/* ── Quiz Error ── */}
+        {quizError && (
+          <p className="nv-summary-error" style={{ marginTop: '0.5rem' }}>{quizError}</p>
         )}
 
         {/* ── AI Summary — shown below content ── */}

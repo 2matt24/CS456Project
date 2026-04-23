@@ -595,6 +595,32 @@ def extract_schedule_from_file():
         except Exception as e:
             print(f"PDF extract error: {e}")
 
+        # Image-based / scanned PDF — fall back to Gemini vision
+        if (not extracted_text or not extracted_text.strip()) and _gemini_client:
+            try:
+                today = datetime.now().strftime("%Y-%m-%d")
+                vision_prompt = (
+                    f"Extract all schedule/class/shift events from this PDF. "
+                    f"Return ONLY a JSON array with fields: name, days (full day names), "
+                    f"startTime (HH:MM 24-hour), endTime (HH:MM 24-hour), "
+                    f"startDate ({today} if unknown), endDate (null if unknown), "
+                    f"location, repeat (once/weekly/daily/monthly), color (#667eea). "
+                    f"No markdown, no explanation."
+                )
+                vision_response = _gemini_client.models.generate_content(
+                    model="gemini-2.5-flash",
+                    contents=[
+                        genai_types.Part.from_bytes(data=file_bytes, mime_type="application/pdf"),
+                        genai_types.Part.from_text(vision_prompt),
+                    ],
+                )
+                raw = re.sub(r"^```(?:json)?\s*", "", vision_response.text.strip())
+                raw = re.sub(r"\s*```$", "", raw)
+                events = json.loads(raw)
+                return {"events": events if isinstance(events, list) else [], "fileMetadata": file_metadata}, 200
+            except Exception as e:
+                print(f"PDF vision extract error: {e}")
+
     elif filename.endswith(".docx"):
         try:
             import docx
@@ -640,7 +666,7 @@ def extract_schedule_from_file():
         return {"error": "Unsupported file type. Use PDF, DOCX, TXT, PNG, JPG, or ICS."}, 415
 
     if not extracted_text or not extracted_text.strip():
-        return {"error": "Could not read text from the file."}, 422
+        return {"error": "Could not read text from the file. If this is a scanned or image-based PDF, try uploading a PNG/JPG image of the schedule instead."}, 422
 
     if not _gemini_client:
         return {"error": "AI service not configured"}, 503

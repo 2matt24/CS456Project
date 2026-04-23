@@ -496,22 +496,38 @@ Return ONLY a JSON array with this EXACT structure (no markdown, no explanation 
             contents=prompt,
         )
         raw = response.text.strip()
+    except Exception as exc:
+        print(f"[quiz] Gemini API error: {exc}")
+        return {"error": "AI service failed to generate quiz. Please try again."}, 500
 
+    try:
         # Strip markdown fences if present
         raw = re.sub(r"^```(?:json)?\s*", "", raw)
         raw = re.sub(r"\s*```$", "", raw)
+
+        # Fallback: find the JSON array boundaries in case the model added preamble text
+        start = raw.find("[")
+        end   = raw.rfind("]")
+        if start != -1 and end != -1 and end > start:
+            raw = raw[start : end + 1]
 
         questions = json.loads(raw)
 
         if not isinstance(questions, list):
             raise ValueError("Response is not a JSON array")
 
+        # Filter out malformed questions instead of rejecting the whole response
         required = {"question", "options", "correctAnswer", "explanation"}
-        for q in questions:
-            if not required.issubset(q):
-                raise ValueError(f"Missing keys in question: {q}")
-            if len(q["options"]) != 4:
-                raise ValueError("Each question must have exactly 4 options")
+        questions = [
+            q for q in questions
+            if isinstance(q, dict)
+            and required.issubset(q)
+            and isinstance(q.get("options"), list)
+            and len(q["options"]) == 4
+        ]
+
+        if not questions:
+            return {"error": "AI could not generate valid quiz questions. Please try again."}, 500
 
         return {"questions": questions, "count": len(questions)}, 200
 

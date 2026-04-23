@@ -6,7 +6,7 @@ import {
   MdChevronLeft, MdChevronRight, MdLocationOn, MdAccessTime, MdClose,
   MdRefresh, MdAttachFile, MdDelete,
 } from 'react-icons/md';
-import { scheduleAPI } from '../services/api';
+import { scheduleAPI, coursesAPI } from '../services/api';
 import '../styles/CalendarPage.css';
 
 const HOURS = Array.from({ length: 15 }, (_, i) => i + 7); // 7am–9pm
@@ -128,14 +128,22 @@ function getEventsForDayOfWeek(date, calEvents) {
   return calEvents.filter(ev => ev.day === dayNum);
 }
 
-function getAgendaItems(fromDate, calEvents) {
+function getCoursesForDate(date, courses) {
+  return (courses || []).filter(c => {
+    if (!c.startDate) return false;
+    return sameDay(new Date(c.startDate + 'T00:00:00'), date);
+  });
+}
+
+function getAgendaItems(fromDate, calEvents, courses) {
   const items = [];
   for (let i = 0; i < 14; i++) {
     const d = new Date(fromDate);
     d.setDate(d.getDate() + i);
-    const dayEvents = getEventsForDayOfWeek(d, calEvents);
-    if (dayEvents.length > 0 || sameDay(d, new Date())) {
-      items.push({ date: new Date(d), events: dayEvents });
+    const dayEvents   = getEventsForDayOfWeek(d, calEvents);
+    const dayCourses  = getCoursesForDate(d, courses);
+    if (dayEvents.length > 0 || dayCourses.length > 0 || sameDay(d, new Date())) {
+      items.push({ date: new Date(d), events: dayEvents, courses: dayCourses });
     }
   }
   return items;
@@ -151,6 +159,7 @@ export default function CalendarPage() {
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [selectedDay, setSelectedDay]     = useState(null);
   const [calEvents, setCalEvents]         = useState([]);
+  const [courses, setCourses]             = useState([]);
   const [isLoading, setIsLoading]         = useState(true);
   const [loadError, setLoadError]         = useState('');
   const gridRef = useRef(null);
@@ -170,8 +179,12 @@ export default function CalendarPage() {
     setIsLoading(true);
     setLoadError('');
     try {
-      const apiEvents = await scheduleAPI.getAll();
+      const [apiEvents, apiCourses] = await Promise.all([
+        scheduleAPI.getAll(),
+        coursesAPI.getAll().catch(() => []),
+      ]);
       setCalEvents(apiEventsToCalendar(apiEvents));
+      setCourses(apiCourses || []);
     } catch (err) {
       console.error('[CalendarPage] load error:', err);
       setLoadError('Could not load events. Pull down to retry.');
@@ -224,9 +237,14 @@ export default function CalendarPage() {
       <div className="cal-week-header">
         <div className="cal-time-gutter" />
         {weekDays.map((d, i) => (
-          <div key={i} className={`cal-day-header ${sameDay(d, now) ? 'today' : ''}`}>
+          <div
+            key={i}
+            className={`cal-day-header ${sameDay(d, now) ? 'today' : ''}`}
+            style={{ cursor: 'pointer' }}
+            onClick={() => setSelectedDay(selectedDay && sameDay(d, selectedDay) ? null : new Date(d))}
+          >
             <span className="cal-day-name">{formatDayShort(d)}</span>
-            <span className={`cal-day-num ${sameDay(d, now) ? 'today-num' : ''}`}>
+            <span className={`cal-day-num ${sameDay(d, now) ? 'today-num' : ''} ${selectedDay && sameDay(d, selectedDay) ? 'today-num' : ''}`}>
               {d.getDate()}
             </span>
           </div>
@@ -276,6 +294,39 @@ export default function CalendarPage() {
           <div className="cal-now-line" style={{ top: `${currentTimeTop}px` }} />
         )}
       </div>
+
+      {/* Selected-day panel for week view */}
+      {selectedDay && (
+        <div className="cal-day-events" style={{ padding: '12px 14px', borderTop: '1px solid #f0f0f0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+            <span className="cal-day-events-title" style={{ margin: 0 }}>
+              {selectedDay.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+            </span>
+            <div style={{ display: 'flex', gap: 6 }}>
+              <button className="cal-arrow-btn" style={{ background: '#f0f2f5', color: '#667eea' }}
+                onClick={() => setSelectedDay(d => new Date(d.getTime() - 86400000))}>
+                <MdChevronLeft size={18} />
+              </button>
+              <button className="cal-arrow-btn" style={{ background: '#f0f2f5', color: '#667eea' }}
+                onClick={() => setSelectedDay(d => new Date(d.getTime() + 86400000))}>
+                <MdChevronRight size={18} />
+              </button>
+            </div>
+          </div>
+          {getEventsForDayOfWeek(selectedDay, calEvents).length === 0 ? (
+            <p className="cal-agenda-free">No events scheduled</p>
+          ) : (
+            getEventsForDayOfWeek(selectedDay, calEvents).map(ev => (
+              <div key={ev.id} className="cal-agenda-event" style={{ borderLeftColor: ev.color }}
+                onClick={() => setSelectedEvent(ev)}>
+                <div className="cal-agenda-event-time">{formatTime(ev.startHour, ev.startMin)} – {formatTime(ev.endHour, ev.endMin)}</div>
+                <div className="cal-agenda-event-title">{ev.title}</div>
+                {ev.location && <div className="cal-agenda-event-loc"><MdLocationOn size={12} /> {ev.location}</div>}
+              </div>
+            ))
+          )}
+        </div>
+      )}
     </div>
   );
 
@@ -294,12 +345,17 @@ export default function CalendarPage() {
         </div>
         <div className="cal-month-grid">
           {monthDays.map((day, idx) => {
-            const isOther    = day.getMonth() !== currentMonth;
-            const isToday    = sameDay(day, now);
-            const isSelected = selectedDay && sameDay(day, selectedDay);
-            const dayEvents  = getEventsForDayOfWeek(day, calEvents);
-            const visibleDots = dayEvents.slice(0, 3);
-            const extraCount  = dayEvents.length - 3;
+            const isOther      = day.getMonth() !== currentMonth;
+            const isToday      = sameDay(day, now);
+            const isSelected   = selectedDay && sameDay(day, selectedDay);
+            const dayEvents    = getEventsForDayOfWeek(day, calEvents);
+            const dayCourses   = getCoursesForDate(day, courses);
+            const allDots      = [
+              ...dayEvents.map(ev => ({ color: ev.color })),
+              ...dayCourses.map(c  => ({ color: c.color || '#667eea' })),
+            ];
+            const visibleDots = allDots.slice(0, 3);
+            const extraCount  = allDots.length - 3;
 
             return (
               <div
@@ -314,8 +370,8 @@ export default function CalendarPage() {
               >
                 <div className="cal-month-date">{day.getDate()}</div>
                 <div className="cal-month-dots">
-                  {visibleDots.map((ev, i) => (
-                    <div key={i} className="cal-month-dot" style={{ background: ev.color }} />
+                  {visibleDots.map((dot, i) => (
+                    <div key={i} className="cal-month-dot" style={{ background: dot.color }} />
                   ))}
                   {extraCount > 0 && <span className="cal-month-more">+{extraCount}</span>}
                 </div>
@@ -324,44 +380,62 @@ export default function CalendarPage() {
           })}
         </div>
 
-        {selectedDay && (
-          <div className="cal-day-events">
-            <div className="cal-day-events-title">
-              {selectedDay.toLocaleDateString('en-US', {
-                weekday: 'long', month: 'long', day: 'numeric',
-              })}
-            </div>
-            {getEventsForDayOfWeek(selectedDay, calEvents).length === 0 ? (
-              <p className="cal-agenda-free">No events</p>
-            ) : (
-              getEventsForDayOfWeek(selectedDay, calEvents).map(ev => (
-                <div
-                  key={ev.id}
-                  className="cal-agenda-event"
-                  style={{ borderLeftColor: ev.color }}
-                  onClick={() => setSelectedEvent(ev)}
-                >
-                  <div className="cal-agenda-event-time">
-                    {formatTime(ev.startHour, ev.startMin)} – {formatTime(ev.endHour, ev.endMin)}
-                  </div>
-                  <div className="cal-agenda-event-title">{ev.title}</div>
-                  {ev.location && (
-                    <div className="cal-agenda-event-loc">
-                      <MdLocationOn size={12} /> {ev.location}
-                    </div>
-                  )}
+        {selectedDay && (() => {
+          const selEvents  = getEventsForDayOfWeek(selectedDay, calEvents);
+          const selCourses = getCoursesForDate(selectedDay, courses);
+          return (
+            <div className="cal-day-events">
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                <span className="cal-day-events-title" style={{ margin: 0 }}>
+                  {selectedDay.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+                </span>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <button className="cal-arrow-btn" style={{ background: '#f0f2f5', color: '#667eea' }}
+                    onClick={() => setSelectedDay(d => new Date(d.getTime() - 86400000))}>
+                    <MdChevronLeft size={18} />
+                  </button>
+                  <button className="cal-arrow-btn" style={{ background: '#f0f2f5', color: '#667eea' }}
+                    onClick={() => setSelectedDay(d => new Date(d.getTime() + 86400000))}>
+                    <MdChevronRight size={18} />
+                  </button>
                 </div>
-              ))
-            )}
-          </div>
-        )}
+              </div>
+
+              {selCourses.map(c => (
+                <div key={`course-${c.courseID}`} className="cal-agenda-event"
+                  style={{ borderLeftColor: c.color || '#667eea' }}>
+                  <div className="cal-agenda-event-time">🎓 Course starts today</div>
+                  <div className="cal-agenda-event-title">{c.icon} {c.courseName}</div>
+                  {c.courseCode && <div className="cal-agenda-event-loc">{c.courseCode}</div>}
+                </div>
+              ))}
+
+              {selEvents.length === 0 && selCourses.length === 0 ? (
+                <p className="cal-agenda-free">No events</p>
+              ) : (
+                selEvents.map(ev => (
+                  <div key={ev.id} className="cal-agenda-event" style={{ borderLeftColor: ev.color }}
+                    onClick={() => setSelectedEvent(ev)}>
+                    <div className="cal-agenda-event-time">
+                      {formatTime(ev.startHour, ev.startMin)} – {formatTime(ev.endHour, ev.endMin)}
+                    </div>
+                    <div className="cal-agenda-event-title">{ev.title}</div>
+                    {ev.location && (
+                      <div className="cal-agenda-event-loc"><MdLocationOn size={12} /> {ev.location}</div>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          );
+        })()}
       </div>
     );
   };
 
   // ── AGENDA VIEW ──────────────────────────────────────────────────────────────
   const renderAgendaView = () => {
-    const agendaItems = getAgendaItems(currentDate, calEvents);
+    const agendaItems = getAgendaItems(currentDate, calEvents, courses);
     return (
       <div className="cal-agenda-container">
         {agendaItems.length === 0 ? (
@@ -383,7 +457,17 @@ export default function CalendarPage() {
                   {group.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                 </span>
               </div>
-              {group.events.length === 0 ? (
+
+              {(group.courses || []).map(c => (
+                <div key={`course-${c.courseID}`} className="cal-agenda-event"
+                  style={{ borderLeftColor: c.color || '#667eea' }}>
+                  <div className="cal-agenda-event-time">🎓 Course starts</div>
+                  <div className="cal-agenda-event-title">{c.icon} {c.courseName}</div>
+                  {c.courseCode && <div className="cal-agenda-event-loc">{c.courseCode}</div>}
+                </div>
+              ))}
+
+              {group.events.length === 0 && (group.courses || []).length === 0 ? (
                 <p className="cal-agenda-free">No events</p>
               ) : (
                 group.events.map(ev => (
