@@ -85,7 +85,7 @@ Every expert was once a beginner who refused to give up.
 Morning minds are sharp minds — make today count."""
 
         response = _gemini_client.models.generate_content(
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             contents=prompt,
         )
         quote = response.text.strip().strip('"').strip("'").strip("—").strip()

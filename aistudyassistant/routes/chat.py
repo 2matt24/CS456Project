@@ -16,7 +16,7 @@ chat_bp = Blueprint("chat", __name__)
 _GEMINI_KEY    = (os.getenv("GEMINI_API_KEY") or "").strip()
 _gemini_client = genai.Client(api_key=_GEMINI_KEY) if _GEMINI_KEY else None
 
-_MODEL_NAME = "gemini-2.0-flash"
+_MODEL_NAME = "gemini-2.5-flash"
 
 _BASE_SYSTEM = (
     "You are a helpful AI Study Assistant for a student productivity app. "

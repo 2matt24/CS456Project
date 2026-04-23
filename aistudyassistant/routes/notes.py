@@ -420,7 +420,7 @@ Format strictly in markdown with the headings above. Be thorough but concise (25
 
     try:
         response = _gemini_client.models.generate_content(
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             contents=prompt,
         )
         summary_text = (response.text or "").strip()
@@ -492,7 +492,7 @@ Return ONLY a JSON array with this EXACT structure (no markdown, no explanation 
 
     try:
         response = _gemini_client.models.generate_content(
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             contents=prompt,
         )
         raw = response.text.strip()

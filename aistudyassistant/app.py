@@ -145,7 +145,7 @@ def test_gemini():
     try:
         client = _genai.Client(api_key=key)
         resp = client.models.generate_content(
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             contents="Say 'OK' in one word.",
         )
         return {"status": "ok", "response": resp.text.strip()}, 200
